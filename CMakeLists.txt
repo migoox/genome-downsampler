@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 17)
 
 # Enable this globally to avoid conflicts between
 # -Wpedantic being enabled and -std=c++20 and -std=gnu++20
@@ -8,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set the project name and language
-project(cuda-dna-downsampler LANGUAGES CXX)
+project(cuda-dna-downsampler LANGUAGES CXX CUDA)
 
 # Dependencies with CPM
 #   https://github.com/cpm-cmake/CPM.cmake/blob/master/README.md
