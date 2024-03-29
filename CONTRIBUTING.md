@@ -51,6 +51,7 @@ Required software:
 - **stdlibc++** (for clang 14.0 we need at least 12.0) – GNU implementation of C++ standard library, there is also LLVM’s libc, but we are going to use stdlibc++
 - **cmake** (at least 3.21),
 - **cmake-format** (at least 0.6) – allows cmake files formatting,
+- **python3** & **pre-commit** – required for the github hooks 
 
 Required vscode extensions:
 - **clangd** (author: LLVM) – clangd is a language server, and provides C++ IDE features to editors,
@@ -94,3 +95,9 @@ When the project is opened for the first time vscode will ask you for choosing c
 
 
 Don’t use regular run, when you want to build or run your app use `Ctrl+Shfig+P` and choose CMake Build/Run/Debug.
+
+### Pre-commits
+
+```bash
+git commit --no-verify
+```
