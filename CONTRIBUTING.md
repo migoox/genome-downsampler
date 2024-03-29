@@ -41,8 +41,9 @@ https://github.com/Jamagas/CMake
 ## Setup
 Required software:
 - **CUDA 12.4**: nvcc, cuda toolkit
-- **gcc/g++** (at least 12.0) – compilation of `.cpp` files on linux, 
+- **gcc/g++** (at least 12.0) – compilation of `.cpp` files on linux,
 - **clang/clang++** (at least 14.0) – LLVM’s frontend for g++ and msvc (it overlays both), clang supports CUDA $\leq$ 12.1, so we are not going to use it for compilation, but [clangd](https://clangd.llvm.org/features) and [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) depend on it,
+- **clang-tidy**
 - [**clangd**](https://clangd.llvm.org/features) (at least 14.0) – LLVM's cpp LSP (Language Server Protocol):
   - runs the clang compiler on your code as you type, the compiler may suggest fixes for many common problems automatically,
   - embeds [clang-tidy](https://clang.llvm.org/extra/clang-tidy/) which provides extra hints about code problems: bug-prone patterns, performance traps, and style issues,
@@ -51,6 +52,8 @@ Required software:
 - **stdlibc++** (for clang 14.0 we need at least 12.0) – GNU implementation of C++ standard library, there is also LLVM’s libc, but we are going to use stdlibc++
 - **cmake** (at least 3.21),
 - **cmake-format** (at least 0.6) – allows cmake files formatting,
+- **python3** – required for the github hooks,
+- **clang-apply-replacements**
 
 Required vscode extensions:
 - **clangd** (author: LLVM) – clangd is a language server, and provides C++ IDE features to editors,
@@ -94,3 +97,15 @@ When the project is opened for the first time vscode will ask you for choosing c
 
 
 Don’t use regular run, when you want to build or run your app use `Ctrl+Shfig+P` and choose CMake Build/Run/Debug.
+
+### Pre-commits
+
+```bash
+git commit --no-verify
+```
+
+
+### TODO
+- clang-tidy vscode (includes)
+- clang-tidy & clang-format github action
+- test library

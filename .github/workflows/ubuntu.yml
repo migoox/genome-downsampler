@@ -1,0 +1,68 @@
+# Compile project on Ubuntu
+name: Ubuntu
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            cuda: "12.4"
+            gcc: 12
+    env:
+      build_dir: "build"
+      config: "Release"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install CUDA
+      env:
+        cuda: ${{ matrix.cuda }}
+      run: ./scripts/actions/install_cuda_ubuntu.sh
+      shell: bash
+
+    # Specify the correct host compilers
+    - name: Install/Select gcc and g++ 
+      run: |
+        sudo apt-get install -y gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
+        echo "CC=/usr/bin/gcc-${{ matrix.gcc }}" >> $GITHUB_ENV
+        echo "CXX=/usr/bin/g++-${{ matrix.gcc }}" >> $GITHUB_ENV
+        echo "CUDAHOSTCXX=/usr/bin/g++-${{ matrix.gcc }}" >> $GITHUB_ENV
+
+    - name: Configure cmake
+      id: configure
+      run: cmake . -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }}
+
+    - name: Configure Error Processing
+      if: ${{ failure() && steps.configure.outcome == 'failure' }}
+      run: |
+          if [[ -d "${{ env.build_dir }}" ]]; then
+            pushd "${{ env.build_dir }}"
+            if [[ -f "CMakeFiles/CMakeOutput.log" ]]; then
+              echo "---- CMakeFiles/CMakeOutput.log"
+              cat CMakeFiles/CMakeOutput.log
+              echo "----"
+            fi
+            if [[ -f "CMakeFiles/CMakeError.log" ]]; then
+              echo "---- CMakeFiles/CMakeError.log"
+              cat CMakeFiles/CMakeError.log
+              echo "----"
+            fi
+          fi
+
+
+
+    - name: Build everything else
+      working-directory: ${{ env.build_dir }}
+      run: cmake --build . --target all --verbose -j `nproc`
+
+    - name: Clang-tidy check
+      run: ./scripts/actions/run-clang-tidy.sh
