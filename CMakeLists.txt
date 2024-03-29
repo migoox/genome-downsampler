@@ -8,6 +8,10 @@ set(CMAKE_CUDA_STANDARD 17)
 # for example when compiling with PCH enabled
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# The build process is kept in a different directory from
+# the main source code
+set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
+
 # Set the project name and language
 project(cuda-dna-downsampler LANGUAGES CXX CUDA)
 
