@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# https://github.com/HorstBaerbel/
+# Copyright (c) 2020 HorstBaerbel / Bim Overbohm / bim.overbohm@googlemail.com
+
 # Run clang-tidy recursively and parallel on directory
 # Usage: run-clang-tidy sourcedir builddir excludedirs extensions
 # extensions and excludedirs are specified as comma-separated 
