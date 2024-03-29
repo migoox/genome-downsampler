@@ -12,6 +12,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # the main source code
 set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Set the project name and language
 project(cuda-dna-downsampler LANGUAGES CXX CUDA)
 
