@@ -3,41 +3,43 @@
 
 #include <iostream>
 
-const int N = 10;  // Or any suitable size
+const int kN = 10;  // Or any suitable size
 
 // Kernel definition
-__global__ void MatAdd(float A[N][N], float B[N][N], float C[N][N]) {
-    int i = threadIdx.x;
-    int j = threadIdx.y;
+__global__ void MatAdd(float A[kN][kN], float B[kN][kN], float C[kN][kN]) {
+    int i = static_cast<int>(threadIdx.x);
+    int j = static_cast<int>(threadIdx.y);
     C[i][j] = A[i][j] + B[i][j];
 }
 
 int main() {
-    float A[N][N], B[N][N], C[N][N];
+    float a[kN][kN];
+    float b[kN][kN];
+    float c[kN][kN];
+
+    float variable_two = 0.5F;  // NOLINT
 
     // Initialize matrices A and B with some values
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            A[i][j] =
-                i * N + j;  // Example initialization, you can use any method
-            B[i][j] = (i * N + j) *
-                      2;  // Example initialization, you can use any method
+    for (int i = 0; i < kN; ++i) {
+        for (int j = 0; j < kN; ++j) {
+            a[i][j] = static_cast<float>(i * kN + j);
+            b[i][j] = static_cast<float>((i * kN + j) * 2);
         }
     }
 
     // Kernel invocation with one block of N * N * 1 threads
-    int numBlocks = 1;
-    dim3 threadsPerBlock(N, N);
-    MatAdd<<<numBlocks, threadsPerBlock>>>(A, B, C);
+    int num_blocks = 1;
+    dim3 threads_per_block(kN, kN);
+    MatAdd<<<num_blocks, threads_per_block>>>(a, b, c);
 
     // Copy result from device memory to host memory
-    cudaMemcpy(C, C, N * N * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(c, c, kN * kN * sizeof(float), cudaMemcpyDeviceToHost);
 
     // Display the result matrix C
     std::cout << "Result Matrix C:" << std::endl;
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            std::cout << C[i][j] << " ";
+    for (auto& i : c) {
+        for (float j : i) {
+            std::cout << j << " ";
         }
         std::cout << std::endl;
     }

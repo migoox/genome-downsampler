@@ -52,7 +52,8 @@ Required software:
 - **stdlibc++** (for clang 14.0 we need at least 12.0) – GNU implementation of C++ standard library, there is also LLVM’s libc, but we are going to use stdlibc++
 - **cmake** (at least 3.21),
 - **cmake-format** (at least 0.6) – allows cmake files formatting,
-- **python3** & **pre-commit** – required for the github hooks
+- **python3** – required for the github hooks,
+- **clang-apply-replacements**
 
 Required vscode extensions:
 - **clangd** (author: LLVM) – clangd is a language server, and provides C++ IDE features to editors,

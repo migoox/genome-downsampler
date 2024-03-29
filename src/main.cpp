@@ -1,9 +1,10 @@
-// #include <CLI/App.hpp>
+#include <CLI/App.hpp>
 #include <iostream>
-// #include <string>
+#include <string>
 
 int main() {
-    int i = 0;
-    std::cout << "Hello World!\n";
+    int test[100] = {};  // NOLINT
+    int test_dupa = 0;
+    std::cout << "Hello World!" << test_dupa << "\n";
     return 0;
 }

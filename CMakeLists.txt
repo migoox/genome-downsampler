@@ -12,6 +12,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # the main source code
 set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 
+# Using clang-tidy this way slows down the compilation
+# set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set the project name and language
