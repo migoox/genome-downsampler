@@ -1,0 +1,1 @@
+python3 /run-clang-tidy.py '.' 'build' 'build' 'c,h,cpp,hpp,cu,cuh' 

@@ -60,3 +60,5 @@ jobs:
       working-directory: ${{ env.build_dir }}
       run: cmake --build . --target all --verbose -j `nproc`
 
+    - name: Clang-tidy check
+      run: ./scripts/actions/run-clang-tidy.sh
