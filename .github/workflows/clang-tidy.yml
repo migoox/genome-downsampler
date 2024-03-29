@@ -15,7 +15,6 @@ jobs:
       uses: HorstBaerbel/action-clang-tidy@1.2
       with:
         scandir: '.'
-        builddir: 'build'
         excludedirs: ''
         extensions: 'c,h,cpp,hpp,cu,cuh'
         cmakeoptions: ''
