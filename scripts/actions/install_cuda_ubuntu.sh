@@ -1,3 +1,6 @@
+# FROM: https://github.com/ptheywood/cuda-cmake-github-actions/tree/master
+# Copyright (c) 2021 Peter Heywood
+
 # @todo - better / more robust parsing of inputs from env vars.
 ## -------------------
 ## Constants
@@ -7,7 +10,8 @@
 # @todo - pass this in from outside the script? 
 # @todo - check the specified subpackages exist via apt pre-install?  apt-rdepends cuda-9-0 | grep "^cuda-"?
 
-# Ideally choose from the list of meta-packages to minimise variance between cuda versions (although it does change too). Some of these packages may not be availble in older CUDA releases
+# Ideally choose from the list of meta-packages to minimise variance between cuda versions (although it does change too). 
+# Some of these packages may not be availble in older CUDA releases
 CUDA_PACKAGES_IN=(
     "cuda-compiler"
     "cuda-cudart-dev"

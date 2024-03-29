@@ -10,7 +10,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            cuda: "12.0"
+            cuda: "12.4"
             gcc: 12
     env:
       build_dir: "build"
