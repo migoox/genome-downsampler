@@ -20,7 +20,7 @@
             };
           in
           {
-            default = with pkgs; mkShell.override { stdenv = clangStdenv; }
+            default = with pkgs; mkShell.override { stdenv = gcc12Stdenv; }
               {
                 shellHook = ''
                   export CUDA_PATH=${pkgs.cudatoolkit}
@@ -42,9 +42,7 @@
                   llvmPackages.libcxxClang
 
                   cudatoolkit linuxPackages.nvidia_x11
-                  xorg.libXi xorg.libXmu freeglut
-                  xorg.libXext xorg.libX11 xorg.libXv xorg.libXrandr zlib
-                  ncurses5 stdenv.cc binutils
+                  ncurses5 binutils
                 ];
               };
           }
