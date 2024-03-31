@@ -28,3 +28,4 @@ cpmaddpackage("gh:CLIUtils/CLI11@2.4.1")
 
 # Subdirectories
 add_subdirectory(src)
+add_subdirectory(libs)

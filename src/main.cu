@@ -1,7 +1,11 @@
 #include <stdio.h>
 
+#include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "qmcp-solver/qmcp-solver.hpp"
+#include "qmcp-solver/sequence_network_solver.hpp"
+#include "qmcp-solver/solver.hpp"
 
 cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
@@ -15,6 +19,10 @@ int main() {
     const int a[array_size] = {1, 2, 3, 4, 5};
     const int b[array_size] = {10, 20, 30, 40, 50};
     int c[array_size] = {0};
+
+    bam_api::BamApi::test_func();
+    auto solver = qmcp::SequenceNetworkSolver();
+    solver.solve();
 
     // Add vectors in parallel.
     cudaError_t cuda_status = addWithCuda(c, a, b, array_size);
