@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
 # Enable this globally to avoid conflicts between
 # -Wpedantic being enabled and -std=c++20 and -std=gnu++20
 # for example when compiling with PCH enabled
@@ -20,11 +25,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Set the project name and language
 project(cuda-dna-downsampler LANGUAGES CXX CUDA)
 
+set(BUILD_DEPS ON)
 # Dependencies with CPM
 #   https://github.com/cpm-cmake/CPM.cmake/blob/master/README.md
+
 include(cmake/CPM.cmake)
 
 cpmaddpackage("gh:CLIUtils/CLI11@2.4.1")
+cpmaddpackage(
+    NAME
+    Ccache.cmake
+    GITHUB_REPOSITORY
+    TheLartians/Ccache.cmake
+    VERSION
+    1.2)
+cpmaddpackage("gh:google/or-tools@9.9")
+
+# Use ccache to speed up the build process
+set(USE_CCACHE YES)
 
 # Subdirectories
 add_subdirectory(src)
