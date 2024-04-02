@@ -1,5 +1,6 @@
 # Contributing
-
+## TODO
+- `.cu` files don't see the packages added with CPM (it compiles but clangd shows errors in vscode), it needs to be fixed
 ## File structure
 
 ```
