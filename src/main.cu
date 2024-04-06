@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <boost/graph/adjacency_list.hpp>
+
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -13,14 +15,28 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 }
 
 int main() {
+    // Bam api and qmcp solver test
+    bam_api::BamApi::test_func();
+    auto solver = qmcp::SequenceNetworkSolver();
+    solver.solve();
+
+    // Boost graphs test
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS>
+        Graph;
+
+    Graph test_graph;
+    boost::add_vertex(test_graph);
+    boost::add_vertex(test_graph);
+    boost::add_vertex(test_graph);
+
+    boost::add_edge(0, 1, test_graph);
+    boost::add_edge(1, 2, test_graph);
+
+    // Define some variables
     const int array_size = 5;
     const int a[array_size] = {1, 2, 3, 4, 5};
     const int b[array_size] = {10, 20, 30, 40, 50};
     int c[array_size] = {0};
-
-    bam_api::BamApi::test_func();
-    auto solver = qmcp::SequenceNetworkSolver();
-    solver.solve();
 
     // Add vectors in parallel.
     cudaError_t cuda_status = addWithCuda(c, a, b, array_size);
@@ -31,6 +47,7 @@ int main() {
 
     printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",  // NOLINT
            c[0], c[1], c[2], c[3], c[4]);
+
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.
     cuda_status = cudaDeviceReset();
