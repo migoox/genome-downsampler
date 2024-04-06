@@ -30,11 +30,11 @@ jobs:
     - name: Install CUDA
       env:
         cuda: ${{ matrix.cuda }}
-      run: ./scripts/actions/install_cuda_ubuntu.sh
+      run: ./scripts/install_cuda_ubuntu.sh
       shell: bash
     
     - name: Install dependencies 
-      run: ./scripts/actions/install_dependencies_ubuntu.sh
+      run: ./scripts/install_dependencies_ubuntu.sh
       shell: bash
 
     # Specify the correct host compilers
@@ -71,4 +71,4 @@ jobs:
       run: cmake --build . --target all --verbose -j `nproc`
 
     - name: Clang-tidy check
-      run: ./scripts/actions/run-clang-tidy.sh
+      run: ./scripts/run-clang-tidy.sh
