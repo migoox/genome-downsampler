@@ -24,6 +24,10 @@ jobs:
         cuda: ${{ matrix.cuda }}
       run: ./scripts/actions/install_cuda_ubuntu.sh
       shell: bash
+    
+    - name: Install dependencies 
+      run: ./scripts/actions/install_dependencies_ubuntu.sh
+      shell: bash
 
     # Specify the correct host compilers
     - name: Install/Select gcc and g++ 
