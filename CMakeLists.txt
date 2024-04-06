@@ -48,7 +48,7 @@ endif()
 if(DEFINED ENV{Boost_LIBRARYDIR})
     set(Boost_LIBRARYDIR $ENV{Boost_LIBRARYDIR})
 endif()
-find_package(Boost 1.70 REQUIRED)
+find_package(Boost 1.74 REQUIRED)
 
 # Find the ccache program
 find_program(CCACHE_PROGRAM ccache)
