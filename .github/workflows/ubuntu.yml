@@ -1,7 +1,12 @@
 # Compile project on Ubuntu
 name: Ubuntu
-on: [ push, pull_request ]
-    
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -30,7 +35,7 @@ jobs:
       shell: bash
 
     # Specify the correct host compilers
-    - name: Install/Select gcc and g++ 
+    - name: Install/Select gcc and g++
       run: |
         sudo apt-get install -y gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
         echo "CC=/usr/bin/gcc-${{ matrix.gcc }}" >> $GITHUB_ENV
