@@ -13,7 +13,7 @@ set(CMAKE_CUDA_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # The build process is kept in a different directory from
-# the main source code
+# the main source code, it is kept in ./build/
 set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 
 # Using clang-tidy this way slows down the compilation
@@ -37,19 +37,71 @@ cpmaddpackage(
     VERSION
     1.2)
 
-# Use '.a' files (static libraries)
-set(Boost_USE_STATIC_LIBS OFF)
+if(UNIX)
+    # Add popular cmake configurations paths on UNIX systems,
+    # these directories will be searched when the find_package looks
+    # for the <Package>Config.cmake files.
+    set(CMAKE_PREFIX_PATH
+        ${CMAKE_PREFIX_PATH}
+        /usr/lib/x86_64-linux-gnu/cmake/
+        /usr/lib/cmake/
+        /usr/local/lib/cmake/)
+endif()
 
-# If find_package(Boost) doesn't work, environmental variables
-# my be set in order to help the cmake
+# Set additional Find<Package>.cmake files direction
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
+
+# Display CMAKE_PREFIX_PATH entries
+message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
+
+# Use '.a' files (static libraries)
+set(Boost_USE_STATIC_LIBS ON)
+
+# If find_package(Boost) can't find BoostConfig.cmake, it will try
+# to look for the FindBoost.cmake. FindBoost.cmake has some
+# variables that may help during the Boost search, user can define
+# env variables in order to set them.
 if(DEFINED ENV{Boost_INCLUDE_DIR})
     set(Boost_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
+elseif(UNIX)
+    set(Boost_INCLUDE_DIR /usr/include/ /usr/local/include)
 endif()
+
 if(DEFINED ENV{Boost_LIBRARYDIR})
     set(Boost_LIBRARYDIR $ENV{Boost_LIBRARYDIR})
+elseif(UNIX)
+    set(Boost_LIBRARYDIR /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
 endif()
+
+# Add Boost Library
 find_package(Boost 1.74 REQUIRED)
 
+if(DEFINED ENV{ZLIB_INCLUDE_DIR})
+    set(ZLIB_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
+elseif(UNIX)
+    set(ZLIB_INCLUDE_DIR /usr/include/ /usr/local/include)
+endif()
+
+if(DEFINED ENV{ZLIB_LIBRARYDIR})
+    set(ZLIB_LIBRARY $ENV{Boost_LIBRARYDIR})
+elseif(UNIX)
+    set(ZLIB_LIBRARY /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
+endif()
+
+# Add ZLIB Library (htslib depends on it)
+find_package(ZLIB REQUIRED)
+
+# if(DEFINED ENV{HTSlib_LIBRARY})
+#     set(HTSlib_LIBRARY $ENV{HTSlib_LIBRARY})
+# elseif(UNIX)
+#     set(HTSlib_LIBRARY /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
+# endif()
+
+# Add htslib Library
+find_package(HTSlib REQUIRED)
+
+# set(HTSlib_LIBRARIES /usr/local/lib/)
+# message(HTSlib=${HTSlib_LIBRARIES})
 # Find the ccache program
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
