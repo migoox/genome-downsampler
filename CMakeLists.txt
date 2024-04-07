@@ -91,17 +91,9 @@ endif()
 # Add ZLIB Library (htslib depends on it)
 find_package(ZLIB REQUIRED)
 
-# if(DEFINED ENV{HTSlib_LIBRARY})
-#     set(HTSlib_LIBRARY $ENV{HTSlib_LIBRARY})
-# elseif(UNIX)
-#     set(HTSlib_LIBRARY /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
-# endif()
-
 # Add htslib Library
 find_package(HTSlib REQUIRED)
 
-# set(HTSlib_LIBRARIES /usr/local/lib/)
-# message(HTSlib=${HTSlib_LIBRARIES})
 # Find the ccache program
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
