@@ -1,7 +1,4 @@
-#include <htslib/sam.h>
 #include <stdio.h>
-
-#include <boost/graph/adjacency_list.hpp>
 
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
@@ -19,18 +16,6 @@ int main() {
     bam_api::BamApi::test_func();
     auto solver = qmcp::SequenceNetworkSolver();
     solver.solve();
-
-    // Boost graphs test
-    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS>
-        Graph;
-
-    Graph test_graph;
-    boost::add_vertex(test_graph);
-    boost::add_vertex(test_graph);
-    boost::add_vertex(test_graph);
-
-    boost::add_edge(0, 1, test_graph);
-    boost::add_edge(1, 2, test_graph);
 
     // Define some variables
     const int array_size = 5;
