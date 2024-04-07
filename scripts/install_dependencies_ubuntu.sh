@@ -18,5 +18,21 @@ else
     USE_SUDO=
 fi
 
-# Install boost library
-$USE_SUDO sudo apt install libboost-all-dev
+
+$USE_SUDO apt update 
+
+# Install Boost library
+$USE_SUDO apt install libboost-all-dev
+
+# Install htslib dependencies (https://github.com/samtools/htslib/blob/develop/INSTALL)
+$USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
+
+# Install htslib
+# By default, 'make install' installs HTSlib libraries under /usr/local/lib,
+# HTSlib header files under /usr/local/include
+(
+    git clone https://github.com/samtools/htslib
+    cd htslib
+    make
+    make install
+)
