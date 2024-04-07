@@ -23,10 +23,11 @@
             default = with pkgs; mkShell.override { stdenv = gcc12Stdenv; }
               {
                 shellHook = ''
-                  export CUDA_PATH=${pkgs.cudatoolkit}
-                  export LD_LIBRARY_PATH=${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.ncurses5}/lib
-                  export EXTRA_LDFLAGS="-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib"
+                  export CUDA_PATH=${cudatoolkit}
+                  export LD_LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:${pkgs.ncurses5}/lib
+                  export EXTRA_LDFLAGS="-L/lib -L${linuxPackages.nvidia_x11}/lib"
                   export EXTRA_CCFLAGS="-I/usr/include"
+                  export HTLSIB_ROOT=${htslib}
 
                   zellij
                 '';
@@ -43,6 +44,8 @@
 
                   cudatoolkit linuxPackages.nvidia_x11
                   ncurses5 binutils
+
+                  boost htslib
                 ];
               };
           }
