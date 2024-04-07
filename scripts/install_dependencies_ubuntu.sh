@@ -34,5 +34,5 @@ $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev libl
     git clone --recurse-submodules https://github.com/samtools/htslib
     cd htslib
     make
-    make install
+    $USE_SUDO make install
 )
