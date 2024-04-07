@@ -48,7 +48,15 @@ endif()
 if(DEFINED ENV{Boost_LIBRARYDIR})
     set(Boost_LIBRARYDIR $ENV{Boost_LIBRARYDIR})
 endif()
+# list(APPEND CMAKE_PREFIX_PATH /usr/lib/x86_64-linux-gnu/cmake/)
 find_package(Boost 1.74 REQUIRED)
+# message(CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH})
+
+set(ZLIB_INCLUDE_DIR /usr/include/)
+set(ZLIB_LIBRARY /usr/lib/x86_64-linux-gnu)
+find_package(ZLIB REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
+find_package(HTSlib REQUIRED)
 
 # Find the ccache program
 find_program(CCACHE_PROGRAM ccache)

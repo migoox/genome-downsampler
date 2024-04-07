@@ -1,3 +1,4 @@
+#include <htslib/sam.h>
 #include <stdio.h>
 
 #include <boost/graph/adjacency_list.hpp>
@@ -6,7 +7,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "qmcp-solver/qmcp-solver.hpp"
-
 cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 __global__ void addKernel(int* c, const int* a, const int* b) {

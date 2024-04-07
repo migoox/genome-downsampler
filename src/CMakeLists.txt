@@ -5,4 +5,5 @@ target_link_libraries(
     PRIVATE CLI11::CLI11
             Boost::boost
             bam-api
-            qmcp-solver)
+            qmcp-solver
+            ${HTSlib_LIBRARIES})
