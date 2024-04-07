@@ -126,7 +126,7 @@ The dependencies that needs to be installed by the developer are:
 sudo apt install libboost-all-dev 
 sudo apt apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
-git clone https://github.com/samtools/htslib/tree/master
+git clone https://github.com/samtools/htslib.git
 cd htslib
 make 
 sudo make install
