@@ -31,7 +31,7 @@ $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev libl
 # By default, 'make install' installs HTSlib libraries under /usr/local/lib,
 # HTSlib header files under /usr/local/include
 (
-    git clone --recurse-submodules https://github.com/samtools/htslib
+    git clone --recurse-submodules https://github.com/samtools/htslib/tree/master
     cd htslib
     make
     $USE_SUDO make install
