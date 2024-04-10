@@ -1,5 +1,6 @@
 #include <htslib/hts.h>
 #include <stdio.h>
+#include <vector>
 
 #include <iostream>
 
@@ -16,11 +17,19 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // Bam api and qmcp solver test
-    // auto ret =
-    // bam_api::BamApi::read_bam_aos("/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    // std::cout << "after aos: " << ret.read_pair_map.size() << std::endl;
+    bam_api::BamApi::test_func();
 
-    auto solver = qmcp::SequenceNetworkSolver();
+    //Create sample structs for code
+    bam_api::BamRead r1{ 0, 10, 100};
+    bam_api::BamRead r2 {2, 20, 200};
+
+    std::vector<bam_api::BamRead> reads {r1, r2};
+    std::vector<unsigned int> pair_map {0, 1};
+
+    bam_api::BamSequence sequence {reads, .PairMap = pair_map, .length=100};
+
+
+    auto solver = qmcp::SequenceNetworkSolver(sequence);
     solver.solve();
 
     // Define some variables

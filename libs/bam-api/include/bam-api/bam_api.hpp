@@ -17,6 +17,18 @@ class BamApi {
                          const std::filesystem::path& filepath);
 };
 
+struct BamRead {
+    unsigned int start;
+    unsigned int end;
+    unsigned int quality;
+};
+
+struct BamSequence {
+    std::vector<BamRead> reads;
+    std::vector<unsigned int> PairMap;
+    unsigned int length;
+};
+
 }  // namespace bam_api
 
 #endif
