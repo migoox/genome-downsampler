@@ -38,9 +38,20 @@ void qmcp::SequenceNetworkSolver::solve() {
 Graph create_circulation_Graph(const bam_api::BamSequence& sequence) {
     Graph circulation;
 
-    for(unsigned int i = 0; i<= sequence.length; i++) {
+
+    // TODO(borys): change it to be done in batch if possible
+    boost::add_vertex(circulation);
+    for(unsigned int i = 0; i< sequence.length; i++) {
         boost::add_vertex(circulation);
+        boost::add_edge(i, i+1, circulation);
     }
+
+    // add vertices
+    for(auto read : sequence.reads) {
+        boost::add_edge(read.start - 1, read.end, circulation);
+    }
+
+
 
 
 
