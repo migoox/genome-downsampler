@@ -2,12 +2,22 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/detail/adjacency_list.hpp>
+#include <boost/graph/named_function_params.hpp>
 #include <iostream>
 #include <boost/graph/cycle_canceling.hpp>
 #include <boost/graph/edmonds_karp_max_flow.hpp>
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS>
-        Graph;
+typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> Traits;
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
+                           boost::property<boost::vertex_name_t, std::string>,
+                           boost::property<boost::edge_capacity_t, long,
+                           boost::property<boost::edge_residual_capacity_t, long,
+                           boost::property<boost::edge_reverse_t, Traits::edge_descriptor>>> > Graph;
+
+    // Define the properties for the edges
+    typedef boost::property_map<Graph, boost::edge_capacity_t>::type CapacityMap;
+    typedef boost::property_map<Graph, boost::edge_residual_capacity_t>::type ResidualCapacityMap;
+    typedef boost::property_map<Graph, boost::edge_reverse_t>::type ReverseEdgeMap;
 
 Graph create_circulation_Graph(const bam_api::BamSequence& sequence);
 
@@ -36,21 +46,21 @@ void qmcp::SequenceNetworkSolver::solve() {
     
 }
 Graph create_circulation_Graph(const bam_api::BamSequence& sequence) {
-    Graph circulation;
-
+    Graph circulation(sequence.length);
 
     // TODO(borys): change it to be done in batch if possible
     boost::add_vertex(circulation);
     for(unsigned int i = 0; i< sequence.length; i++) {
-        boost::add_vertex(circulation);
         boost::add_edge(i, i+1, circulation);
     }
 
-    // add vertices
+    // add edges
     for(auto read : sequence.reads) {
         boost::add_edge(read.start - 1, read.end, circulation);
     }
 
+
+    boost::cycle_canceling(circulation,,,)
 
 
 
