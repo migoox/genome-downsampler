@@ -6,6 +6,7 @@
 #include <iostream>
 #include <boost/graph/cycle_canceling.hpp>
 #include <boost/graph/edmonds_karp_max_flow.hpp>
+#include <vector>
 
 typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> Traits;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,
@@ -46,19 +47,20 @@ void qmcp::SequenceNetworkSolver::solve() {
     
 }
 Graph create_circulation_Graph(const bam_api::BamSequence& sequence) {
-    Graph circulation(sequence.length);
 
-    // TODO(borys): change it to be done in batch if possible
-    boost::add_vertex(circulation);
+    typedef std::pair<int, int> Edge;
+
+    std::vector<Edge> edges(sequence.length + sequence.reads.size());
     for(unsigned int i = 0; i< sequence.length; i++) {
-        boost::add_edge(i, i+1, circulation);
+        //boost::add_edge(i, i+1, circulation);
+        edges[i] = Edge{i,i+1};
     }
 
-    // add edges
-    for(auto read : sequence.reads) {
-        boost::add_edge(read.start - 1, read.end, circulation);
+    for(unsigned int i = 0; i < sequence.reads.size(); i++) {
+        edges[i + sequence.length] = Edge{sequence.reads[i].start - 1, sequence.reads[i].end};
     }
 
+    Graph circulation(edges.data(),edges.data() + edges.size() / sizeof(Edge),sequence.length + 1);
 
     boost::cycle_canceling(circulation,,,)
 
