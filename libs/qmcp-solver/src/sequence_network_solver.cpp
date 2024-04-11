@@ -64,10 +64,5 @@ Graph create_circulation_Graph(const bam_api::BamSequence& sequence) {
 
     boost::cycle_canceling(circulation,,,)
 
-
-
-
-    boost::add_edge(0, 1, circulation);
-    boost::add_edge(1, 2, circulation);
     return circulation;
 }
