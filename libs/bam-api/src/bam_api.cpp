@@ -37,12 +37,19 @@ bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(std::string filepath) {
         // mytkom/TODO: log fatal
     }
 
+    int64_t id = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         ret_paired_reads.reads.push_back(
-            Read{.start_ind = bamdata->core.pos,
+            Read{.id = id,
+                 .start_ind = bamdata->core.pos,
                  .end_ind = bamdata->core.pos + bamdata->core.l_qseq,
-                 .quality = bamdata->core.qual});
-        // mytkom/TODO: handle paired seq
+                 .quality = bamdata->core.qual,
+                 .qname = bam_get_qname(bamdata),
+                 .is_first_read =
+                     static_cast<bool>(bamdata->core.flag & BAM_FREAD1)});
+
+        // mytkom/TODO: find paired sequence
+        id++;
     }
 
     if (ret_r >= 0)
@@ -91,11 +98,18 @@ bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(std::string filepath) {
         // mytkom/TODO: log fatal
     }
 
+    int64_t id = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
+        ret_paired_reads.ids.push_back(id);
         ret_paired_reads.start_inds.push_back(bamdata->core.pos);
-        ret_paired_reads.end_inds.push_back(bamdata->core.pos + bamdata->core.l_qseq);
+        ret_paired_reads.end_inds.push_back(bamdata->core.pos +
+                                            bamdata->core.l_qseq);
         ret_paired_reads.qualities.push_back(bamdata->core.qual);
+        ret_paired_reads.qnames.push_back(bam_get_qname(bamdata));
+        ret_paired_reads.is_first_read.push_back(static_cast<bool>(bamdata->core.flag & BAM_FREAD1));
         // mytkom/TODO: handle paired seq
+        // mytkom/TODO: ref genome length
+        id++;
     }
 
     if (ret_r >= 0)
