@@ -20,7 +20,7 @@ struct PairedReads {
     std::vector<int64_t> read_pair_map;
     int64_t ref_genome_length;
 
-    virtual void push_back(Read& read){};
+    virtual void push_back(Read& read) = 0;
     virtual ~PairedReads() = default;
 };
 
