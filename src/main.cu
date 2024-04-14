@@ -1,5 +1,6 @@
 #include <htslib/hts.h>
 #include <stdio.h>
+
 #include <iostream>
 
 #include "bam-api/bam_api.hpp"
@@ -15,7 +16,8 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // Bam api and qmcp solver test
-    // auto ret = bam_api::BamApi::read_bam_aos("/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
+    // auto ret =
+    // bam_api::BamApi::read_bam_aos("/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
     // std::cout << "after aos: " << ret.read_pair_map.size() << std::endl;
 
     auto solver = qmcp::SequenceNetworkSolver();

@@ -1,5 +1,4 @@
 #include "../include/bam-api/bam_api.hpp"
-#include "../include/bam-api/bam_paired_reads.hpp"
 
 #include <htslib/sam.h>
 
@@ -7,7 +6,10 @@
 #include <map>
 #include <ostream>
 
-void bam_api::BamApi::read_bam(bam_api::PairedReads &paired_reads, const std::string &filepath) {
+#include "../include/bam-api/bam_paired_reads.hpp"
+
+void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
+                               const std::string& filepath) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     int ret_r = 0;
@@ -77,13 +79,15 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads &paired_reads, const std::st
     }
 }
 
-bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(const std::string &filepath) {
+bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
+    const std::string& filepath) {
     SOAPairedReads ret_paired_reads;
     read_bam(ret_paired_reads, filepath);
     return ret_paired_reads;
 }
 
-bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(const std::string &filepath) {
+bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
+    const std::string& filepath) {
     AOSPairedReads ret_paired_reads;
     read_bam(ret_paired_reads, filepath);
     return ret_paired_reads;
