@@ -59,7 +59,7 @@ boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence&
 }
 
 
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence) {
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence, int M) {
     
     std::vector<int> b(sequence.length, 0);
 
@@ -69,5 +69,11 @@ std::vector<int> create_b_function(const bam_api::BamSequence& sequence) {
             b[j]++;
         }
     }
+
+    //cap over M to M
+    for(unsigned int i = 0; i<sequence.length; i++) {
+        if(b[i] > M) b[i] = M;
+    }
+
     return b;
 }
