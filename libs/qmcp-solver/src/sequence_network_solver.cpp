@@ -13,6 +13,7 @@
 
 boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence);
 std::vector<int> create_b_function(const bam_api::BamSequence& sequence);
+std::vector<int> create_demand_function(const bam_api::BamSequence& sequence);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
@@ -51,8 +52,8 @@ boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence&
         edge_adder.addEdge(sequence.reads[i].start - 1, sequence.reads[i].end, weight, 1);
     }
 
-    //create b funciton
-    std::vector<int> b = create_b_function(sequence);
+    //create demand funciton
+    std::vector<int> d = create_demand_function(sequence);
 
 
     return g;
@@ -76,4 +77,15 @@ std::vector<int> create_b_function(const bam_api::BamSequence& sequence, int M) 
     }
 
     return b;
+}
+
+std::vector<int> create_demand_function(const bam_api::BamSequence& sequence) {
+    std::vector<int> b = create_b_function(sequence);
+    std::vector<int> d(sequence.length);
+
+    for(int i =1; i<sequence.length - 1;i++) {
+        d[i] = b[i] - b[i + 1];
+    }
+    d[0] = 0;
+    return d;
 }
