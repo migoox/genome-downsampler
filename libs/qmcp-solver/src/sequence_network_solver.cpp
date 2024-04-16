@@ -11,18 +11,21 @@
 #include "qmcp-solver/network_graph.hpp"
 
 
-boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence);
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence);
-std::vector<int> create_demand_function(const bam_api::BamSequence& sequence);
+boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence,unsigned int M);
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence,unsigned int M);
+std::vector<int> create_demand_function(const bam_api::BamSequence& sequence,unsigned int M);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
     
-    boost::NetworkGraph::Graph network_graph = create_circulation_Graph(this->sequence);
+    boost::NetworkGraph::Graph network_graph = create_circulation_Graph(this->sequence,this->M);
+
+    boost::edmonds_karp_max_flow(network_graph, s, t);
+    boost::cycle_canceling(g);
     
 }
 
-boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence& sequence) {
+boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence& sequence,unsigned int M) {
 
     boost::NetworkGraph::vertex_descriptor s;
     boost::NetworkGraph::vertex_descriptor t;
@@ -53,14 +56,23 @@ boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence&
     }
 
     //create demand funciton
-    std::vector<int> d = create_demand_function(sequence);
+    std::vector<int> d = create_demand_function(sequence,M);
 
 
+    //add s and t vertex
+    // created edges from s to GRAPH and from t to GRAPH with correct capacites and weights
+    s = add_vertex(g);
+    t = add_vertex(g);
+
+    for(unsigned int i = 1; i< sequence.length - 1; i++) {
+        if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i]);
+        else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i]); 
+    }
     return g;
 }
 
 
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence, int M) {
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence,unsigned int M) {
     
     std::vector<int> b(sequence.length, 0);
 
@@ -79,8 +91,8 @@ std::vector<int> create_b_function(const bam_api::BamSequence& sequence, int M) 
     return b;
 }
 
-std::vector<int> create_demand_function(const bam_api::BamSequence& sequence) {
-    std::vector<int> b = create_b_function(sequence);
+std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, unsigned int M) {
+    std::vector<int> b = create_b_function(sequence,M);
     std::vector<int> d(sequence.length);
 
     for(int i =1; i<sequence.length - 1;i++) {

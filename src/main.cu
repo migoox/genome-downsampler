@@ -29,7 +29,7 @@ int main() {
     bam_api::BamSequence sequence {reads, .PairMap = pair_map, .length=100};
 
 
-    auto solver = qmcp::SequenceNetworkSolver(sequence);
+    auto solver = qmcp::SequenceNetworkSolver(sequence,20);
     solver.solve();
 
     // Define some variables
