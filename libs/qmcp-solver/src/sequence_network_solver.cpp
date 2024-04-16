@@ -12,6 +12,7 @@
 
 
 boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence);
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
@@ -32,24 +33,41 @@ boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence&
             add_vertex(g);
     }
 
-    boost::NetworkGraph::Capacity  capacity = get(boost::edge_capacity, g);
+    boost::NetworkGraph::Capacity capacity = get(boost::edge_capacity, g);
     boost::NetworkGraph::Reversed rev = get(boost::edge_reverse, g);
     boost::NetworkGraph::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g); 
     boost::NetworkGraph::Weight weight = get(boost::edge_weight, g);
 
-    boost::NetworkGraph::EdgeAdder ea(g, weight, capacity, rev, residual_capacity);
+    boost::NetworkGraph::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity);
 
     // create backwards edges with infinity capacity
     for(unsigned int i = 0; i< sequence.length; i++) {
-        ea.addEdge(i + 1, i, 0, INT_MAX);
+        edge_adder.addEdge(i + 1, i, 0, INT_MAX);
     }
 
     //create normal edges
     for(unsigned int i = 0; i < sequence.reads.size(); i++) {
         int weight = (sequence.reads[i].start - sequence.reads[i].end) * sequence.reads[i].quality;
-        ea.addEdge(sequence.reads[i].start - 1, sequence.reads[i].end, weight, 1);
+        edge_adder.addEdge(sequence.reads[i].start - 1, sequence.reads[i].end, weight, 1);
     }
+
+    //create b funciton
+    std::vector<int> b = create_b_function(sequence);
 
 
     return g;
+}
+
+
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence) {
+    
+    std::vector<int> b(sequence.length, 0);
+
+    for(unsigned int i =0; i<sequence.reads.size(); i++) {
+        
+        for(unsigned int j = sequence.reads[i].start; j<sequence.reads[i].end; j++) {
+            b[j]++;
+        }
+    }
+    return b;
 }
