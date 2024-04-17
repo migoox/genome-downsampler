@@ -14,19 +14,19 @@
 boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence,unsigned int M);
 std::vector<int> create_b_function(const bam_api::BamSequence& sequence,unsigned int M);
 std::vector<int> create_demand_function(const bam_api::BamSequence& sequence,unsigned int M);
+bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph::Graph& G);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
     
-    boost::NetworkGraph::Graph network_graph = create_circulation_Graph(this->sequence,this->M);
+    boost::NetworkGraph::Graph network_graph = create_circulation_Graph(this->sequence, this->M);
 
     boost::edmonds_karp_max_flow(network_graph, s, t);
     boost::cycle_canceling(g);
     
 }
 
-boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence& sequence,unsigned int M) {
-
+boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M) {
     boost::NetworkGraph::vertex_descriptor s;
     boost::NetworkGraph::vertex_descriptor t;
     boost::NetworkGraph::Graph g;
@@ -100,4 +100,10 @@ std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, un
     }
     d[0] = 0;
     return d;
+}
+
+bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph::Graph& G) {
+
+    boost::NetworkGraph::ResidualCapacity res = get(boost::edge_residual_capacity, G);
+    
 }
