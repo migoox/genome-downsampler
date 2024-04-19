@@ -3,6 +3,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/detail/adjacency_list.hpp>
 #include <boost/graph/named_function_params.hpp>
+#include <boost/graph/properties.hpp>
+#include <boost/range/iterator_range_core.hpp>
 #include <climits>
 #include <iostream>
 #include <boost/graph/cycle_canceling.hpp>
@@ -11,38 +13,41 @@
 #include "qmcp-solver/network_graph.hpp"
 
 
-boost::NetworkGraph::Graph create_circulation_Graph(const bam_api::BamSequence& sequence,unsigned int M);
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence,unsigned int M);
-std::vector<int> create_demand_function(const bam_api::BamSequence& sequence,unsigned int M);
-bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph::Graph& G);
+boost::NetworkGraph create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M);
+std::vector<int> create_b_function(const bam_api::BamSequence& sequence, unsigned int M);
+std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, unsigned int M);
+bam_api::BamSequence obtain_bamsequence(const boost::Network::Graph& G);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
     
-    boost::NetworkGraph::Graph network_graph = create_circulation_Graph(this->sequence, this->M);
+    boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence, this->M);
 
-    boost::edmonds_karp_max_flow(network_graph, s, t);
-    boost::cycle_canceling(g);
+    boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
+    boost::cycle_canceling(network_graph);
+
+    bam_api::BamSequence obtain_bamsequence(const boost::Network::Graph& network_graph);
     
 }
 
-boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M) {
-    boost::NetworkGraph::vertex_descriptor s;
-    boost::NetworkGraph::vertex_descriptor t;
-    boost::NetworkGraph::Graph g;
+boost::NetworkGraph  create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M) {
 
-    boost::NetworkGraph::size_type n(sequence.length + 1);
+    boost::Network::vertex_descriptor s;
+    boost::Network::vertex_descriptor t;
+    boost::Network::Graph g;
 
-    for(boost::NetworkGraph::size_type i = 0; i < n; ++i)   {
+    boost::Network::size_type n(sequence.length + 1);
+
+    for(boost::Network::size_type i = 0; i < n; ++i)   {
             add_vertex(g);
     }
 
-    boost::NetworkGraph::Capacity capacity = get(boost::edge_capacity, g);
-    boost::NetworkGraph::Reversed rev = get(boost::edge_reverse, g);
-    boost::NetworkGraph::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g); 
-    boost::NetworkGraph::Weight weight = get(boost::edge_weight, g);
+    boost::Network::Capacity capacity = get(boost::edge_capacity, g);
+    boost::Network::Reversed rev = get(boost::edge_reverse, g);
+    boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g); 
+    boost::Network::Weight weight = get(boost::edge_weight, g);
 
-    boost::NetworkGraph::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity);
+    boost::Network::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity);
 
     // create backwards edges with infinity capacity
     for(unsigned int i = 0; i< sequence.length; i++) {
@@ -68,7 +73,8 @@ boost::NetworkGraph::Graph  create_circulation_Graph(const bam_api::BamSequence&
         if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i]);
         else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i]); 
     }
-    return g;
+    
+    return boost::NetworkGraph{g,s,t};
 }
 
 
@@ -102,8 +108,15 @@ std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, un
     return d;
 }
 
-bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph::Graph& G) {
+bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph& network_graph) {
 
-    boost::NetworkGraph::ResidualCapacity res = get(boost::edge_residual_capacity, G);
+    boost::Network::Graph g = network_graph.G;
+    boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g);
+
+    for(auto edge_it = boost::edges(g).first; edge_it != boost::edges(g).second; ++edge_it) {
+        auto edge = *edge_it;
+        
+        residual_capacity[edge] = 4;
+    }
     
-}
+}   

@@ -7,7 +7,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
 namespace boost {
-    struct NetworkGraph {
+    struct Network {
         typedef adjacency_list_traits < vecS, vecS, directedS > Traits;
 
         typedef adjacency_list < vecS, vecS, directedS, no_property,
@@ -47,6 +47,7 @@ namespace boost {
                 }
                 m_cap[e] = capacity;
                 m_w[e] = weight;
+                m_resCap[e] = weight;
                 return e;
             }
             Graph & m_g;
@@ -55,6 +56,11 @@ namespace boost {
             ResidualCapacity & m_resCap;
             Reversed & m_rev;
         };
+    };
+
+    struct NetworkGraph {
+        Network::Graph G;
+        Network::vertex_descriptor s,t;
     };
 }
 #endif
