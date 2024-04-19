@@ -13,10 +13,10 @@
 #include "qmcp-solver/network_graph.hpp"
 
 
-boost::NetworkGraph create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M);
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence, unsigned int M);
-std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, unsigned int M);
-bam_api::BamSequence obtain_bamsequence(const boost::Network::Graph& G);
+boost::NetworkGraph create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M);
+std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
+std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
+bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& G);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
@@ -26,17 +26,17 @@ void qmcp::SequenceNetworkSolver::solve() {
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
     boost::cycle_canceling(network_graph);
 
-    bam_api::BamSequence obtain_bamsequence(const boost::Network::Graph& network_graph);
+    bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& network_graph);
     
 }
 
-boost::NetworkGraph  create_circulation_Graph(const bam_api::BamSequence& sequence, unsigned int M) {
+boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M) {
 
     boost::Network::vertex_descriptor s;
     boost::Network::vertex_descriptor t;
     boost::Network::Graph g;
 
-    boost::Network::size_type n(sequence.length + 1);
+    boost::Network::size_type n(sequence.ref_genome_length + 1);
 
     for(boost::Network::size_type i = 0; i < n; ++i)   {
             add_vertex(g);
@@ -50,14 +50,14 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::BamSequence& sequen
     boost::Network::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity);
 
     // create backwards edges with infinity capacity
-    for(unsigned int i = 0; i< sequence.length; i++) {
+    for(unsigned int i = 0; i< sequence.ref_genome_length; i++) {
         edge_adder.addEdge(i + 1, i, 0, INT_MAX);
     }
 
     //create normal edges
     for(unsigned int i = 0; i < sequence.reads.size(); i++) {
-        int weight = (sequence.reads[i].start - sequence.reads[i].end) * sequence.reads[i].quality;
-        edge_adder.addEdge(sequence.reads[i].start - 1, sequence.reads[i].end, weight, 1);
+        int weight = (sequence.reads[i].start_ind - sequence.reads[i].end_ind) * sequence.reads[i].quality;
+        edge_adder.addEdge(sequence.reads[i].start_ind - 1, sequence.reads[i].end_ind, weight, 1);
     }
 
     //create demand funciton
@@ -69,7 +69,7 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::BamSequence& sequen
     s = add_vertex(g);
     t = add_vertex(g);
 
-    for(unsigned int i = 1; i< sequence.length - 1; i++) {
+    for(unsigned int i = 1; i< sequence.ref_genome_length - 1; i++) {
         if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i]);
         else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i]); 
     }
@@ -78,37 +78,37 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::BamSequence& sequen
 }
 
 
-std::vector<int> create_b_function(const bam_api::BamSequence& sequence,unsigned int M) {
+std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,unsigned int M) {
     
-    std::vector<int> b(sequence.length, 0);
+    std::vector<int> b(sequence.ref_genome_length, 0);
 
     for(unsigned int i =0; i<sequence.reads.size(); i++) {
         
-        for(unsigned int j = sequence.reads[i].start; j<sequence.reads[i].end; j++) {
+        for(unsigned int j = sequence.reads[i].start_ind; j<sequence.reads[i].end_ind; j++) {
             b[j]++;
         }
     }
 
     //cap over M to M
-    for(unsigned int i = 0; i<sequence.length; i++) {
+    for(unsigned int i = 0; i<sequence.ref_genome_length; i++) {
         if(b[i] > M) b[i] = M;
     }
 
     return b;
 }
 
-std::vector<int> create_demand_function(const bam_api::BamSequence& sequence, unsigned int M) {
+std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence,M);
-    std::vector<int> d(sequence.length);
+    std::vector<int> d(sequence.ref_genome_length);
 
-    for(int i =1; i<sequence.length - 1;i++) {
+    for(int i =1; i<sequence.ref_genome_length - 1;i++) {
         d[i] = b[i] - b[i + 1];
     }
     d[0] = 0;
     return d;
 }
 
-bam_api::BamSequence obtain_bamsequence(const boost::NetworkGraph& network_graph) {
+bam_api::AOSPairedReads obtain_bamsequence(const boost::NetworkGraph& network_graph) {
 
     boost::Network::Graph g = network_graph.G;
     boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g);
