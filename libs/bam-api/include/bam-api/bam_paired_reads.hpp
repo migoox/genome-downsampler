@@ -21,6 +21,7 @@ struct PairedReads {
     int64_t ref_genome_length;
 
     virtual void push_back(Read& read) = 0;
+    virtual int64_t get_id(int32_t index) = 0;
     virtual ~PairedReads() = default;
 };
 
@@ -28,6 +29,7 @@ struct AOSPairedReads : PairedReads {
     std::vector<Read> reads;
 
     void push_back(Read& read) override { reads.push_back(read); }
+    int64_t get_id(int32_t index) override { return reads[index].id; }
 };
 
 struct SOAPairedReads : PairedReads {
@@ -46,6 +48,7 @@ struct SOAPairedReads : PairedReads {
         qnames.push_back(read.qname);
         is_first_reads.push_back(read.is_first_read);
     }
+    int64_t get_id(int32_t index) override { return ids[index]; }
 };
 
 }  // namespace bam_api

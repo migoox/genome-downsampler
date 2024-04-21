@@ -2,6 +2,7 @@
 
 #include <htslib/sam.h>
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <map>
@@ -39,7 +40,6 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
     paired_reads.ref_genome_length = in_samhdr->target_len[0];
 
     int64_t id = 0;
-    int temp = 0;
     std::map<std::filesystem::path, int64_t> read_map;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         Read current_read{.id = id,
@@ -54,7 +54,6 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
         if (read_one_iterator != read_map.end()) {
             paired_reads.read_pair_map[read_one_iterator->second] = id;
             paired_reads.read_pair_map.push_back(read_one_iterator->second);
-            temp++;
         } else {
             paired_reads.read_pair_map.push_back(-1);
             read_map.insert({current_read.qname, current_read.id});
@@ -92,4 +91,97 @@ bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
     AOSPairedReads ret_paired_reads;
     read_bam(ret_paired_reads, filepath);
     return ret_paired_reads;
+}
+
+int32_t bam_api::BamApi::write_bam(
+    const std::filesystem::path& input_filepath,
+    const std::filesystem::path& output_filepath,
+    PairedReads& pairedReads) {
+    sam_hdr_t* in_samhdr = NULL;
+    samFile* infile = NULL;
+    samFile* outfile = NULL;
+    int ret_r = 0;
+    bam1_t* bamdata = NULL;
+
+    bamdata = bam_init1();
+    if (!bamdata) {
+        std::cerr << "Failed to allocate data memory!" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    // open input file
+    infile = sam_open(input_filepath.c_str(), "r");
+    if (!infile) {
+        std::cerr << "Could not open " << input_filepath << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    // open output file
+    outfile = sam_open(output_filepath.c_str(), "wb");
+    if (!outfile) {
+        std::cerr << "Could not open " << output_filepath << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    // read header
+    in_samhdr = sam_hdr_read(infile);
+    if (!in_samhdr) {
+        std::cerr << "Failed to read header from file!" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (sam_hdr_write(outfile, in_samhdr) < 0) {
+        std::cerr << "Can't write header to bam file: " << output_filepath
+                  << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    int64_t id = 0;
+    int32_t current_read_i = 0;
+    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
+        if (id == pairedReads.get_id(current_read_i)) {
+            if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
+                std::cerr << "Can't write line to bam file: "
+                          << output_filepath << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
+            current_read_i++;
+        }
+
+        id++;
+    }
+
+    if (ret_r >= 0)
+        std::cerr << "Failed to read bam file (sam_read1 error code:" << ret_r
+                  << ")" << std::endl;
+
+    // cleanup
+    if (in_samhdr) {
+        sam_hdr_destroy(in_samhdr);
+    }
+    if (infile) {
+        sam_close(infile);
+    }
+    if (outfile) {
+        sam_close(outfile);
+    }
+    if (bamdata) {
+        bam_destroy1(bamdata);
+    }
+
+    return current_read_i;
+}
+
+int32_t bam_api::BamApi::write_bam_aos(
+    const std::filesystem::path& input_filepath,
+    const std::filesystem::path& output_filepath,
+    AOSPairedReads& pairedReads) {
+  return write_bam(input_filepath, output_filepath, pairedReads);
+}
+
+int32_t bam_api::BamApi::write_bam_soa(
+    const std::filesystem::path& input_filepath,
+    const std::filesystem::path& output_filepath,
+    SOAPairedReads& pairedReads) {
+  return write_bam(input_filepath, output_filepath, pairedReads);
 }
