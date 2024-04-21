@@ -46,18 +46,19 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
     boost::Network::Reversed rev = get(boost::edge_reverse, g);
     boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g); 
     boost::Network::Weight weight = get(boost::edge_weight, g);
+    boost::Network::Name name = get(boost::edge_name,g);
 
-    boost::Network::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity);
+    boost::Network::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity,name);
 
     // create backwards edges with infinity capacity
     for(unsigned int i = 0; i< sequence.ref_genome_length; i++) {
-        edge_adder.addEdge(i + 1, i, 0, INT_MAX);
+        edge_adder.addEdge(i + 1, i, 0, INT_MAX,-1);
     }
 
     //create normal edges
     for(unsigned int i = 0; i < sequence.reads.size(); i++) {
         int weight = (sequence.reads[i].start_ind - sequence.reads[i].end_ind) * sequence.reads[i].quality;
-        edge_adder.addEdge(sequence.reads[i].start_ind - 1, sequence.reads[i].end_ind, weight, 1);
+        edge_adder.addEdge(sequence.reads[i].start_ind - 1, sequence.reads[i].end_ind, weight, 1,i);
     }
 
     //create demand funciton
@@ -70,8 +71,8 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
     t = add_vertex(g);
 
     for(unsigned int i = 1; i< sequence.ref_genome_length - 1; i++) {
-        if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i]);
-        else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i]); 
+        if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i],i);
+        else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i],i); 
     }
     
     return boost::NetworkGraph{g,s,t};
@@ -108,15 +109,24 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
     return d;
 }
 
-bam_api::AOSPairedReads obtain_bamsequence(const boost::NetworkGraph& network_graph) {
+bam_api::AOSPairedReads obtain_bamsequence(const boost::NetworkGraph& network_graph,bam_api::AOSPairedReads & paired_reads) {
 
+    //std::vector<bam_api::Read> reads;
+    bam_api::AOSPairedReads reduced_paired_reads;
+    reduced_paired_reads.reads = std::vector<bam_api::Read>();
     boost::Network::Graph g = network_graph.G;
     boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g);
+    boost::Network::Weight weight = get(boost::edge_weight, g);
+    boost::Network::Capacity capacity = get(boost::edge_capacity, g);
+    boost::Network::Name name = get(boost::edge_name,g);
 
     for(auto edge_it = boost::edges(g).first; edge_it != boost::edges(g).second; ++edge_it) {
         auto edge = *edge_it;
         
-        residual_capacity[edge] = 4;
+        if(weight[edge] != 0 && residual_capacity[edge] < capacity[edge]) {
+            bam_api::Read read = bam_api::Read {paired_reads.reads[name[edge]]};
+            reduced_paired_reads.push_back(read);
+        }
     }
-    
+    return reduced_paired_reads;
 }   
