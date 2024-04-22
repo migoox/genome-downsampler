@@ -16,7 +16,7 @@
 boost::NetworkGraph create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
-bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& G);
+bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& G,bam_api::AOSPairedReads & paired_reads);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
@@ -26,7 +26,7 @@ void qmcp::SequenceNetworkSolver::solve() {
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
     boost::cycle_canceling(network_graph.G);
 
-    bam_api::AOSPairedReads obtain_bamsequence(network_graph.G);
+    bam_api::AOSPairedReads obtain_bamsequence(network_graph.G,this->sequence);
     
 }
 
