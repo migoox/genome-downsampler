@@ -17,20 +17,7 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // Bam api and qmcp solver test
-    bam_api::BamApi::test_func();
-
-    //Create sample structs for code
-    bam_api::BamRead r1{ 0, 10, 100};
-    bam_api::BamRead r2 {2, 20, 200};
-
-    std::vector<bam_api::BamRead> reads {r1, r2};
-    std::vector<unsigned int> pair_map {0, 1};
-
-    bam_api::BamSequence sequence {reads, .PairMap = pair_map, .length=100};
-
-
-    auto solver = qmcp::SequenceNetworkSolver(sequence,20);
-    solver.solve();
+    
 
     // Define some variables
     const int array_size = 5;

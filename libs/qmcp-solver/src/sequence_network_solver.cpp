@@ -24,9 +24,9 @@ void qmcp::SequenceNetworkSolver::solve() {
     boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence, this->M);
 
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
-    boost::cycle_canceling(network_graph);
+    boost::cycle_canceling(network_graph.G);
 
-    bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& network_graph);
+    bam_api::AOSPairedReads obtain_bamsequence(network_graph.G);
     
 }
 
