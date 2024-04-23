@@ -1,7 +1,6 @@
 #ifndef QMCP_SEQUENCE_NETWORK_SOLVER_HPP
 #define QMCP_SEQUENCE_NETWORK_SOLVER_HPP
 #include "solver.hpp"
-#include "network_graph.hpp"
 #include "../../bam-api/include/bam-api/bam_paired_reads.hpp"
 
 namespace qmcp {

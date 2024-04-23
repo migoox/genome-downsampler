@@ -32,8 +32,8 @@ void qmcp::SequenceNetworkSolver::solve() {
 
 boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M) {
 
-    boost::Network::vertex_descriptor s;
-    boost::Network::vertex_descriptor t;
+    boost::Network::vertex_descriptor s = -1;
+    boost::Network::vertex_descriptor t = -1;
     boost::Network::Graph g;
 
     boost::Network::size_type n(sequence.ref_genome_length + 1);
