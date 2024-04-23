@@ -16,17 +16,17 @@
 boost::NetworkGraph create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
-bam_api::AOSPairedReads obtain_bamsequence(const boost::Network::Graph& G,bam_api::AOSPairedReads & paired_reads);
+bam_api::AOSPairedReads obtain_bamsequence(boost::Network::Graph& G,bam_api::AOSPairedReads & paired_reads);
 
 void qmcp::SequenceNetworkSolver::solve() {
     std::cout << "Not implemented!";
     
-    boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence, this->M);
+    boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence_, this->M_);
 
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
     boost::cycle_canceling(network_graph.G);
 
-    bam_api::AOSPairedReads obtain_bamsequence(network_graph.G,this->sequence);
+    bam_api::AOSPairedReads output_sequence = obtain_bamsequence(network_graph.G,this->sequence_);
     
 }
 
@@ -109,12 +109,11 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
     return d;
 }
 
-bam_api::AOSPairedReads obtain_bamsequence(const boost::NetworkGraph& network_graph,bam_api::AOSPairedReads & paired_reads) {
+bam_api::AOSPairedReads obtain_bamsequence(boost::Network::Graph& g,bam_api::AOSPairedReads & paired_reads){
 
     //std::vector<bam_api::Read> reads;
     bam_api::AOSPairedReads reduced_paired_reads;
-    reduced_paired_reads.reads = std::vector<bam_api::Read>();
-    boost::Network::Graph g = network_graph.G;
+    reduced_paired_reads.reads = std::vector<bam_api::Read>();;
     boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g);
     boost::Network::Weight weight = get(boost::edge_weight, g);
     boost::Network::Capacity capacity = get(boost::edge_capacity, g);

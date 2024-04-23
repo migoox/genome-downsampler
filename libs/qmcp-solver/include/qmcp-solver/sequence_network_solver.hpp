@@ -8,11 +8,11 @@ namespace qmcp {
 
 class SequenceNetworkSolver : public Solver {
    public:
-    SequenceNetworkSolver(unsigned int M) : M(M) {}
+    SequenceNetworkSolver(unsigned int M, bam_api::AOSPairedReads& sequence) : M_(M), sequence_(sequence) {}
     void solve() override;
     private:
-    bam_api::AOSPairedReads sequence;
-    unsigned int M;
+    bam_api::AOSPairedReads sequence_;
+    unsigned int M_;
     
 };
 
