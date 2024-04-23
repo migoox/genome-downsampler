@@ -1,13 +1,19 @@
 #ifndef QMCP_SEQUENCE_NETWORK_SOLVER_HPP
 #define QMCP_SEQUENCE_NETWORK_SOLVER_HPP
+#include <filesystem>
 #include "solver.hpp"
 #include "../../bam-api/include/bam-api/bam_paired_reads.hpp"
+#include "../../bam-api/include/bam-api/bam_api.hpp"
+
+
 
 namespace qmcp {
 
 class SequenceNetworkSolver : public Solver {
    public:
-    SequenceNetworkSolver(unsigned int M, bam_api::AOSPairedReads& sequence) : M_(M), sequence_(sequence) {}
+    SequenceNetworkSolver(unsigned int M,const std::filesystem::path& filepath) : M_(M) {
+        sequence_ = bam_api::BamApi::read_bam_aos(filepath);
+    }
     void solve() override;
     private:
     bam_api::AOSPairedReads sequence_;
