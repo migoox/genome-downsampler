@@ -19,9 +19,11 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 bam_api::AOSPairedReads obtain_bamsequence(boost::Network::Graph& G,bam_api::AOSPairedReads & paired_reads);
 
 void qmcp::SequenceNetworkSolver::solve() {
-    std::cout << "Not implemented!";
+    std::cout << "started solving!\n";
     
     boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence_, this->M_);
+    std::cout << "Graph created!\n";
+    
 
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
     boost::cycle_canceling(network_graph.G);
@@ -42,6 +44,7 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
             add_vertex(g);
     }
 
+    std::cout << "added vertices!\n";
     boost::Network::Capacity capacity = get(boost::edge_capacity, g);
     boost::Network::Reversed rev = get(boost::edge_reverse, g);
     boost::Network::ResidualCapacity residual_capacity = get(boost::edge_residual_capacity, g); 
@@ -61,19 +64,25 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
         edge_adder.addEdge(sequence.reads[i].start_ind - 1, sequence.reads[i].end_ind, weight, 1,i);
     }
 
+    std::cout << "added edges!\n";
+
+
     //create demand funciton
     std::vector<int> d = create_demand_function(sequence,M);
-
+    std::cout << "created_demand function!\n";
 
     //add s and t vertex
     // created edges from s to GRAPH and from t to GRAPH with correct capacites and weights
     s = add_vertex(g);
     t = add_vertex(g);
 
+    std::cout << "added s and t!\n";
+
     for(unsigned int i = 1; i< sequence.ref_genome_length - 1; i++) {
         if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i],i);
         else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i],i); 
     }
+    std::cout << "LAST EDGES!\n";
     
     return boost::NetworkGraph{g,s,t};
 }
@@ -81,7 +90,7 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
 
 std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,unsigned int M) {
     
-    std::vector<int> b(sequence.ref_genome_length, 0);
+    std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
     for(unsigned int i =0; i<sequence.reads.size(); i++) {
         
@@ -100,13 +109,20 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,unsig
 
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence,M);
-    std::vector<int> d(sequence.ref_genome_length);
+    std::cout<< "GENOM LENGTH = " <<sequence.ref_genome_length << "  b function! \n";
+    std::vector<int> d(sequence.ref_genome_length + 1);
+        std::cout << "malloc for d!\n";
+    
+    int b_0 = -b[0];
+    int b_N = b[sequence.ref_genome_length -1];
 
-    for(int i =1; i<sequence.ref_genome_length - 1;i++) {
-        d[i] = b[i] - b[i + 1];
+    for(int i = 1; i<sequence.ref_genome_length - 1; i++) {
+        b[i] = b[i] - b[i + 1];
     }
-    d[0] = 0;
-    return d;
+    b[0] = b_0;
+    b[sequence.ref_genome_length] = b_N;
+
+    return b;
 }
 
 bam_api::AOSPairedReads obtain_bamsequence(boost::Network::Graph& g,bam_api::AOSPairedReads & paired_reads){
