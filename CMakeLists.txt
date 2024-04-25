@@ -67,7 +67,7 @@ set(Boost_USE_STATIC_LIBS ON)
 if(DEFINED ENV{Boost_INCLUDE_DIR})
     set(Boost_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
 elseif(UNIX)
-    set(Boost_INCLUDE_DIR /usr/include/ /usr/local/include)
+    set(Boost_INCLUDE_DIR /usr/include/ /usr/local/include/)
 endif()
 
 if(DEFINED ENV{Boost_LIBRARYDIR})
@@ -82,7 +82,7 @@ find_package(Boost 1.74 REQUIRED)
 if(DEFINED ENV{ZLIB_INCLUDE_DIR})
     set(ZLIB_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
 elseif(UNIX)
-    set(ZLIB_INCLUDE_DIR /usr/include/ /usr/local/include)
+    set(ZLIB_INCLUDE_DIR /usr/include/ /usr/local/include/)
 endif()
 
 if(DEFINED ENV{ZLIB_LIBRARYDIR})
@@ -103,6 +103,7 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
+# Find the ortools package by pure ortoolsConfig.cmake search
 find_package(ortools CONFIG REQUIRED)
 
 # Use ccache to speed up the build process
