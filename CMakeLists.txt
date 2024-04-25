@@ -21,6 +21,9 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Set the project name and language
+project(cuda-dna-downsampler LANGUAGES CXX CUDA)
+
 # Uncomment if the repositories included with CPM have some dependencies to build
 # set(BUILD_DEPS ON)
 
@@ -100,10 +103,10 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
+find_package(ortools CONFIG REQUIRED)
+
 # Use ccache to speed up the build process
 set(USE_CCACHE YES)
-# Set the project name and language
-project(cuda-dna-downsampler LANGUAGES CXX CUDA)
 
 # Subdirectories
 add_subdirectory(src)
