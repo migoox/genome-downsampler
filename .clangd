@@ -1,5 +1,7 @@
 CompileFlags:
-  Add: [-Wunused-variable]
+  Add: 
+    - -std=c++17
+    - -Wall
   Remove:
     - -forward-unknown-to-host-compiler
     - --generate-code*

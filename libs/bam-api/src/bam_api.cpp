@@ -46,7 +46,7 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
                           .start_ind = bamdata->core.pos,
                           .end_ind = bamdata->core.pos + bamdata->core.l_qseq,
                           .quality = bamdata->core.qual,
-                          .qname = bam_get_qname(bamdata),
+                          .qname = bam_get_qname(bamdata),  // NOLINT
                           .is_first_read = static_cast<bool>(
                               bamdata->core.flag & BAM_FREAD1)};
 
