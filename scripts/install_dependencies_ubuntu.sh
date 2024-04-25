@@ -40,12 +40,12 @@ $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev libl
 
 # Install ortools
 ORTOOLS_VERSION=or-tools_amd64_ubuntu-22.04_cpp_v9.9.3963
-ORTOOLS_DIR_NAME=or-tools_x86_64_Ubuntu-22.04_cpp_v9.9.396
+ORTOOLS_DIR_NAME=or-tools_x86_64_Ubuntu-22.04_cpp_v9.9.3963
 (
     wget https://github.com/google/or-tools/releases/download/v9.9/${ORTOOLS_VERSION}.tar.gz
-    tar -xJf ${ORTOOLS_VERSION}.tar.gz
-    $USE_SUDO cp -r ${ORTOOLS_VERSION}/${ORTOOLS_DIR_NAME}/bin/* /usr/local/bin/
-    $USE_SUDO cp -r ${ORTOOLS_VERSION}/${ORTOOLS_DIR_NAME}/lib/* /usr/local/lib/
-    $USE_SUDO cp -r ${ORTOOLS_VERSION}/${ORTOOLS_DIR_NAME}/include/* /usr/local/include/
-    $USE_SUDO cp -r ${ORTOOLS_VERSION}/${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
+    tar -xvzf ${ORTOOLS_VERSION}.tar.gz
+    $USE_SUDO cp -r ${ORTOOLS_DIR_NAME}/bin/* /usr/local/bin/
+    $USE_SUDO cp -r ${ORTOOLS_DIR_NAME}/lib/* /usr/local/lib/
+    $USE_SUDO cp -r ${ORTOOLS_DIR_NAME}/include/* /usr/local/include/
+    $USE_SUDO cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 )
