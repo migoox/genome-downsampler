@@ -19,9 +19,9 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // Bam api and qmcp solver test
-    int M = 100;
+    int M = 1;
     auto bam_path = std::filesystem::path("/home/borys/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    auto solver = qmcp::SequenceNetworkSolver(100,bam_path);
+    auto solver = qmcp::SequenceNetworkSolver(M,bam_path);
     solver.solve();
 
     // Define some variables

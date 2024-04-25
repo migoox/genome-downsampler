@@ -51,7 +51,6 @@ namespace boost {
                 }
                 m_cap[e] = capacity;
                 m_w[e] = weight;
-                m_resCap[e] = weight;
                 m_name[e] = id;
                 return e;
             }

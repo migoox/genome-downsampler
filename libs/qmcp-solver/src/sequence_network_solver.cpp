@@ -26,7 +26,10 @@ void qmcp::SequenceNetworkSolver::solve() {
     
 
     boost::edmonds_karp_max_flow(network_graph.G, network_graph.s, network_graph.t);
+    std::cout<<"edmonds KARP\n";
     boost::cycle_canceling(network_graph.G);
+        std::cout<<"cycle_canceling\n";
+
 
     bam_api::AOSPairedReads output_sequence = obtain_bamsequence(network_graph.G,this->sequence_);
     
@@ -53,10 +56,12 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
 
     boost::Network::EdgeAdder edge_adder(g, weight, capacity, rev, residual_capacity,name);
 
+    
     // create backwards edges with infinity capacity
     for(unsigned int i = 0; i< sequence.ref_genome_length; i++) {
         edge_adder.addEdge(i + 1, i, 0, INT_MAX,-1);
     }
+    
 
     //create normal edges
     for(unsigned int i = 0; i < sequence.reads.size(); i++) {
@@ -77,7 +82,7 @@ boost::NetworkGraph  create_circulation_Graph(const bam_api::AOSPairedReads& seq
     t = add_vertex(g);
 
     std::cout << "added s and t!\n";
-
+    
     for(unsigned int i = 1; i< sequence.ref_genome_length - 1; i++) {
         if(d[i] > 0) edge_adder.addEdge(i, t, 0, d[i],i);
         else if(d[i] < 0) edge_adder.addEdge(s, i, 0, -d[i],i); 
@@ -95,6 +100,7 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,unsig
     for(unsigned int i =0; i<sequence.reads.size(); i++) {
         
         for(unsigned int j = sequence.reads[i].start_ind; j<sequence.reads[i].end_ind; j++) {
+            if(j > sequence.ref_genome_length) continue;
             b[j]++;
         }
     }
