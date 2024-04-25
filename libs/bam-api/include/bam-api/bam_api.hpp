@@ -16,17 +16,10 @@ class BamApi {
     // Returns number of reads written
     static int32_t write_bam_aos(const std::filesystem::path& input_filepath,
                                  const std::filesystem::path& output_filepath,
-                                 AOSPairedReads& pairedReads);
+                                 AOSPairedReads& paired_reads);
     static int32_t write_bam_soa(const std::filesystem::path& input_filepath,
                                  const std::filesystem::path& output_filepath,
-                                 SOAPairedReads& pairedReads);
-
-   private:
-    static void read_bam(PairedReads& paired_reads,
-                         const std::filesystem::path& filepath);
-    static int32_t write_bam(const std::filesystem::path& input_filepath,
-                             const std::filesystem::path& output_filepath,
-                             PairedReads& pairedReads);
+                                 SOAPairedReads& paired_reads);
 };
 
 }  // namespace bam_api

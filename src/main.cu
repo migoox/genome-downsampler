@@ -16,12 +16,12 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // auto ret = bam_api::BamApi::read_bam_soa(
-    //     "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    // std::cout << "after aos: " << ret.read_pair_map.size() << std::endl;
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
+    // std::cout << "after aos: " << ret.ids.size() << std::endl;
     // ret.ids.erase(ret.ids.begin() + 4, ret.ids.end() - 4);
     // int written = bam_api::BamApi::write_bam_soa(
-    //     "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
-    //     "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered.bam",
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered2.bam",
     //     ret);
     // std::cout << "written: " << written << std::endl;
 

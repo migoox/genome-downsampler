@@ -2,16 +2,26 @@
 
 #include <htslib/sam.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <map>
 #include <ostream>
+#include <vector>
 
 #include "../include/bam-api/bam_paired_reads.hpp"
 
-void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
-                               const std::filesystem::path& filepath) {
+bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
+    const std::filesystem::path& filepath) {
+    AOSPairedReads paired_reads = read_bam_aos(filepath);
+    return paired_reads.to_soa();
+}
+
+bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
+    const std::filesystem::path& filepath) {
+    AOSPairedReads paired_reads;
+
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     int ret_r = 0;
@@ -40,7 +50,7 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
     paired_reads.ref_genome_length = in_samhdr->target_len[0];
 
     int64_t id = 0;
-    std::map<std::filesystem::path, int64_t> read_map;
+    std::map<std::string, Read> read_map;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         Read current_read{.id = id,
                           .start_ind = bamdata->core.pos,
@@ -52,14 +62,14 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
 
         auto read_one_iterator = read_map.find(current_read.qname);
         if (read_one_iterator != read_map.end()) {
-            paired_reads.read_pair_map[read_one_iterator->second] = id;
-            paired_reads.read_pair_map.push_back(read_one_iterator->second);
+            paired_reads.read_pair_map[read_one_iterator->second.id] = id;
+            paired_reads.read_pair_map[id] = read_one_iterator->second.id;
+            paired_reads.reads.push_back(read_one_iterator->second);
+            paired_reads.reads.push_back(current_read);
         } else {
-            paired_reads.read_pair_map.push_back(-1);
-            read_map.insert({current_read.qname, current_read.id});
+            read_map.insert({current_read.qname, current_read});
         }
 
-        paired_reads.push_back(current_read);
         id++;
     }
 
@@ -77,26 +87,19 @@ void bam_api::BamApi::read_bam(bam_api::PairedReads& paired_reads,
     if (bamdata) {
         bam_destroy1(bamdata);
     }
+    return paired_reads;
 }
 
-bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
-    const std::filesystem::path& filepath) {
-    SOAPairedReads ret_paired_reads;
-    read_bam(ret_paired_reads, filepath);
-    return ret_paired_reads;
-}
-
-bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
-    const std::filesystem::path& filepath) {
-    AOSPairedReads ret_paired_reads;
-    read_bam(ret_paired_reads, filepath);
-    return ret_paired_reads;
-}
-
-int32_t bam_api::BamApi::write_bam(
+int32_t bam_api::BamApi::write_bam_aos(
     const std::filesystem::path& input_filepath,
-    const std::filesystem::path& output_filepath,
-    PairedReads& pairedReads) {
+    const std::filesystem::path& output_filepath, AOSPairedReads& paired_reads) {
+    SOAPairedReads soa = paired_reads.to_soa();
+    return write_bam_soa(input_filepath, output_filepath, soa);
+}
+
+int32_t bam_api::BamApi::write_bam_soa(
+    const std::filesystem::path& input_filepath,
+    const std::filesystem::path& output_filepath, SOAPairedReads& paired_reads) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     samFile* outfile = NULL;
@@ -138,11 +141,17 @@ int32_t bam_api::BamApi::write_bam(
 
     int64_t id = 0;
     int32_t current_read_i = 0;
-    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
-        if (id == pairedReads.get_id(current_read_i)) {
+    uint64_t read_count = paired_reads.ids.size();
+    std::vector<int64_t> ids(read_count);
+    std::copy(paired_reads.ids.begin(), paired_reads.ids.end(), ids.begin());
+    std::sort(ids.begin(), ids.end());
+
+    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0 &&
+           read_count > current_read_i) {
+        if (id == ids[current_read_i]) {
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
-                std::cerr << "Can't write line to bam file: "
-                          << output_filepath << std::endl;
+                std::cerr << "Can't write line to bam file: " << output_filepath
+                          << std::endl;
                 std::exit(EXIT_FAILURE);
             }
             current_read_i++;
@@ -170,18 +179,4 @@ int32_t bam_api::BamApi::write_bam(
     }
 
     return current_read_i;
-}
-
-int32_t bam_api::BamApi::write_bam_aos(
-    const std::filesystem::path& input_filepath,
-    const std::filesystem::path& output_filepath,
-    AOSPairedReads& pairedReads) {
-  return write_bam(input_filepath, output_filepath, pairedReads);
-}
-
-int32_t bam_api::BamApi::write_bam_soa(
-    const std::filesystem::path& input_filepath,
-    const std::filesystem::path& output_filepath,
-    SOAPairedReads& pairedReads) {
-  return write_bam(input_filepath, output_filepath, pairedReads);
 }
