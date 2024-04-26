@@ -1,4 +1,4 @@
-#include "../include/qmcp-solver/sequence_network_solver.hpp"
+#include "../include/qmcp-solver/sequential_cycle_canceling_network_solver.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/detail/adjacency_list.hpp>
@@ -18,7 +18,7 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsi
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
 bam_api::AOSPairedReads obtain_bamsequence(boost::Network::Graph& G,bam_api::AOSPairedReads & paired_reads);
 
-void qmcp::SequenceNetworkSolver::solve() {
+void qmcp::SequentialCycleCancelingNetworkSolver::solve() {
     std::cout << "started solving!\n";
     
     boost::NetworkGraph network_graph = create_circulation_Graph(this->sequence_, this->M_);
