@@ -22,7 +22,7 @@ void qmcp::SequentialCostScalingNetworkSolver::solve() {
                                     capacities[i]);
     }
     int status = max_flow.Solve(0, 4);
-    if (status == operations_research::MaxFlow::OPTIMAL) {
+    if (status == operations_research::SimpleMaxFlow::Status::OPTIMAL) {
         LOG(INFO) << "Max flow: " << max_flow.OptimalFlow();
         LOG(INFO) << "";
         LOG(INFO) << "  Arc    Flow / Capacity";
