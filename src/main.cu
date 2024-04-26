@@ -1,5 +1,7 @@
 #include <htslib/hts.h>
 #include <stdio.h>
+#include <filesystem>
+#include <vector>
 
 #include <iostream>
 
@@ -7,6 +9,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "qmcp-solver/qmcp-solver.hpp"
+#include "qmcp-solver/sequential_cycle_canceling_network_solver.hpp"
 cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 __global__ void addKernel(int* c, const int* a, const int* b) {
@@ -16,11 +19,9 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 
 int main() {
     // Bam api and qmcp solver test
-    // auto ret =
-    // bam_api::BamApi::read_bam_aos("/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    // std::cout << "after aos: " << ret.read_pair_map.size() << std::endl;
-
-    auto solver = qmcp::SequenceNetworkSolver();
+    int M = 1;
+    auto bam_path = std::filesystem::path("/home/borys/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
+    auto solver = qmcp::SequentialCycleCancelingNetworkSolver(M,bam_path);
     solver.solve();
 
     // Define some variables

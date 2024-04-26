@@ -1,10 +1,10 @@
-#include "../include/qmcp-solver/sequence_network_solver.hpp"
+#include "../include/qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 
 #include <ortools/graph/max_flow.h>
 
 #include <iostream>
 
-void qmcp::SequenceNetworkSolver::solve() {
+void qmcp::SequentialCostScalingNetworkSolver::solve() {
     std::cout << "Not implemented!";
     // TODO(implement the function):
     // ortools max flow example basing on the link:
