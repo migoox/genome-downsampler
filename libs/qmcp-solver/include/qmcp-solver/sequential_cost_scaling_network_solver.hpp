@@ -13,13 +13,14 @@ namespace qmcp {
 
 class SequentialCostScalingNetworkSolver : public Solver {
    public:
-    SequentialCostScalingNetworkSolver(unsigned int M, const std::filesystem::path& filepath) : M_(M) {
-        sequence_ = bam_api::BamApi::read_bam_aos(filepath);
+    SequentialCostScalingNetworkSolver(unsigned int M,const std::filesystem::path& filepath) : M_(M) {
+        input_sequence_ = bam_api::BamApi::read_bam_aos(filepath);
         std::cout<<"read bam\n";
     }
     void solve() override;
     private:
-    bam_api::AOSPairedReads sequence_;
+    bam_api::AOSPairedReads input_sequence_;
+    bam_api::AOSPairedReads output_sequence_;
     unsigned int M_;
     
 };
