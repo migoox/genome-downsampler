@@ -1,8 +1,6 @@
 #include "../include/qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 
-#include <ortools/graph/min_cost_flow.h>
 #include <cstdint>
-#include <iostream>
 #include <vector>
 
 
@@ -11,7 +9,6 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 bam_api::AOSPairedReads obtain_sequence(const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMinCostFlow& min_cost_flow);
 
 void qmcp::SequentialCostScalingNetworkSolver::solve() {
-    std::cout << "Not implemented!";
     // TODO(implement the function):
     // ortools max flow example basing on the link:
     // https://developers.google.com/optimization/flow/maxflow#c++

@@ -10,7 +10,7 @@
 #include <boost/graph/cycle_canceling.hpp>
 #include <boost/graph/edmonds_karp_max_flow.hpp>
 #include <vector>
-#include "qmcp-solver/network_graph.hpp"
+#include "qmcp-solver/boost_network_graph.hpp"
 
 
 boost::NetworkGraph create_circulation_Graph(const bam_api::AOSPairedReads& sequence, unsigned int M);

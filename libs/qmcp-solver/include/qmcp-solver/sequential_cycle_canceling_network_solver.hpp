@@ -13,9 +13,7 @@ namespace qmcp {
 class SequentialCycleCancelingNetworkSolver : public Solver {
    public:
     SequentialCycleCancelingNetworkSolver(unsigned int M,const std::filesystem::path& filepath) : M_(M) {
-        printf("START\n");
         sequence_ = bam_api::BamApi::read_bam_aos(filepath);
-        printf("KONIEC\n");
     }
     void solve() override;
     private:

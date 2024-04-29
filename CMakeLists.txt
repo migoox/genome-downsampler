@@ -3,9 +3,6 @@ cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
 
-
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,heap-size=9999999")
-
 # Set the target architecture library directory name, if detected.
 set(CMAKE_CXX_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
 set(CMAKE_CUDA_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
