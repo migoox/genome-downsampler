@@ -1,7 +1,6 @@
 #ifndef BAM_API_HPP
 #define BAM_API_HPP
 
-#include <cstdint>
 #include <filesystem>
 
 #include "bam_paired_reads.hpp"
@@ -14,7 +13,7 @@ class BamApi {
     static void read_bam(const std::filesystem::path& filepath,
                          PairedReads& paired_reads);
     // Returns number of reads written
-    static uint64_t write_sam(const std::filesystem::path& input_filepath,
+    static void write_sam(const std::filesystem::path& input_filepath,
                               const std::filesystem::path& output_filepath,
                               std::vector<ReadIndex>& read_ids,
                               bool use_bam = false);

@@ -107,7 +107,7 @@ void bam_api::BamApi::read_bam(
     }
 }
 
-uint64_t bam_api::BamApi::write_sam(
+void bam_api::BamApi::write_sam(
     const std::filesystem::path& input_filepath,
     const std::filesystem::path& output_filepath,
     std::vector<ReadIndex> &read_ids,
@@ -155,8 +155,8 @@ uint64_t bam_api::BamApi::write_sam(
     std::sort(read_ids.begin(), read_ids.end());
     auto current_read_i = read_ids.begin();
 
-    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
-        if (id == read_ids[*current_read_i]) {
+    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0 && current_read_i != read_ids.end()) {
+        if (id == *current_read_i) {
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
                 std::cerr << "Can't write line to bam file: " << output_filepath
                           << std::endl;
@@ -164,14 +164,12 @@ uint64_t bam_api::BamApi::write_sam(
             }
 
             current_read_i++;
-            if(current_read_i == read_ids.end())
-              break;
         }
 
         id++;
     }
 
-    if (ret_r >= 0)
+    if (current_read_i != read_ids.end() && ret_r >= 0)
         std::cerr << "Failed to read bam file (sam_read1 error code:" << ret_r
                   << ")" << std::endl;
 
@@ -188,6 +186,4 @@ uint64_t bam_api::BamApi::write_sam(
     if (bamdata) {
         bam_destroy1(bamdata);
     }
-
-    return *current_read_i;
 }

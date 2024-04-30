@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
@@ -19,11 +20,11 @@ int main() {
     // auto ret_soa = bam_api::BamApi::read_bam_soa(
     //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
     // std::cout << "after aos: " << ret_soa.ids.size() << std::endl;
-    // int written = bam_api::BamApi::write_sam(
+    // std::vector<bam_api::ReadIndex> temp(ret_soa.ids.end() - 1000, ret_soa.ids.end() - 2);
+    // bam_api::BamApi::write_sam(
     //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
     //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered5.bam",
-    //     ret_soa.ids);
-    // std::cout << "written: " << written << std::endl;
+    //     temp);
     // return EXIT_SUCCESS;
 
     auto solver = qmcp::SequenceNetworkSolver();
