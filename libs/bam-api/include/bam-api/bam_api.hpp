@@ -7,19 +7,17 @@
 #include "bam_paired_reads.hpp"
 
 namespace bam_api {
-
 class BamApi {
    public:
     static AOSPairedReads read_bam_aos(const std::filesystem::path& filepath);
     static SOAPairedReads read_bam_soa(const std::filesystem::path& filepath);
-
+    static void read_bam(const std::filesystem::path& filepath,
+                         PairedReads& paired_reads);
     // Returns number of reads written
-    static int32_t write_bam_aos(const std::filesystem::path& input_filepath,
-                                 const std::filesystem::path& output_filepath,
-                                 AOSPairedReads& paired_reads);
-    static int32_t write_bam_soa(const std::filesystem::path& input_filepath,
-                                 const std::filesystem::path& output_filepath,
-                                 SOAPairedReads& paired_reads);
+    static uint64_t write_sam(const std::filesystem::path& input_filepath,
+                              const std::filesystem::path& output_filepath,
+                              std::vector<ReadIndex>& read_ids,
+                              bool use_bam = false);
 };
 
 }  // namespace bam_api
