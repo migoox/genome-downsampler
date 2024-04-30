@@ -1,4 +1,5 @@
 #include "../include/bam-api/bam_api.hpp"
+#include "../include/bam-api/bam_paired_reads.hpp"
 
 #include <htslib/hts.h>
 #include <htslib/sam.h>
@@ -10,8 +11,6 @@
 #include <map>
 #include <ostream>
 #include <vector>
-
-#include "../include/bam-api/bam_paired_reads.hpp"
 
 bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
     const std::filesystem::path& filepath) {
@@ -27,9 +26,8 @@ bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
     return paired_reads;
 }
 
-void bam_api::BamApi::read_bam(
-    const std::filesystem::path& filepath,
-    PairedReads& paired_reads) {
+void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
+                               PairedReads& paired_reads) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     int ret_r = 0;
@@ -58,12 +56,12 @@ void bam_api::BamApi::read_bam(
     }
 
     // Load the index
-    hts_idx_t *idx = sam_index_load(infile, filepath.c_str());
+    hts_idx_t* idx = sam_index_load(infile, filepath.c_str());
     if (idx) {
-      uint64_t mapped_seq_c, unmapped_seq_c;
-      hts_idx_get_stat(idx, 0, &mapped_seq_c, &unmapped_seq_c);
-      paired_reads.reserve(mapped_seq_c);
-      hts_idx_destroy(idx);
+        uint64_t mapped_seq_c, unmapped_seq_c;
+        hts_idx_get_stat(idx, 0, &mapped_seq_c, &unmapped_seq_c);
+        paired_reads.reserve(mapped_seq_c);
+        hts_idx_destroy(idx);
     }
 
     paired_reads.ref_genome_length = in_samhdr->target_len[0];
@@ -72,13 +70,15 @@ void bam_api::BamApi::read_bam(
     std::map<std::string, Read> read_map;
     std::string current_qname;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
-        Read current_read{.id = id,
-                          .start_ind = static_cast<ReadIndex>(bamdata->core.pos),
-                          .end_ind = static_cast<ReadIndex>(bamdata->core.pos + bamdata->core.l_qseq),
-                          .quality = bamdata->core.qual,
-                          .is_first_read = static_cast<bool>(
-                              bamdata->core.flag & BAM_FREAD1)};
-        current_qname = bam_get_qname(bamdata); // NOLINT
+        Read current_read{
+            .id = id,
+            .start_ind = static_cast<ReadIndex>(bamdata->core.pos),
+            .end_ind = static_cast<ReadIndex>(bamdata->core.pos +
+                                              bamdata->core.l_qseq),
+            .quality = bamdata->core.qual,
+            .is_first_read =
+                static_cast<bool>(bamdata->core.flag & BAM_FREAD1)};
+        current_qname = bam_get_qname(bamdata);  // NOLINT
 
         auto read_one_iterator = read_map.find(current_qname);
         if (read_one_iterator != read_map.end()) {
@@ -107,11 +107,10 @@ void bam_api::BamApi::read_bam(
     }
 }
 
-void bam_api::BamApi::write_sam(
-    const std::filesystem::path& input_filepath,
-    const std::filesystem::path& output_filepath,
-    std::vector<ReadIndex> &read_ids,
-    bool use_bam) {
+void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
+                                const std::filesystem::path& output_filepath,
+                                std::vector<ReadIndex>& read_ids,
+                                bool use_bam) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     samFile* outfile = NULL;
@@ -155,7 +154,8 @@ void bam_api::BamApi::write_sam(
     std::sort(read_ids.begin(), read_ids.end());
     auto current_read_i = read_ids.begin();
 
-    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0 && current_read_i != read_ids.end()) {
+    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0 &&
+           current_read_i != read_ids.end()) {
         if (id == *current_read_i) {
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
                 std::cerr << "Can't write line to bam file: " << output_filepath

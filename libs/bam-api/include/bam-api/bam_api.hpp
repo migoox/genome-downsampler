@@ -14,9 +14,9 @@ class BamApi {
                          PairedReads& paired_reads);
     // Returns number of reads written
     static void write_sam(const std::filesystem::path& input_filepath,
-                              const std::filesystem::path& output_filepath,
-                              std::vector<ReadIndex>& read_ids,
-                              bool use_bam = false);
+                          const std::filesystem::path& output_filepath,
+                          std::vector<ReadIndex>& read_ids,
+                          bool use_bam = false);
 };
 
 }  // namespace bam_api

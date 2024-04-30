@@ -2,8 +2,6 @@
 #define PAIRED_READS_HPP
 
 #include <cstdint>
-#include <map>
-#include <string>
 #include <vector>
 
 namespace bam_api {
