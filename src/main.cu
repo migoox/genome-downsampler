@@ -1,7 +1,9 @@
 #include <htslib/hts.h>
 #include <stdio.h>
 
+#include <cstdlib>
 #include <iostream>
+#include <vector>
 
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
@@ -15,10 +17,15 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 }
 
 int main() {
-    // Bam api and qmcp solver test
-    // auto ret =
-    // bam_api::BamApi::read_bam_aos("/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    // std::cout << "after aos: " << ret.read_pair_map.size() << std::endl;
+    // auto ret_soa = bam_api::BamApi::read_bam_soa(
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
+    // std::cout << "after aos: " << ret_soa.ids.size() << std::endl;
+    // std::vector<bam_api::ReadIndex> temp(ret_soa.ids.end() - 1000,
+    // ret_soa.ids.end() - 2); bam_api::BamApi::write_sam(
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered50.sam",
+    //     temp);
+    // return EXIT_SUCCESS;
 
     auto solver = qmcp::SequenceNetworkSolver();
     solver.solve();

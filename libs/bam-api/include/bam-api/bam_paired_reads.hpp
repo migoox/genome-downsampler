@@ -2,50 +2,60 @@
 #define PAIRED_READS_HPP
 
 #include <cstdint>
-#include <string>
+#include <optional>
 #include <vector>
 
 namespace bam_api {
 
+typedef size_t ReadIndex;
+typedef uint32_t ReadQuality;
+
 struct Read {
-    int64_t id;
-    int64_t start_ind;
-    int64_t end_ind;
-    uint32_t quality;
-    std::string qname;
+    ReadIndex id;
+    ReadIndex start_ind;
+    ReadIndex end_ind;
+    ReadQuality quality;
     bool is_first_read;
 };
 
 struct PairedReads {
-    std::vector<int64_t> read_pair_map;
-    int64_t ref_genome_length;
+    ReadIndex ref_genome_length = 0;
+    std::vector<std::optional<ReadIndex>> read_pair_map;
 
-    virtual void push_back(Read& read) = 0;
+    virtual void push_back(const Read& read) = 0;
+    virtual void reserve(size_t size) = 0;
     virtual ~PairedReads() = default;
+};
+
+struct SOAPairedReads : PairedReads {
+    std::vector<ReadIndex> ids;
+    std::vector<ReadIndex> start_inds;
+    std::vector<ReadIndex> end_inds;
+    std::vector<ReadQuality> qualities;
+    std::vector<bool> is_first_reads;
+
+    void push_back(const Read& read) override {
+        ids.push_back(read.id);
+        start_inds.push_back(read.start_ind);
+        end_inds.push_back(read.end_ind);
+        qualities.push_back(read.quality);
+        is_first_reads.push_back(read.is_first_read);
+    }
+
+    void reserve(size_t size) override {
+        ids.reserve(size);
+        start_inds.reserve(size);
+        end_inds.reserve(size);
+        qualities.reserve(size);
+        is_first_reads.reserve(size);
+    }
 };
 
 struct AOSPairedReads : PairedReads {
     std::vector<Read> reads;
 
-    void push_back(Read& read) override { reads.push_back(read); }
-};
-
-struct SOAPairedReads : PairedReads {
-    std::vector<int64_t> ids;
-    std::vector<int64_t> start_inds;
-    std::vector<int64_t> end_inds;
-    std::vector<uint32_t> qualities;
-    std::vector<std::string> qnames;
-    std::vector<bool> is_first_reads;
-
-    void push_back(Read& read) override {
-        ids.push_back(read.id);
-        start_inds.push_back(read.start_ind);
-        end_inds.push_back(read.end_ind);
-        qualities.push_back(read.quality);
-        qnames.push_back(read.qname);
-        is_first_reads.push_back(read.is_first_read);
-    }
+    void push_back(const Read& read) override { reads.push_back(read); }
+    void reserve(size_t size) override { reads.reserve(size); }
 };
 
 }  // namespace bam_api
