@@ -23,7 +23,7 @@ int main() {
     // std::vector<bam_api::ReadIndex> temp(ret_soa.ids.end() - 1000,
     // ret_soa.ids.end() - 2); bam_api::BamApi::write_sam(
     //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
-    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered5.bam",
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered50.sam",
     //     temp);
     // return EXIT_SUCCESS;
 

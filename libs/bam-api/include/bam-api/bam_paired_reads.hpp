@@ -2,6 +2,7 @@
 #define PAIRED_READS_HPP
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace bam_api {
@@ -19,8 +20,9 @@ struct Read {
 
 struct PairedReads {
     ReadIndex ref_genome_length = 0;
+    std::vector<std::optional<ReadIndex>> read_pair_map;
 
-    virtual void push_back(Read& read) = 0;
+    virtual void push_back(const Read& read) = 0;
     virtual void reserve(size_t size) = 0;
     virtual ~PairedReads() = default;
 };
@@ -32,7 +34,7 @@ struct SOAPairedReads : PairedReads {
     std::vector<ReadQuality> qualities;
     std::vector<bool> is_first_reads;
 
-    void push_back(Read& read) override {
+    void push_back(const Read& read) override {
         ids.push_back(read.id);
         start_inds.push_back(read.start_ind);
         end_inds.push_back(read.end_ind);
@@ -52,7 +54,7 @@ struct SOAPairedReads : PairedReads {
 struct AOSPairedReads : PairedReads {
     std::vector<Read> reads;
 
-    void push_back(Read& read) override { reads.push_back(read); }
+    void push_back(const Read& read) override { reads.push_back(read); }
     void reserve(size_t size) override { reads.reserve(size); }
 };
 

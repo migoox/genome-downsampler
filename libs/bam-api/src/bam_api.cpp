@@ -8,7 +8,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <map>
+#include <optional>
 #include <ostream>
 #include <vector>
 
@@ -84,8 +86,11 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
         if (read_one_iterator != read_map.end()) {
             paired_reads.push_back(read_one_iterator->second);
             paired_reads.push_back(current_read);
+            paired_reads.read_pair_map[read_one_iterator->second.id] = current_read.id;
+            paired_reads.read_pair_map.push_back(read_one_iterator->second.id);
         } else {
             read_map.insert({current_qname, current_read});
+            paired_reads.read_pair_map.push_back(std::nullopt);
         }
 
         id++;
