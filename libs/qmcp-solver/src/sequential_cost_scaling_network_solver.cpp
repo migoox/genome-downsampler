@@ -42,7 +42,7 @@ void create_network_flow_graph(
     std::vector<int64_t> capacities = {};
 
     // create normal edges
-    for (int i = 0; i < sequence.reads.size(); i++) {
+    for (int i = 0; i < sequence.reads.size(); ++i) {
         int weight = (sequence.reads[i].start_ind - sequence.reads[i].end_ind) *
                      sequence.reads[i].quality;
         min_cost_flow.AddArcWithCapacityAndUnitCost(
@@ -51,7 +51,7 @@ void create_network_flow_graph(
     }
 
     // create backwards edge
-    for (int i = 0; i < sequence.ref_genome_length; i++) {
+    for (int i = 0; i < sequence.ref_genome_length; ++i) {
         min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, M * 100, 0);
     }
 
@@ -69,7 +69,7 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
                                    unsigned int M) {
     std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
-    for (unsigned int i = 0; i < sequence.reads.size(); i++) {
+    for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind;
              j < sequence.reads[i].end_ind; j++) {
             if (j > sequence.ref_genome_length) {
@@ -81,7 +81,7 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
     }
 
     // cap nucleotides with more reads than M to M
-    for (unsigned int i = 0; i < sequence.ref_genome_length; i++) {
+    for (unsigned int i = 0; i < sequence.ref_genome_length; ++i) {
         if (b[i] > M) b[i] = M;
     }
     return b;
@@ -93,7 +93,7 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 
     int b_0 = b[0];
 
-    for (int i = 0; i < sequence.ref_genome_length - 1; i++) {
+    for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
