@@ -1,16 +1,15 @@
 #include <htslib/hts.h>
 #include <stdio.h>
+
 #include <chrono>
 #include <filesystem>
-#include <vector>
-
 #include <iostream>
+#include <vector>
 
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "qmcp-solver/qmcp-solver.hpp"
-#include "qmcp-solver/sequential_cycle_canceling_network_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
@@ -22,15 +21,19 @@ __global__ void addKernel(int* c, const int* a, const int* b) {
 int main() {
     // Bam api and qmcp solver test
     int M = 500;
-    auto bam_path = std::filesystem::path("/home/borys/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    auto solver = qmcp::SequentialCostScalingNetworkSolver(M,bam_path);
+    auto bam_path = std::filesystem::path(
+        "/home/borys/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/"
+        "reads.bam");
+    auto solver = qmcp::SequentialCostScalingNetworkSolver(M, bam_path);
 
     auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
     auto stop = std::chrono::high_resolution_clock::now();
-    auto solve_duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+    auto solve_duration =
+        std::chrono::duration_cast<std::chrono::seconds>(stop - start);
 
-    std::cout <<"SOLVE TOOK " << solve_duration.count() << "[seconds]" << std::endl;
+    std::cout << "SOLVE TOOK " << solve_duration.count() << "[seconds]"
+              << std::endl;
 
     // Define some variables
     const int array_size = 5;
