@@ -72,12 +72,14 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     ReadIndex id = 0;
     std::map<std::string, Read> read_map;
     std::string current_qname;
+    hts_pos_t rlen = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
+        rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar),
+                                   bam_get_cigar(bamdata));
         Read current_read{
             .id = id,
             .start_ind = static_cast<ReadIndex>(bamdata->core.pos),
-            .end_ind = static_cast<ReadIndex>(bamdata->core.pos +
-                                              bamdata->core.l_qseq),
+            .end_ind = static_cast<ReadIndex>(bamdata->core.pos + rlen),
             .quality = bamdata->core.qual,
             .is_first_read =
                 static_cast<bool>(bamdata->core.flag & BAM_FREAD1)};
