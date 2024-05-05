@@ -54,6 +54,7 @@ endif()
 # Set additional Find<Package>.cmake files direction
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
 
+
 # Display CMAKE_PREFIX_PATH entries
 message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 

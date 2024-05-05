@@ -9,6 +9,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "qmcp-solver/qmcp-solver.hpp"
+#include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
 
 __global__ void addKernel(int* c, const int* a, const int* b) {
@@ -27,9 +28,16 @@ int main() {
     //     temp);
     // return EXIT_SUCCESS;
 
-    auto solver = qmcp::SequenceNetworkSolver();
+    /*
+    auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto solve_duration =
+        std::chrono::duration_cast<std::chrono::seconds>(stop - start);
 
+    std::cout << "SOLVE TOOK " << solve_duration.count() << "[seconds]"
+              << std::endl;
+    */
     // Define some variables
     const int array_size = 5;
     const int a[array_size] = {1, 2, 3, 4, 5};
