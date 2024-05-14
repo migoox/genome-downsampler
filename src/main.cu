@@ -1,5 +1,6 @@
 #include <htslib/hts.h>
 #include <stdio.h>
+
 #include <cstdlib>
 
 #include "app.hpp"
@@ -11,9 +12,9 @@ int main(int argc, char** argv) {
     App app;
 
     try {
-      app.Parse(argc, argv);
-    } catch(const CLI::ParseError &e) {
-      return app.Exit(e);
+        app.Parse(argc, argv);
+    } catch (const CLI::ParseError& e) {
+        return app.Exit(e);
     }
 
     app.Solve();
