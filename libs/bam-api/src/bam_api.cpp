@@ -33,6 +33,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
                                PairedReads& paired_reads) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
+    samFile* filtered_out_file = NULL;
     int ret_r = 0;
     bam1_t* bamdata = NULL;
 
@@ -50,6 +51,15 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
         std::exit(EXIT_FAILURE);
     }
 
+    auto filtered_out_path = filepath;
+    filtered_out_path.replace_filename("filtered_out_sequences.bam");
+    filtered_out_file = sam_open(filtered_out_path.c_str(), "wb");
+    if (!filtered_out_file) {
+        std::cerr << "Could not open " << filtered_out_path << std::endl;
+        sam_close(filtered_out_file);
+        std::exit(EXIT_FAILURE);
+    }
+
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
@@ -58,7 +68,13 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
         std::exit(EXIT_FAILURE);
     }
 
-    // Load the index
+    if (sam_hdr_write(filtered_out_file, in_samhdr) < 0) {
+        std::cerr << "Can't write header to bam file: " << filtered_out_path
+                  << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Reserve memory for reads if index is present
     hts_idx_t* idx = sam_index_load(infile, filepath.c_str());
     if (idx) {
         uint64_t mapped_seq_c, unmapped_seq_c;
@@ -75,7 +91,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     hts_pos_t rlen = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar),
-                                   bam_get_cigar(bamdata));
+                              bam_get_cigar(bamdata));
         Read current_read{
             .id = id,
             .start_ind = static_cast<ReadIndex>(bamdata->core.pos),
@@ -111,16 +127,46 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
         std::cerr << "Failed to read bam file (sam_read1 error code:" << ret_r
                   << ")" << std::endl;
 
-    // cleanup
-    if (in_samhdr) {
-        sam_hdr_destroy(in_samhdr);
-    }
-    if (infile) {
+
+    sam_hdr_destroy(in_samhdr);
+    // Reopen infile to read iterate through it second time
+    sam_close(infile);
+    infile = sam_open(filepath.c_str(), "r");
+    if (!infile) {
+        std::cerr << "Could not open " << filepath << std::endl;
         sam_close(infile);
+        std::exit(EXIT_FAILURE);
     }
-    if (bamdata) {
-        bam_destroy1(bamdata);
+    // read header
+    in_samhdr = sam_hdr_read(infile);
+    if (!in_samhdr) {
+        std::cerr << "Failed to read header from file!" << std::endl;
+        sam_close(infile);
+        std::exit(EXIT_FAILURE);
     }
+
+    id = 0;
+    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
+        if (!paired_reads.read_pair_map[id]) {
+            if (sam_write1(filtered_out_file, in_samhdr, bamdata) < 0) {
+                std::cerr << "Can't write line to bam file: "
+                          << filtered_out_path << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
+        }
+
+        id++;
+    }
+
+    if (ret_r >= 0)
+        std::cerr << "Failed to read bam file (sam_read1 error code:" << ret_r
+                  << ")" << std::endl;
+
+    // cleanup
+    sam_hdr_destroy(in_samhdr);
+    sam_close(infile);
+    sam_close(filtered_out_file);
+    bam_destroy1(bamdata);
 }
 
 void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
