@@ -14,9 +14,11 @@ namespace qmcp {
 class SequentialCostScalingNetworkSolver : public Solver {
    public:
     SequentialCostScalingNetworkSolver(unsigned int M,
-                                       const std::filesystem::path& filepath)
+                                       const std::filesystem::path& filepath,
+                                       uint32_t min_seq_len,
+                                       uint32_t min_seq_mapq)
         : M_(M) {
-        input_sequence_ = bam_api::BamApi::read_bam_aos(filepath);
+        input_sequence_ = bam_api::BamApi::read_bam_aos(filepath, min_seq_len, min_seq_mapq);
         std::cout << "read bam\n";
     }
     void solve() override;

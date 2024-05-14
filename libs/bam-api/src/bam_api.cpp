@@ -16,21 +16,24 @@
 #include "../include/bam-api/bam_paired_reads.hpp"
 
 bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
-    const std::filesystem::path& filepath) {
+    const std::filesystem::path& filepath, uint32_t min_seq_length,
+    uint32_t min_mapq) {
     SOAPairedReads paired_reads;
-    read_bam(filepath, paired_reads);
+    read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
 
 bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
-    const std::filesystem::path& filepath) {
+    const std::filesystem::path& filepath, uint32_t min_seq_length,
+    uint32_t min_mapq) {
     AOSPairedReads paired_reads;
-    read_bam(filepath, paired_reads);
+    read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
 
 void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
-                               PairedReads& paired_reads) {
+                               PairedReads& paired_reads,
+                               uint32_t min_seq_length, uint32_t min_mapq) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     samFile* filtered_out_file = NULL;
@@ -116,7 +119,9 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
                 current_read.id;
             paired_reads.read_pair_map.push_back(read_one_iterator->second.id);
         } else {
-            read_map.insert({current_qname, current_read});
+            if (bamdata->core.l_qseq >= min_seq_length &&
+                bamdata->core.qual >= min_mapq)
+                read_map.insert({current_qname, current_read});
             paired_reads.read_pair_map.push_back(std::nullopt);
         }
 
