@@ -18,7 +18,7 @@ class BamApi {
                          PairedReads& paired_reads, uint32_t min_seq_length,
                          uint32_t min_mapq);
     // Returns number of reads written
-    static void write_sam(const std::filesystem::path& input_filepath,
+    static uint32_t write_sam(const std::filesystem::path& input_filepath,
                           const std::filesystem::path& output_filepath,
                           std::vector<ReadIndex>& read_ids,
                           bool use_bam = false);

@@ -174,7 +174,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     bam_destroy1(bamdata);
 }
 
-void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
+uint32_t bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
                                 const std::filesystem::path& output_filepath,
                                 std::vector<ReadIndex>& read_ids,
                                 bool use_bam) {
@@ -220,6 +220,7 @@ void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
     ReadIndex id = 0;
     std::sort(read_ids.begin(), read_ids.end());
     auto current_read_i = read_ids.begin();
+    uint32_t reads_written = 0;
 
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0 &&
            current_read_i != read_ids.end()) {
@@ -230,6 +231,7 @@ void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
                 std::exit(EXIT_FAILURE);
             }
 
+            reads_written++;
             current_read_i++;
         }
 
@@ -253,4 +255,6 @@ void bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
     if (bamdata) {
         bam_destroy1(bamdata);
     }
+
+    return reads_written;
 }
