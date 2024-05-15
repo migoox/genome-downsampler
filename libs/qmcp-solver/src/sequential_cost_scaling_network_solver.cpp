@@ -14,7 +14,7 @@ bam_api::AOSPairedReads obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow);
 
-void qmcp::SequentialCostScalingNetworkSolver::solve() {
+void qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t required_cover) {
     // TODO(implement the function):
     // ortools max flow example basing on the link:
     // https://developers.google.com/optimization/flow/maxflow#c++
@@ -22,7 +22,7 @@ void qmcp::SequentialCostScalingNetworkSolver::solve() {
     // https://github.com/google/or-tools/blob/stable/ortools/graph/min_cost_flow.h
     operations_research::SimpleMinCostFlow min_cost_flow;
 
-    create_network_flow_graph(min_cost_flow, input_sequence_, M_);
+    create_network_flow_graph(min_cost_flow, input_sequence_, required_cover);
 
     int status = min_cost_flow.Solve();
 
