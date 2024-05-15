@@ -19,12 +19,11 @@ __host__ void global_relabel(int* data) {
     // TODO(billyk):
 }
 
-qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver()
-    : input_sequence_(), is_data_loaded_(false) {}
+qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver() : is_data_loaded_(false) {}
 
 qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(
     const std::filesystem::path& filepath)
-    : input_sequence_(), is_data_loaded_(false) {
+    : is_data_loaded_(false) {
     import_data(filepath);
 }
 
@@ -79,7 +78,7 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
 
     // Temporary dictionares with key=node
     std::vector<std::vector<Node>> neighbors_dict(n + 3);
-    std::vector<std::vector<bool>> is_forward_dict(n + 3);
+    std::vector<std::vector<EdgeDirection>> edge_dir_dict(n + 3);
     std::vector<std::vector<Capacity>> residual_capacity_dict(n + 3);
 
     // Add edges that are corresponding to the reads
@@ -89,11 +88,11 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
 
         // u --> v
         neighbors_dict[u].push_back(v);
-        is_forward_dict[u].push_back(true);
+        edge_dir_dict[u].push_back(EdgeDirection::Forward);
         residual_capacity_dict[u].push_back(1);
 
         neighbors_dict[v].push_back(u);
-        is_forward_dict[v].push_back(false);
+        edge_dir_dict[v].push_back(EdgeDirection::Backward);
         residual_capacity_dict[v].push_back(0);
     }
 
@@ -101,12 +100,12 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
     for (Node i = 0; i < n; ++i) {
         // i <-- i + 1
         neighbors_dict[i + 1].push_back(i);
-        is_forward_dict[i + 1].push_back(true);
+        edge_dir_dict[i + 1].push_back(EdgeDirection::Forward);
         residual_capacity_dict[i + 1].push_back(
             std::numeric_limits<Capacity>::max());
 
         neighbors_dict[i].push_back(i + 1);
-        is_forward_dict[i].push_back(false);
+        edge_dir_dict[i].push_back(EdgeDirection::Backward);
         residual_capacity_dict[i].push_back(0);
     }
 
@@ -122,20 +121,20 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
         if (demand_func[i] > 0) {
             // Sink: i --> t
             neighbors_dict[i].push_back(t);
-            is_forward_dict[i].push_back(true);
+            edge_dir_dict[i].push_back(EdgeDirection::Forward);
             residual_capacity_dict[i].push_back(demand_func[i]);
 
             neighbors_dict[t].push_back(i);
-            is_forward_dict[t].push_back(false);
+            edge_dir_dict[t].push_back(EdgeDirection::Backward);
             residual_capacity_dict[t].push_back(0);
         } else if (demand_func[i] < 0) {
             // Source: s --> i
             neighbors_dict[s].push_back(i);
-            is_forward_dict[s].push_back(true);
+            edge_dir_dict[s].push_back(EdgeDirection::Forward);
             residual_capacity_dict[s].push_back(demand_func[i]);
 
             neighbors_dict[i].push_back(s);
-            is_forward_dict[i].push_back(false);
+            edge_dir_dict[i].push_back(EdgeDirection::Backward);
             residual_capacity_dict[i].push_back(0);
         }
     }
@@ -158,8 +157,8 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
                                   residual_capacity_dict[i].begin(),
                                   residual_capacity_dict[i].end());
 
-        is_forward_.insert(is_forward_.end(), is_forward_dict[i].begin(),
-                           is_forward_dict[i].end());
+        edge_dir_.insert(edge_dir_.end(), edge_dir_dict[i].begin(),
+                         edge_dir_dict[i].end());
 
         curr_ind += neighbors_dict[i].size() + 1;
     }
@@ -180,21 +179,64 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
     // Malloc and initialize CUDA memory
     int32_t* dev_label_func = nullptr;
-    int32_t* dev_excess_func = nullptr;
+    uint32_t* dev_excess_func = nullptr;
+    uint32_t* dev_start_func_ind = nullptr;
+    uint32_t* dev_end_func_ind = nullptr;
+    Node* dev_neighbors = nullptr;
+    Capacity* dev_residual_capacity = nullptr;
+    EdgeDirection* dev_edge_dir = nullptr;
+
+    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_label_func),
+                                label_func_.size() * sizeof(uint32_t)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_label_func, label_func_.data(),
+                                label_func_.size() * sizeof(uint32_t),
+                                cudaMemcpyHostToDevice));
+
+    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_excess_func),
+                                excess_func_.size() * sizeof(int32_t)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_excess_func, excess_func_.data(),
+                                excess_func_.size() * sizeof(int32_t),
+                                cudaMemcpyHostToDevice));
 
     CHECK_CUDA_ERROR(
-        cudaMalloc(reinterpret_cast<void**>(&dev_label_func),
-                   input_sequence_.ref_genome_length * sizeof(int32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_excess_func, label_func_.data(),
-                                label_func_.size() * sizeof(int32_t),
-                                cudaMemcpyKind::cudaMemcpyHostToDevice));
+        cudaMalloc(reinterpret_cast<void**>(&dev_start_func_ind),
+                   neighbors_start_ind_.size() * sizeof(uint32_t)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_start_func_ind, neighbors_start_ind_.data(),
+                                neighbors_start_ind_.size() * sizeof(uint32_t),
+                                cudaMemcpyHostToDevice));
+
+    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_end_func_ind),
+                                neighbors_end_ind_.size() * sizeof(uint32_t)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_end_func_ind, neighbors_end_ind_.data(),
+                                neighbors_end_ind_.size() * sizeof(uint32_t),
+                                cudaMemcpyHostToDevice));
+
+    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_neighbors),
+                                neighbors_.size() * sizeof(Node)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_neighbors, neighbors_.data(),
+                                neighbors_.size() * sizeof(Node),
+                                cudaMemcpyHostToDevice));
+
     CHECK_CUDA_ERROR(
-        cudaMalloc(reinterpret_cast<void**>(&dev_excess_func),
-                   input_sequence_.ref_genome_length * sizeof(int32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_excess_func, label_func_.data(),
-                                label_func_.size() * sizeof(int32_t),
-                                cudaMemcpyKind::cudaMemcpyHostToDevice));
+        cudaMalloc(reinterpret_cast<void**>(&dev_residual_capacity),
+                   residual_capacity_.size() * sizeof(Capacity)));
+    CHECK_CUDA_ERROR(cudaMemcpy(
+        dev_residual_capacity, residual_capacity_.data(),
+        residual_capacity_.size() * sizeof(Capacity), cudaMemcpyHostToDevice));
+
+    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_edge_dir),
+                                edge_dir_.size() * sizeof(EdgeDirection)));
+    CHECK_CUDA_ERROR(cudaMemcpy(dev_edge_dir, edge_dir_.data(),
+                                edge_dir_.size() * sizeof(EdgeDirection),
+                                cudaMemcpyHostToDevice));
+
+    // IMPLEMENTATION HERE
 
     CHECK_CUDA_ERROR(cudaFree(dev_label_func));
     CHECK_CUDA_ERROR(cudaFree(dev_excess_func));
+    CHECK_CUDA_ERROR(cudaFree(dev_start_func_ind));
+    CHECK_CUDA_ERROR(cudaFree(dev_end_func_ind));
+    CHECK_CUDA_ERROR(cudaFree(dev_neighbors));
+    CHECK_CUDA_ERROR(cudaFree(dev_residual_capacity));
+    CHECK_CUDA_ERROR(cudaFree(dev_edge_dir));
 }

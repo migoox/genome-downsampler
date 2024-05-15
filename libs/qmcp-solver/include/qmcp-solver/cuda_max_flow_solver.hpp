@@ -16,6 +16,7 @@ class CudaMaxFlowSolver : public Solver {
     typedef uint32_t Capacity;
 
     CudaMaxFlowSolver();
+    enum class EdgeDirection : uint8_t { Forward, Backward };
     explicit CudaMaxFlowSolver(const std::filesystem::path& filepath);
 
     void import_data(const std::filesystem::path& filepath);
@@ -38,7 +39,7 @@ class CudaMaxFlowSolver : public Solver {
     std::vector<uint32_t> neighbors_end_ind_;
     std::vector<Node> neighbors_;
     std::vector<Capacity> residual_capacity_;
-    std::vector<bool> is_forward_;
+    std::vector<EdgeDirection> edge_dir_;
 };
 
 }  // namespace qmcp
