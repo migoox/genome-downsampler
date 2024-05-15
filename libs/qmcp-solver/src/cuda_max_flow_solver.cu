@@ -39,7 +39,6 @@ void qmcp::CudaMaxFlowSolver::clear_data() {
 void qmcp::CudaMaxFlowSolver::import_data(
     const std::filesystem::path& filepath) {
     input_sequence_ = bam_api::BamApi::read_bam_soa(filepath);
-    init_data(input_sequence_);
     is_data_loaded_ = true;
 }
 
