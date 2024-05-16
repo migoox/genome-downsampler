@@ -3,3 +3,4 @@ DerivePointerAlignment: false
 IndentWidth: 4
 TabWidth: 4
 UseTab: false 
+ColumnLimit: 100

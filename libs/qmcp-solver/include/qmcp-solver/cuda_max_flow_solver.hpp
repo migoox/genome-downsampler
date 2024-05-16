@@ -26,25 +26,30 @@ class CudaMaxFlowSolver : public Solver {
     void solve(uint32_t required_cover) override;
     void export_data(const std::filesystem::path& filepath);
 
+    void set_block_size(uint32_t block_size);
+    void set_kernel_cycles(uint32_t kernel_cycles);
+
+    static constexpr uint32_t kDefaultBlockSize = 512;
+    static constexpr uint32_t kDefaultKernelCycles = 1024;
+
    private:
     void clear_graph();
 
     // Calling this function is valid only after the import_data is called
-    void create_graph(const bam_api::SOAPairedReads& sequence,
-                      uint32_t required_cover);
+    void create_graph(const bam_api::SOAPairedReads& sequence, uint32_t required_cover);
 
-    // Helper functions
-    static void add_edge(
-        std::vector<std::vector<Node>>& neighbors_dict,
-        std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
-        std::vector<std::vector<Capacity>>& residual_capacity_dict,
-        std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
-        Node end, Capacity capacity);
+    static void add_edge(std::vector<std::vector<Node>>& neighbors_dict,
+                         std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
+                         std::vector<std::vector<Capacity>>& residual_capacity_dict,
+                         std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
+                         Node end, Capacity capacity);
 
     // This function is responsible for first step of push-relabel algorithm
     void create_preflow();
 
-    bool is_data_loaded_;
+    uint32_t block_size_ = kDefaultBlockSize;
+    uint32_t kernel_cycles_ = kDefaultKernelCycles;
+    bool is_data_loaded_ = false;
 
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
