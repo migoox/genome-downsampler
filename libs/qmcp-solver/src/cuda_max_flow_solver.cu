@@ -8,7 +8,7 @@
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
-#include "qmcp-solver/check_cuda_error.hpp"
+#include "qmcp-solver/cuda_helpers.hpp"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 
 __global__ void push_relabel_kernel(int* data) {
@@ -211,68 +211,69 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
     create_graph(input_sequence_, required_cover);
 
+    // Malloc the CUDA memory
+    auto* dev_label_func = cuda::malloc<Label>(label_func_.size());
+    auto* dev_excess_func = cuda::malloc<Excess>(excess_func_.size());
+    auto* dev_neighbors_start_ind =
+        cuda::malloc<NeighborInfoIndex>(neighbors_start_ind_.size());
+    auto* dev_neighbors_end_ind =
+        cuda::malloc<NeighborInfoIndex>(neighbors_end_ind_.size());
+    auto* dev_neighbors = cuda::malloc<Node>(neighbors_.size());
+    auto* dev_residual_capacity =
+        cuda::malloc<Capacity>(residual_capacity_.size());
+    auto* dev_inversed_edge_ind =
+        cuda::malloc<NeighborInfoIndex>(inversed_edge_ind_.size());
+    auto* dev_edge_dir = cuda::malloc<EdgeDirection>(edge_dir_.size());
+
+    // Copy the constant arrays to device
+    cuda::memcpy(dev_edge_dir, edge_dir_.data(), edge_dir_.size(),
+                 cudaMemcpyHostToDevice);
+    cuda::memcpy(dev_inversed_edge_ind, inversed_edge_ind_.data(),
+                 inversed_edge_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy(dev_neighbors_start_ind, neighbors_start_ind_.data(),
+                 neighbors_start_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy(dev_neighbors_end_ind, neighbors_end_ind_.data(),
+                 neighbors_end_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy(dev_neighbors, neighbors_.data(), neighbors_.size(),
+                 cudaMemcpyHostToDevice);
+
+    // Copy the excess function and residual capacity
+    cuda::memcpy(dev_residual_capacity, residual_capacity_.data(),
+                 residual_capacity_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy(dev_excess_func, excess_func_.data(), excess_func_.size(),
+                 cudaMemcpyHostToDevice);
+
+    Node sink = excess_func_.size() - 1;
+    Node source = excess_func_.size() - 2;
+
     Excess total_excess = 0;
+    while (excess_func_[source] + excess_func_[sink] < total_excess) {
+        // Copy the label function to the device memory
+        cuda::memcpy(dev_label_func, label_func_.data(),
+                     label_func_.size() * sizeof(uint32_t),
+                     cudaMemcpyHostToDevice);
+        // Call push-relabel GPU kernel
+        // TODO(billyk):
 
-    // Malloc and initialize CUDA memory
-    int32_t* dev_label_func = nullptr;
-    uint32_t* dev_excess_func = nullptr;
-    uint32_t* dev_start_func_ind = nullptr;
-    uint32_t* dev_end_func_ind = nullptr;
-    Node* dev_neighbors = nullptr;
-    Capacity* dev_residual_capacity = nullptr;
-    EdgeDirection* dev_edge_dir = nullptr;
+        // Copy the residual capacity, label and excess functions from device to
+        // the host memory
+        cuda::memcpy(residual_capacity_.data(), dev_residual_capacity,
+                     residual_capacity_.size(), cudaMemcpyDeviceToHost);
+        cuda::memcpy(excess_func_.data(), dev_excess_func, excess_func_.size(),
+                     cudaMemcpyDeviceToHost);
+        cuda::memcpy(label_func_.data(), dev_label_func, label_func_.size(),
+                     cudaMemcpyHostToDevice);
 
-    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_label_func),
-                                label_func_.size() * sizeof(uint32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_label_func, label_func_.data(),
-                                label_func_.size() * sizeof(uint32_t),
-                                cudaMemcpyHostToDevice));
+        // Call global-relabel on CPU
+        // TODO(billyk):
+    }
 
-    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_excess_func),
-                                excess_func_.size() * sizeof(int32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_excess_func, excess_func_.data(),
-                                excess_func_.size() * sizeof(int32_t),
-                                cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(
-        cudaMalloc(reinterpret_cast<void**>(&dev_start_func_ind),
-                   neighbors_start_ind_.size() * sizeof(uint32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_start_func_ind, neighbors_start_ind_.data(),
-                                neighbors_start_ind_.size() * sizeof(uint32_t),
-                                cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_end_func_ind),
-                                neighbors_end_ind_.size() * sizeof(uint32_t)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_end_func_ind, neighbors_end_ind_.data(),
-                                neighbors_end_ind_.size() * sizeof(uint32_t),
-                                cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_neighbors),
-                                neighbors_.size() * sizeof(Node)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_neighbors, neighbors_.data(),
-                                neighbors_.size() * sizeof(Node),
-                                cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(
-        cudaMalloc(reinterpret_cast<void**>(&dev_residual_capacity),
-                   residual_capacity_.size() * sizeof(Capacity)));
-    CHECK_CUDA_ERROR(cudaMemcpy(
-        dev_residual_capacity, residual_capacity_.data(),
-        residual_capacity_.size() * sizeof(Capacity), cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&dev_edge_dir),
-                                edge_dir_.size() * sizeof(EdgeDirection)));
-    CHECK_CUDA_ERROR(cudaMemcpy(dev_edge_dir, edge_dir_.data(),
-                                edge_dir_.size() * sizeof(EdgeDirection),
-                                cudaMemcpyHostToDevice));
-
-    // IMPLEMENTATION HERE
-
-    CHECK_CUDA_ERROR(cudaFree(dev_label_func));
-    CHECK_CUDA_ERROR(cudaFree(dev_excess_func));
-    CHECK_CUDA_ERROR(cudaFree(dev_start_func_ind));
-    CHECK_CUDA_ERROR(cudaFree(dev_end_func_ind));
-    CHECK_CUDA_ERROR(cudaFree(dev_neighbors));
-    CHECK_CUDA_ERROR(cudaFree(dev_residual_capacity));
-    CHECK_CUDA_ERROR(cudaFree(dev_edge_dir));
+    cuda::free(dev_label_func);
+    cuda::free(dev_excess_func);
+    cuda::free(dev_neighbors_start_ind);
+    cuda::free(dev_inversed_edge_ind);
+    cuda::free(dev_neighbors_end_ind);
+    cuda::free(dev_neighbors);
+    cuda::free(dev_residual_capacity);
+    cuda::free(dev_edge_dir);
 }

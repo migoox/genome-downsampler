@@ -14,6 +14,8 @@ class CudaMaxFlowSolver : public Solver {
    public:
     typedef uint32_t Node;
     typedef uint32_t Capacity;
+    typedef uint32_t Label;
+    typedef uint32_t NeighborInfoIndex;
     typedef int32_t Excess;
 
     CudaMaxFlowSolver();
@@ -47,14 +49,27 @@ class CudaMaxFlowSolver : public Solver {
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
 
-    // Graph data
+    // === Graph data ===
     std::vector<Excess> excess_func_;
-    std::vector<uint32_t> label_func_;
-    std::vector<uint32_t> neighbors_start_ind_;
-    std::vector<uint32_t> neighbors_end_ind_;
+    std::vector<Label> label_func_;
+
+    // This is mapping: Node to start/end index in neighbors info arrays
+    std::vector<NeighborInfoIndex> neighbors_start_ind_;
+    std::vector<NeighborInfoIndex> neighbors_end_ind_;
+
+    // Neighbors info array is an array that stores packed information about the
+    // neighbors of all vertices:
+
+    // Maps NeighborInfoIndex into neighbor Node
     std::vector<Node> neighbors_;
-    std::vector<uint32_t> inversed_edge_ind_;
+
+    // Maps NeighborInfoIndex into neighbor's neighbor NeighborInfoIndex
+    std::vector<NeighborInfoIndex> inversed_edge_ind_;
+
+    // Maps NeighborInfoIndex into residual capacity
     std::vector<Capacity> residual_capacity_;
+
+    // Maps NeighborInfoIndex into EdgeDirection
     std::vector<EdgeDirection> edge_dir_;
 };
 
