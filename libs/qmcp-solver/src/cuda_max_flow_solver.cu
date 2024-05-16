@@ -27,35 +27,54 @@ qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(
     import_data(filepath);
 }
 
-void qmcp::CudaMaxFlowSolver::clear_data() {
-    excess_func_.clear();
-    label_func_.clear();
-    neighbors_.clear();
-    neighbors_start_ind_.clear();
-    neighbors_end_ind_.clear();
-    residual_capacity_.clear();
-}
-
 void qmcp::CudaMaxFlowSolver::import_data(
     const std::filesystem::path& filepath) {
     input_sequence_ = bam_api::BamApi::read_bam_soa(filepath);
+
+    // Create max coverage function
+    max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
+    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
+        for (bam_api::Index j = input_sequence_.start_inds[i];
+             j <= input_sequence_.end_inds[i]; ++i) {
+            ++max_coverage_[j + 1];
+        }
+    }
+
     is_data_loaded_ = true;
 }
+void qmcp::CudaMaxFlowSolver::add_edge(
+    std::vector<std::vector<Node>>& neighbors_dict,
+    std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
+    std::vector<std::vector<Capacity>>& residual_capacity_dict,
+    std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
+    Node end, Capacity capacity) {
+    size_t start_info_size = neighbors_dict[start].size();
+    size_t end_info_size = neighbors_dict[end].size();
 
-void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
-                                        uint32_t required_cover) {
+    neighbors_dict[start].push_back(end);
+    edge_dir_dict[start].push_back(EdgeDirection::Forward);
+    residual_capacity_dict[start].push_back(capacity);
+    inversed_edge_ind_dict[start].push_back(end_info_size);
+
+    neighbors_dict[end].push_back(start);
+    edge_dir_dict[end].push_back(EdgeDirection::Backward);
+    residual_capacity_dict[end].push_back(0);
+    inversed_edge_ind_dict[end].push_back(start_info_size);
+}
+
+void qmcp::CudaMaxFlowSolver::create_graph(
+    const bam_api::SOAPairedReads& sequence, uint32_t required_cover) {
     // Clear the graph data
-    clear_data();
+    clear_graph();
 
+    // Get genome length
     uint32_t n = sequence.ref_genome_length;
 
-    // The nodes 0, 1, 2, ... (n - 1) are first mapped to the
-    // indices 1, 2, .... n in the ref genome.
+    // We first map 0, 1, 2, ... (n - 1) indices from the ref genome
+    // to 1, 2, .... n. Then the graph is created in the following way, for read
+    // (u, v), where u,v in (1, 2, ... n) create an edge (u - 1, v).
     //
-    // Then the graph is created in the following way, for read (u, v), where
-    // u,v in (1, 2, ... n) create an edge (u - 1, v).
-    //
-    // So the above procedure is equivalent of getting an original read (u, v),
+    // The above procedure is equivalent of getting an original read (u, v),
     // where u,v in (0, 1, 2, ... n - 1) and createing an edge (u, v + 1).
     //
     // Additional nodes:
@@ -63,22 +82,15 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
     // - sink: n + 2,
     // - artificial node: 0.
 
-    Node s = n + 1;
-    Node t = n + 1;
-
-    // Create coverage function
-    std::vector<uint32_t> max_coverage(n + 1, 0);
-    for (bam_api::ReadIndex i = 0; i < sequence.end_inds.size(); ++i) {
-        for (bam_api::Index j = sequence.start_inds[i];
-             j <= sequence.end_inds[i]; ++i) {
-            ++max_coverage[j + 1];
-        }
-    }
+    // Create source and sink
+    Node source = n + 1;
+    Node sink = n + 2;
 
     // Temporary dictionares with key=node
     std::vector<std::vector<Node>> neighbors_dict(n + 3);
     std::vector<std::vector<EdgeDirection>> edge_dir_dict(n + 3);
     std::vector<std::vector<Capacity>> residual_capacity_dict(n + 3);
+    std::vector<std::vector<uint32_t>> inversed_edge_ind_dict(n + 3);
 
     // Add edges that are corresponding to the reads
     for (bam_api::ReadIndex i = 0; i < sequence.end_inds.size(); ++i) {
@@ -86,55 +98,35 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
         Node v = sequence.end_inds[i] + 1;
 
         // u --> v
-        neighbors_dict[u].push_back(v);
-        edge_dir_dict[u].push_back(EdgeDirection::Forward);
-        residual_capacity_dict[u].push_back(1);
-
-        neighbors_dict[v].push_back(u);
-        edge_dir_dict[v].push_back(EdgeDirection::Backward);
-        residual_capacity_dict[v].push_back(0);
+        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                 inversed_edge_ind_dict, u, v, 1);
     }
 
     // Add returning edges
     for (Node i = 0; i < n; ++i) {
-        // i <-- i + 1
-        neighbors_dict[i + 1].push_back(i);
-        edge_dir_dict[i + 1].push_back(EdgeDirection::Forward);
-        residual_capacity_dict[i + 1].push_back(
-            std::numeric_limits<Capacity>::max());
-
-        neighbors_dict[i].push_back(i + 1);
-        edge_dir_dict[i].push_back(EdgeDirection::Backward);
-        residual_capacity_dict[i].push_back(0);
+        // i + 1 --> i
+        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                 inversed_edge_ind_dict, i + 1, i,
+                 std::numeric_limits<Capacity>::max());
     }
 
     // Create demand func basing on the required cover
     std::vector<uint32_t> demand_func(n + 1, 0);
     for (bam_api::Index i = 0; i < n; ++i) {
-        demand_func[i] = std::min(max_coverage[i + 1], required_cover) -
-                         std::min(max_coverage[i], required_cover);
+        demand_func[i] = std::min(max_coverage_[i + 1], required_cover) -
+                         std::min(max_coverage_[i], required_cover);
     }
 
     // Add edges for sink and source in order to simulate a circulation
     for (Node i = 0; i <= n; ++i) {
         if (demand_func[i] > 0) {
-            // Sink: i --> t
-            neighbors_dict[i].push_back(t);
-            edge_dir_dict[i].push_back(EdgeDirection::Forward);
-            residual_capacity_dict[i].push_back(demand_func[i]);
-
-            neighbors_dict[t].push_back(i);
-            edge_dir_dict[t].push_back(EdgeDirection::Backward);
-            residual_capacity_dict[t].push_back(0);
+            // i --> sink
+            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                     inversed_edge_ind_dict, i, sink, demand_func[i]);
         } else if (demand_func[i] < 0) {
-            // Source: s --> i
-            neighbors_dict[s].push_back(i);
-            edge_dir_dict[s].push_back(EdgeDirection::Forward);
-            residual_capacity_dict[s].push_back(demand_func[i]);
-
-            neighbors_dict[i].push_back(s);
-            edge_dir_dict[i].push_back(EdgeDirection::Backward);
-            residual_capacity_dict[i].push_back(0);
+            // source --> i
+            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                     inversed_edge_ind_dict, source, i, -demand_func[i]);
         }
     }
 
@@ -159,12 +151,56 @@ void qmcp::CudaMaxFlowSolver::init_data(const bam_api::SOAPairedReads& sequence,
         edge_dir_.insert(edge_dir_.end(), edge_dir_dict[i].begin(),
                          edge_dir_dict[i].end());
 
+        inversed_edge_ind_.insert(neighbors_end_ind_.end(),
+                                  inversed_edge_ind_dict[i].begin(),
+                                  inversed_edge_ind_dict[i].end());
+
         curr_ind += neighbors_dict[i].size() + 1;
     }
 
-    // Prepare excess and label functions sizes
+    // Prepare excess and label functions
     excess_func_.resize(n + 3, 0);
     label_func_.resize(n + 3, 0);
+    label_func_[source] = n + 3;
+    create_preflow();
+}
+
+void qmcp::CudaMaxFlowSolver::create_preflow() {
+    // Get graph node count
+    uint32_t n = label_func_.size();
+    Node source = n - 2;
+
+    // Create preflow: saturate all edges coming out of the source
+    for (uint32_t i = neighbors_start_ind_[source];
+         i <= neighbors_end_ind_[source]; ++i) {
+        // We are in the source so every edge has forward direction
+        // and checking the edge_dir is not requred
+
+        // Get current neighbor
+        Node curr_neighbor = neighbors_[i];
+        Capacity curr_edge_capacity = residual_capacity_[i];
+
+        // Get the inversed edge location
+        uint32_t inversed_i =
+            neighbors_start_ind_[curr_neighbor] + inversed_edge_ind_[i];
+
+        // Saturate the edge
+        residual_capacity_[inversed_i] = curr_edge_capacity;
+        residual_capacity_[i] = 0;
+
+        // Update the excess function
+        excess_func_[curr_neighbor] = static_cast<Excess>(curr_edge_capacity);
+        excess_func_[source] -= static_cast<Excess>(curr_edge_capacity);
+    }
+}
+
+void qmcp::CudaMaxFlowSolver::clear_graph() {
+    excess_func_.clear();
+    label_func_.clear();
+    neighbors_.clear();
+    neighbors_start_ind_.clear();
+    neighbors_end_ind_.clear();
+    residual_capacity_.clear();
 }
 
 void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
@@ -173,8 +209,9 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
         std::exit(EXIT_FAILURE);
     }
 
-    // Prepare graph
-    init_data(input_sequence_, required_cover);
+    create_graph(input_sequence_, required_cover);
+
+    Excess total_excess = 0;
 
     // Malloc and initialize CUDA memory
     int32_t* dev_label_func = nullptr;
