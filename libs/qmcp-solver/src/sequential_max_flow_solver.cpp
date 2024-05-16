@@ -3,6 +3,7 @@
 #include <ortools/graph/max_flow.h>
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "bam-api/bam_paired_reads.hpp"
@@ -15,13 +16,12 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMaxFlow& max_flow);
+void add_pairs(
+    std::vector<bam_api::ReadIndex>& reduced_reads,
+    const std::vector<bool>& mapped_reads,
+    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map);
 
 void qmcp::SequentialMaxFlowSolver::solve() {
-    // TODO(implement the function):
-    // ortools max flow example basing on the link:
-    // https://developers.google.com/optimization/flow/maxflow#c++
-    // Worth reading:
-    // https://github.com/google/or-tools/blob/stable/ortools/graph/max_flow.h
     operations_research::SimpleMaxFlow max_flow;
 
     create_network_flow_graph(max_flow, input_sequence_, M_);
@@ -46,26 +46,27 @@ void create_network_flow_graph(operations_research::SimpleMaxFlow& max_flow,
 
     // create normal edges
     for (int i = 0; i < sequence.reads.size(); ++i) {
-        int weight = (sequence.reads[i].start_ind - sequence.reads[i].end_ind) *
-                     sequence.reads[i].quality;
         max_flow.AddArcWithCapacity(sequence.reads[i].start_ind - 1,
                                     sequence.reads[i].end_ind, 1);
     }
 
-    // create backwards edge
+    // create backwards edges to push more flow
     for (int i = 0; i < sequence.ref_genome_length; ++i) {
         max_flow.AddArcWithCapacity(i + 1, i, INT64_MAX);
     }
 
+    // create edge between our virtual node and 0
+    // (0 -> sequence.ref_genome_length)
     max_flow.AddArcWithCapacity(0, sequence.ref_genome_length, INT64_MAX);
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
 
+    // create virtual sink and term
     uint64_t s = sequence.ref_genome_length + 1;
     uint64_t t = s + 1;
 
-    for (int i = 0; i < sequence.ref_genome_length; ++i) {
+    for (int i = 0; i <= sequence.ref_genome_length; ++i) {
         if (demand[i] > 0)
             max_flow.AddArcWithCapacity(i, t, demand[i]);
         else if (demand[i] < 0)
@@ -86,7 +87,10 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
 
     // cap nucleotides with more reads than M to M
     for (unsigned int i = 0; i < sequence.ref_genome_length; ++i) {
-        if (b[i] > M) b[i] = M;
+        if (b[i] > M)
+            b[i] = M;
+        else
+            std::cout << "b[" << i << "] == " << b[i] << "\n";
     }
     return b;
 }
@@ -120,18 +124,25 @@ std::vector<bam_api::ReadIndex> obtain_sequence(
         }
     }
 
+    // add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+
+    return reduced_reads;
+}
+
+void add_pairs(
+    std::vector<bam_api::ReadIndex>& reduced_reads,
+    const std::vector<bool>& mapped_reads,
+    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map) {
     for (const bam_api::ReadIndex& read_id : reduced_reads) {
-        auto paired_read = sequence.read_pair_map[read_id];
+        auto paired_read = read_pair_map[read_id];
         if (!paired_read.has_value()) continue;
 
         int pair_id = paired_read.value();
         if (!mapped_reads[pair_id]) {
-            mapped_reads[pair_id] = true;
+            //  mapped_reads[pair_id] = true;
             reduced_reads.push_back(pair_id);
         }
     }
-
-    return reduced_reads;
 }
 
 std::vector<bam_api::ReadIndex>

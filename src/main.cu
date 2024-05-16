@@ -31,8 +31,7 @@ int main() {
     // return EXIT_SUCCESS;
 
     const std::filesystem::path input_bam_path =
-        "/home/borys/Downloads/gpu-programming/"
-        "data/ESIB_EQA_2023.SARS2.01/reads.bam";
+        "/home/borys/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam";
     const int m = 1000;
 
     auto solver = qmcp::SequentialMaxFlowSolver(m, input_bam_path);
@@ -48,7 +47,7 @@ int main() {
     auto output_sequnce = solver.output_sequence();
 
     // EXPORT RESULT
-    bam_api::BamApi::write_sam(input_bam_path, "/home/borys/Desktop/dupa.bam",
+    bam_api::BamApi::write_sam(input_bam_path, "../../out/reduced_reads.bam",
                                output_sequnce, true);
 
     // Define some variables
