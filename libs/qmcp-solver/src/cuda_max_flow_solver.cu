@@ -8,7 +8,7 @@
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
-#include "qmcp-solver/cuda_helpers.hpp"
+#include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 
 __global__ void push_relabel_kernel(int* data) {

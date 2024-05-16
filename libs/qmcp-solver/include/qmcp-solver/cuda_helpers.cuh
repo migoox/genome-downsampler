@@ -30,7 +30,7 @@ T* malloc(size_t count) {
 
 template <class T>
 void memcpy(T* dst, T* src, size_t count, cudaMemcpyKind kind) {
-    CHECK_CUDA_ERROR(cudaMemcpy(dst, src, count * sizeof(uint32_t), kind));
+    CHECK_CUDA_ERROR(cudaMemcpy(dst, src, count * sizeof(T), kind));
 }
 
 inline void free(void* dev_ptr) { CHECK_CUDA_ERROR(cudaFree(dev_ptr)); }
