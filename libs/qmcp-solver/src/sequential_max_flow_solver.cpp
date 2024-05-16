@@ -31,6 +31,7 @@ void qmcp::SequentialMaxFlowSolver::solve() {
 
     if (status == 0) {
         output_sequence_ = obtain_sequence(input_sequence_, max_flow);
+        std::cout << "OBTAINED FLOW == " << max_flow.OptimalFlow() << std::endl;
     } else {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: "
                   << status;
@@ -86,11 +87,8 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
     }
 
     // cap nucleotides with more reads than M to M
-    for (unsigned int i = 0; i < sequence.ref_genome_length; ++i) {
-        if (b[i] > M)
-            b[i] = M;
-        else
-            std::cout << "b[" << i << "] == " << b[i] << "\n";
+    for (unsigned int i = 0; i < sequence.ref_genome_length + 1; ++i) {
+        if (b[i] > M) b[i] = M;
     }
     return b;
 }
@@ -100,12 +98,20 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
     std::vector<int> b = create_b_function(sequence, M);
 
     int b_0 = b[0];
-
+    std::cout << "b_0 ==" << b[0] << std::endl;
     for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
     b[sequence.ref_genome_length] = -b_0;
+
+    int whole_demand = 0;
+
+    for (auto v : b) {
+        if (v > 0) whole_demand += v;
+    }
+
+    std::cout << "MAX_DEMAND == " << whole_demand << std::endl;
 
     return b;
 }
