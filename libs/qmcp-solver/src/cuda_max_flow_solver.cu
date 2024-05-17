@@ -124,7 +124,7 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
 
     Node sink = nodes_count - 1;
 
-    // Perform BFS backwards from the sink
+    // Perform BFS backwards from the sink to do the global relabel
     std::list<Node> nodes;
     std::vector<Node> not_relabeled_nodes;
     std::vector<bool> is_visited(nodes_count, false);
@@ -135,7 +135,7 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
         Node curr_node = nodes.front();
         nodes.pop_front();
 
-        if (bfs_level == label_func_[curr_node]) {
+        if (bfs_level == label_func_[curr_node] && !is_markded_[curr_node]) {
             not_relabeled_nodes.push_back(curr_node);
         }
         label_func_[curr_node] = bfs_level++;
@@ -155,9 +155,6 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
 
     // Update the excess total
     for (Node node : not_relabeled_nodes) {
-        if (is_markded_[node]) {
-            return;
-        }
         is_markded_[node] = true;
         excess_total = excess_total - excess_func_[node];
     }

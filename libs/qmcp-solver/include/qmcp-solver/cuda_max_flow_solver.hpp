@@ -19,6 +19,7 @@ class CudaMaxFlowSolver : public Solver {
     typedef int32_t Excess;
 
     CudaMaxFlowSolver();
+
     enum class EdgeDirection : uint8_t { Forward, Backward };
     explicit CudaMaxFlowSolver(const std::filesystem::path& filepath);
 
