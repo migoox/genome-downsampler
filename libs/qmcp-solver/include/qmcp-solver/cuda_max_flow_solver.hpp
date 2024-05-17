@@ -44,7 +44,7 @@ class CudaMaxFlowSolver : public Solver {
                          std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
                          Node end, Capacity capacity);
 
-    void global_relabel();
+    void global_relabel(Excess& excess_total);
 
     // This function is responsible for first step of push-relabel algorithm
     void create_preflow();
@@ -59,6 +59,7 @@ class CudaMaxFlowSolver : public Solver {
     // === Graph data ===
     std::vector<Excess> excess_func_;
     std::vector<Label> label_func_;
+    std::vector<bool> is_markded_;
 
     // This is mapping: Node to start/end index in neighbors info arrays
     std::vector<NeighborInfoIndex> neighbors_start_ind_;
