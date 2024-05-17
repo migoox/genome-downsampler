@@ -29,7 +29,7 @@ void qmcp::SequentialMaxFlowSolver::solve() {
     int status = max_flow.Solve(input_sequence_.ref_genome_length + 1,
                                 input_sequence_.ref_genome_length + 2);
 
-    if (status == 0) {
+    if (status == operations_research::SimpleMaxFlow::OPTIMAL) {
         output_sequence_ = obtain_sequence(input_sequence_, max_flow);
         std::cout << "OBTAINED FLOW == " << max_flow.OptimalFlow() << std::endl;
     } else {
@@ -81,7 +81,7 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind;
-             j < sequence.reads[i].end_ind; j++) {
+             j < sequence.reads[i].end_ind; ++j) {
             b[j]++;
         }
     }
@@ -98,20 +98,11 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
     std::vector<int> b = create_b_function(sequence, M);
 
     int b_0 = b[0];
-    std::cout << "b_0 ==" << b[0] << std::endl;
     for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
     b[sequence.ref_genome_length] = -b_0;
-
-    int whole_demand = 0;
-
-    for (auto v : b) {
-        if (v > 0) whole_demand += v;
-    }
-
-    std::cout << "MAX_DEMAND == " << whole_demand << std::endl;
 
     return b;
 }
@@ -130,8 +121,7 @@ std::vector<bam_api::ReadIndex> obtain_sequence(
         }
     }
 
-    // add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
-
+    add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
     return reduced_reads;
 }
 
@@ -145,7 +135,6 @@ void add_pairs(
 
         int pair_id = paired_read.value();
         if (!mapped_reads[pair_id]) {
-            //  mapped_reads[pair_id] = true;
             reduced_reads.push_back(pair_id);
         }
     }

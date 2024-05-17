@@ -5,21 +5,23 @@
 #include <cstdint>
 #include <vector>
 
+#include "bam-api/bam_paired_reads.hpp"
+
 void create_network_flow_graph(
     operations_research::SimpleMinCostFlow& min_cost_flow,
     const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
                                         unsigned int M);
-bam_api::AOSPairedReads obtain_sequence(
+std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow);
 
+void add_pairs(
+    std::vector<bam_api::ReadIndex>& reduced_reads,
+    const std::vector<bool>& mapped_reads,
+    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map);
+
 void qmcp::SequentialCostScalingNetworkSolver::solve() {
-    // TODO(implement the function):
-    // ortools max flow example basing on the link:
-    // https://developers.google.com/optimization/flow/maxflow#c++
-    // Worth reading:
-    // https://github.com/google/or-tools/blob/stable/ortools/graph/min_cost_flow.h
     operations_research::SimpleMinCostFlow min_cost_flow;
 
     create_network_flow_graph(min_cost_flow, input_sequence_, M_);
@@ -101,20 +103,40 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 
     return b;
 }
-
-bam_api::AOSPairedReads obtain_sequence(
+std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
-    bam_api::AOSPairedReads reduced_paired_reads;
-    reduced_paired_reads.reads = std::vector<bam_api::Read>();
+    auto reduced_reads = std::vector<bam_api::ReadIndex>();
+    std::vector<bool> mapped_reads =
+        std::vector<bool>(sequence.read_pair_map.size());
 
-    for (std::size_t i = 0; i < sequence.reads.size(); ++i) {
-        int64_t cost = min_cost_flow.Flow(i) * min_cost_flow.UnitCost(i);
-        if (min_cost_flow.Flow(i) > 0) {
-            bam_api::Read read = bam_api::Read{sequence.reads[i]};
-            reduced_paired_reads.push_back(read);
+    for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
+        if (min_cost_flow.Flow(read_id) > 0) {
+            reduced_reads.push_back(read_id);
+            mapped_reads[read_id] = true;
         }
     }
 
-    return reduced_paired_reads;
+    add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    return reduced_reads;
+}
+
+void add_pairs(
+    std::vector<bam_api::ReadIndex>& reduced_reads,
+    const std::vector<bool>& mapped_reads,
+    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map) {
+    for (const bam_api::ReadIndex& read_id : reduced_reads) {
+        auto paired_read = read_pair_map[read_id];
+        if (!paired_read.has_value()) continue;
+
+        int pair_id = paired_read.value();
+        if (!mapped_reads[pair_id]) {
+            reduced_reads.push_back(pair_id);
+        }
+    }
+}
+
+std::vector<bam_api::ReadIndex>
+qmcp::SequentialCostScalingNetworkSolver::output_sequence() {
+    return output_sequence_;
 }
