@@ -64,10 +64,6 @@ __global__ void push_relabel_kernel(
     }
 }
 
-__host__ void global_relabel(int* data) {
-    // TODO(billyk):
-}
-
 qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver() : is_data_loaded_(false) {}
 
 qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(const std::filesystem::path& filepath)
@@ -107,6 +103,8 @@ void qmcp::CudaMaxFlowSolver::add_edge(std::vector<std::vector<Node>>& neighbors
     residual_capacity_dict[end].push_back(0);
     inversed_edge_ind_dict[end].push_back(start_info_size);
 }
+
+void qmcp::CudaMaxFlowSolver::global_relabel() {}
 
 void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequence,
                                            uint32_t required_cover) {

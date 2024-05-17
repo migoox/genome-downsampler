@@ -44,6 +44,8 @@ class CudaMaxFlowSolver : public Solver {
                          std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
                          Node end, Capacity capacity);
 
+    void global_relabel();
+
     // This function is responsible for first step of push-relabel algorithm
     void create_preflow();
 
