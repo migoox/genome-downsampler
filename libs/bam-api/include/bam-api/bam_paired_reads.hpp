@@ -8,12 +8,13 @@
 namespace bam_api {
 
 typedef size_t ReadIndex;
+typedef size_t GenomeIndex;
 typedef uint32_t ReadQuality;
 
 struct Read {
     ReadIndex id;
-    ReadIndex start_ind;
-    ReadIndex end_ind;
+    GenomeIndex start_ind;
+    GenomeIndex end_ind;
     ReadQuality quality;
     bool is_first_read;
 };
