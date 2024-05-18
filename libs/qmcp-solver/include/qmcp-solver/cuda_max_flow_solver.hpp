@@ -31,7 +31,7 @@ class CudaMaxFlowSolver : public Solver {
     void set_kernel_cycles(uint32_t kernel_cycles);
 
     static constexpr uint32_t kDefaultBlockSize = 512;
-    static constexpr uint32_t kDefaultKernelCycles = 1024;
+    static constexpr uint32_t kDefaultKernelCycles = 500;
 
    private:
     void clear_graph();
@@ -54,17 +54,28 @@ class CudaMaxFlowSolver : public Solver {
     uint32_t kernel_cycles_ = kDefaultKernelCycles;
     bool is_data_loaded_ = false;
 
+    std::filesystem::path input_filepath_;
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
+
+    std::vector<bam_api::ReadIndex> output_;
 
     // === Graph data ===
     std::vector<Excess> excess_func_;
     std::vector<Label> label_func_;
     std::vector<bool> is_markded_;
 
-    // This is mapping: Node to start/end index in neighbors info arrays
+    // Maps node to start/end index in neighbors info arrays
     std::vector<NeighborInfoIndex> neighbors_start_ind_;
     std::vector<NeighborInfoIndex> neighbors_end_ind_;
+
+    // Maps read index to neighbor index (not neighbors info index)
+    // For example for node 1 where N(1) = [5, 3, 6]:
+    // - read (1,2) -> 1
+    // - read (1,4) -> 0
+    // - read (1,5) -> 2
+    // It's required for creating output from residual network
+    std::vector<uint32_t> read_ind_to_neighbor_ind_;
 
     // Neighbors info array is an array that stores packed information about the
     // neighbors of all vertices:

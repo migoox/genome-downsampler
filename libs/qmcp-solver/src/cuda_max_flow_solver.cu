@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -32,8 +34,7 @@ __global__ void push_relabel_kernel(
         }
 
         // Find neighbor with minimum label
-        qmcp::CudaMaxFlowSolver::Label min_label =
-            std::numeric_limits<qmcp::CudaMaxFlowSolver::Label>::max();
+        qmcp::CudaMaxFlowSolver::Label min_label = UINT32_MAX;
         qmcp::CudaMaxFlowSolver::NeighborInfoIndex neighbor_info_ind = 0;
 
         for (qmcp::CudaMaxFlowSolver::NeighborInfoIndex i = neighbors_start_ind[node];
@@ -73,6 +74,7 @@ qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(const std::filesystem::path& filepath
 }
 
 void qmcp::CudaMaxFlowSolver::import_data(const std::filesystem::path& filepath) {
+    input_filepath_ = filepath;
     input_sequence_ = bam_api::BamApi::read_bam_soa(filepath);
 
     // Create max coverage function
@@ -190,10 +192,15 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     std::vector<std::vector<Capacity>> residual_capacity_dict(n + 3);
     std::vector<std::vector<NeighborInfoIndex>> inversed_edge_ind_dict(n + 3);
 
+    // Save the neighbor index for future export
+    read_ind_to_neighbor_ind_.resize(sequence.end_inds.size());
+
     // Add edges that are corresponding to the reads
     for (bam_api::ReadIndex i = 0; i < sequence.end_inds.size(); ++i) {
         Node u = sequence.start_inds[i];
         Node v = sequence.end_inds[i] + 1;
+
+        read_ind_to_neighbor_ind_[i] = neighbors_dict[u].size();
 
         // u --> v
         add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_ind_dict, u,
@@ -208,10 +215,10 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     }
 
     // Create demand func basing on the required cover
-    std::vector<uint32_t> demand_func(n + 1, 0);
+    std::vector<int32_t> demand_func(n + 1, 0);
     for (bam_api::Index i = 0; i < n; ++i) {
-        demand_func[i] = std::min(max_coverage_[i + 1], required_cover) -
-                         std::min(max_coverage_[i], required_cover);
+        demand_func[i] = static_cast<int32_t>(std::min(max_coverage_[i + 1], required_cover)) -
+                         static_cast<int32_t>(std::min(max_coverage_[i], required_cover));
     }
 
     // Add edges for sink and source in order to simulate a circulation
@@ -245,7 +252,7 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
 
         edge_dir_.insert(edge_dir_.end(), edge_dir_dict[i].begin(), edge_dir_dict[i].end());
 
-        inversed_edge_ind_.insert(neighbors_end_ind_.end(), inversed_edge_ind_dict[i].begin(),
+        inversed_edge_ind_.insert(inversed_edge_ind_.end(), inversed_edge_ind_dict[i].begin(),
                                   inversed_edge_ind_dict[i].end());
 
         curr_ind += neighbors_dict[i].size() + 1;
@@ -295,6 +302,11 @@ void qmcp::CudaMaxFlowSolver::clear_graph() {
     neighbors_end_ind_.clear();
     residual_capacity_.clear();
     max_coverage_.clear();
+    output_.clear();
+}
+
+void qmcp::CudaMaxFlowSolver::export_data(const std::filesystem::path& filepath) {
+    bam_api::BamApi::write_sam(input_filepath_, filepath, output_);
 }
 
 void qmcp::CudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
@@ -374,4 +386,14 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
     cuda::free(dev_neighbors);
     cuda::free(dev_residual_capacity);
     cuda::free(dev_edge_dir);
+
+    // Create output data
+    for (bam_api::ReadIndex i = 0; i < read_ind_to_neighbor_ind_.size(); ++i) {
+        Node u = input_sequence_.start_inds[i];
+        Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
+
+        if (cap == 0) {
+            output_.push_back(i);
+        }
+    }
 }

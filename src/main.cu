@@ -1,6 +1,7 @@
 #include <htslib/hts.h>
 #include <stdio.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -8,147 +9,48 @@
 #include "bam-api/bam_api.hpp"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/qmcp-solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
-cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size);
-
-__global__ void addKernel(int* c, const int* a, const int* b) {
-    int i = static_cast<int>(threadIdx.x);
-    c[i] = a[i] + b[i];
-}
 
 int main() {
-    // auto ret_soa = bam_api::BamApi::read_bam_soa(
-    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
-    // std::cout << "after aos: " << ret_soa.ids.size() << std::endl;
-    // std::vector<bam_api::ReadIndex> temp(ret_soa.ids.end() - 1000,
-    // ret_soa.ids.end() - 2); bam_api::BamApi::write_sam(
-    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam",
-    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/readsFiltered50.sam",
-    //     temp);
-    // return EXIT_SUCCESS;
-
-    /*
+    std::cout << "READING " << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    solver.solve();
+    qmcp::CudaMaxFlowSolver solver = qmcp::CudaMaxFlowSolver(
+        "/home/billyk/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
     auto stop = std::chrono::high_resolution_clock::now();
-    auto solve_duration =
-        std::chrono::duration_cast<std::chrono::seconds>(stop - start);
 
-    std::cout << "SOLVE TOOK " << solve_duration.count() << "[seconds]"
-              << std::endl;
-    */
-    // Define some variables
-    const int array_size = 5;
-    const int a[array_size] = {1, 2, 3, 4, 5};
-    const int b[array_size] = {10, 20, 30, 40, 50};
-    int c[array_size] = {0};
+    float solve_duration =
+        static_cast<float>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) /
+        1000.F;
 
-    // Add vectors in parallel.
-    cudaError_t cuda_status = addWithCuda(c, a, b, array_size);
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "addWithCuda failed!");  // NOLINT
-        return 1;
-    }
+    std::cout << "READ TOOK " << solve_duration << " [seconds]" << std::endl;
 
-    printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",  // NOLINT
-           c[0], c[1], c[2], c[3], c[4]);
+    std::cout << "SOLVING " << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    solver.solve(1000);
+    stop = std::chrono::high_resolution_clock::now();
 
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cuda_status = cudaDeviceReset();
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");  // NOLINT
-        return 1;
-    }
+    solve_duration =
+        static_cast<float>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) /
+        1000.F;
+
+    std::cout << "SOLVE TOOK " << solve_duration << " [seconds]" << std::endl;
+
+    std::cout << "EXPORTING " << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    solver.export_data(
+        "/home/billyk/Downloads/gpu-programming/data/ESIB_EQA_2023.SARS2.01/solve_reads.bam");
+    stop = std::chrono::high_resolution_clock::now();
+
+    solve_duration =
+        static_cast<float>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) /
+        1000.F;
+
+    std::cout << "EXPORT TOOK " << solve_duration << " [seconds]" << std::endl;
 
     return 0;
-}
-
-// Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size) {
-    int* dev_a = 0;
-    int* dev_b = 0;
-    int* dev_c = 0;
-
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaError_t cuda_status = cudaSetDevice(0);
-    if (cuda_status != cudaSuccess) {
-        fprintf(  // NOLINT
-            stderr,
-            "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-        goto Error;  // NOLINT
-    }
-
-    // Allocate GPU buffers for three vectors (two input, one output)    .
-    cuda_status = cudaMalloc((void**)&dev_c, size * sizeof(int));  // NOLINT
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");  // NOLINT
-        goto Error;                             // NOLINT
-    }
-
-    cuda_status = cudaMalloc((void**)&dev_a, size * sizeof(int));  // NOLINT
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");  // NOLINT
-        goto Error;                             // NOLINT
-    }
-
-    cuda_status = cudaMalloc((void**)&dev_b, size * sizeof(int));  // NOLINT
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");  // NOLINT
-        goto Error;                             // NOLINT
-    }
-
-    // Copy input vectors from host memory to GPU buffers.
-    cuda_status =
-        cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");  // NOLINT
-        goto Error;                             // NOLINT
-    }
-
-    cuda_status =
-        cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr,  // NOLINT
-                "cudaMemcpy failed!");
-        goto Error;  // NOLINT
-    }
-
-    // Launch a kernel on the GPU with one thread for each element.
-    addKernel<<<1, size>>>(dev_c, dev_a, dev_b);
-
-    // Check for any errors launching the kernel
-    cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n",  // NOLINT
-                cudaGetErrorString(cuda_status));
-        goto Error;  // NOLINT
-    }
-
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cuda_status = cudaDeviceSynchronize();
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr,  // NOLINT
-                "cudaDeviceSynchronize returned error code %d after launching "
-                "addKernel!\n",
-                cuda_status);
-        goto Error;  // NOLINT
-    }
-
-    // Copy output vector from GPU buffer to host memory.
-    cuda_status =
-        cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");  // NOLINT
-        goto Error;                             // NOLINT
-    }
-
-Error:
-    cudaFree(dev_c);
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-
-    return cuda_status;
 }
