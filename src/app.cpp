@@ -15,7 +15,7 @@ App::App() {
     }
     app_.add_option_function<std::string>(
             "-a,--algorithm",
-            [this](const std::string &algorithm_name) {
+            [this](const std::string& algorithm_name) {
                 if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
                     solver_ = std::move(solvers_map_[algorithm_name]);
                 } else {
