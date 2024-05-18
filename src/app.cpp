@@ -1,4 +1,5 @@
 #include "app.hpp"
+
 #include "logging/log.hpp"
 
 App::App() {
@@ -64,7 +65,7 @@ void App::Parse(int argc, char** argv) {
         output_file_path_ = input_file_path_;
         output_file_path_.replace_filename("output.bam");
     }
-  
+
     SET_LOG_LEVEL(verbose_mode_ ? logging::kDebug : logging::kInfo);
 }
 
