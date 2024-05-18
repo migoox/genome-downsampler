@@ -37,6 +37,8 @@ class App {
         // To add an algorithm emplace its unique_ptr to the map with
         // identification name for CLI
         solvers_map_.emplace("test", std::make_unique<qmcp::TestSolver>());
-        solvers_map_.emplace("sequential-cost-scaling", std::make_unique<qmcp::SequentialCostScalingNetworkSolver>());
+        solvers_map_.emplace(
+            "sequential-cost-scaling",
+            std::make_unique<qmcp::SequentialCostScalingNetworkSolver>());
     }
 };
