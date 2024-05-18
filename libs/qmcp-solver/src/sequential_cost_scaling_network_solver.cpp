@@ -3,18 +3,30 @@
 #include <ortools/graph/min_cost_flow.h>
 
 #include <cstdint>
+#include <iostream>
 #include <vector>
+
+#include "bam-api/bam_api.hpp"
+#include "bam-api/bam_paired_reads.hpp"
 
 void create_network_flow_graph(
     operations_research::SimpleMinCostFlow& min_cost_flow,
     const bam_api::AOSPairedReads& sequence, unsigned int M);
 std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
                                         unsigned int M);
-bam_api::AOSPairedReads obtain_sequence(
+std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow);
 
-void qmcp::SequentialCostScalingNetworkSolver::solve() {
+void qmcp::SequentialCostScalingNetworkSolver::Import(
+    const std::filesystem::path& input, uint32_t min_seq_length,
+    uint32_t min_seq_mapq) {
+    input_ = input;
+    input_sequence_ =
+        bam_api::BamApi::read_bam_aos(input, min_seq_length, min_seq_mapq);
+    std::cout << "read bam\n";
+}
+void qmcp::SequentialCostScalingNetworkSolver::Solve(uint32_t max_coverage) {
     // TODO(implement the function):
     // ortools max flow example basing on the link:
     // https://developers.google.com/optimization/flow/maxflow#c++
@@ -22,7 +34,7 @@ void qmcp::SequentialCostScalingNetworkSolver::solve() {
     // https://github.com/google/or-tools/blob/stable/ortools/graph/min_cost_flow.h
     operations_research::SimpleMinCostFlow min_cost_flow;
 
-    create_network_flow_graph(min_cost_flow, input_sequence_, M_);
+    create_network_flow_graph(min_cost_flow, input_sequence_, max_coverage);
 
     int status = min_cost_flow.Solve();
 
@@ -32,6 +44,11 @@ void qmcp::SequentialCostScalingNetworkSolver::solve() {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: "
                   << status;
     }
+}
+
+void qmcp::SequentialCostScalingNetworkSolver::Export(
+    const std::filesystem::path& output) {
+    bam_api::BamApi::write_bam(input_, output, output_sequence_);
 }
 
 void create_network_flow_graph(
@@ -102,17 +119,16 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
     return b;
 }
 
-bam_api::AOSPairedReads obtain_sequence(
+std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
-    bam_api::AOSPairedReads reduced_paired_reads;
-    reduced_paired_reads.reads = std::vector<bam_api::Read>();
+    std::vector<bam_api::ReadIndex> reduced_paired_reads;
 
     for (std::size_t i = 0; i < sequence.reads.size(); ++i) {
         int64_t cost = min_cost_flow.Flow(i) * min_cost_flow.UnitCost(i);
         if (min_cost_flow.Flow(i) > 0) {
             bam_api::Read read = bam_api::Read{sequence.reads[i]};
-            reduced_paired_reads.push_back(read);
+            reduced_paired_reads.push_back(read.id);
         }
     }
 

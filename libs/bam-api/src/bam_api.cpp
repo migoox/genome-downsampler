@@ -132,7 +132,6 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
         std::cerr << "Failed to read bam file (sam_read1 error code:" << ret_r
                   << ")" << std::endl;
 
-
     sam_hdr_destroy(in_samhdr);
     // Reopen infile to read iterate through it second time
     sam_close(infile);
@@ -174,10 +173,10 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     bam_destroy1(bamdata);
 }
 
-uint32_t bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
-                                const std::filesystem::path& output_filepath,
-                                std::vector<ReadIndex>& read_ids,
-                                bool use_bam) {
+uint32_t bam_api::BamApi::write_bam(
+    const std::filesystem::path& input_filepath,
+    const std::filesystem::path& output_filepath,
+    std::vector<ReadIndex>& read_ids) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     samFile* outfile = NULL;
@@ -198,7 +197,8 @@ uint32_t bam_api::BamApi::write_sam(const std::filesystem::path& input_filepath,
     }
 
     // open output file
-    outfile = sam_open(output_filepath.c_str(), use_bam ? "wb" : "w");
+    std::string open_mode = output_filepath.extension() == ".bam" ? "wb" : "w";
+    outfile = sam_open(output_filepath.c_str(), open_mode.c_str());
     if (!outfile) {
         std::cerr << "Could not open " << output_filepath << std::endl;
         std::exit(EXIT_FAILURE);
