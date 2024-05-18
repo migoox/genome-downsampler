@@ -2,8 +2,6 @@
 
 #include <filesystem>
 
-#include "logger.hpp"
-
 namespace qmcp {
 class Solver {
    public:
