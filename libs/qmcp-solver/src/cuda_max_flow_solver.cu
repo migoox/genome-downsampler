@@ -334,19 +334,21 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
     auto* dev_edge_dir = cuda::malloc<EdgeDirection>(edge_dir_.size());
 
     // Copy the constant arrays to device
-    cuda::memcpy(dev_edge_dir, edge_dir_.data(), edge_dir_.size(), cudaMemcpyHostToDevice);
-    cuda::memcpy(dev_inversed_edge_ind, inversed_edge_ind_.data(), inversed_edge_ind_.size(),
-                 cudaMemcpyHostToDevice);
-    cuda::memcpy(dev_neighbors_start_ind, neighbors_start_ind_.data(), neighbors_start_ind_.size(),
-                 cudaMemcpyHostToDevice);
-    cuda::memcpy(dev_neighbors_end_ind, neighbors_end_ind_.data(), neighbors_end_ind_.size(),
-                 cudaMemcpyHostToDevice);
-    cuda::memcpy(dev_neighbors, neighbors_.data(), neighbors_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<EdgeDirection>(dev_edge_dir, edge_dir_.data(), edge_dir_.size(),
+                                cudaMemcpyHostToDevice);
+    cuda::memcpy<NeighborInfoIndex>(dev_inversed_edge_ind, inversed_edge_ind_.data(),
+                                    inversed_edge_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<NeighborInfoIndex>(dev_neighbors_start_ind, neighbors_start_ind_.data(),
+                                    neighbors_start_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<NeighborInfoIndex>(dev_neighbors_end_ind, neighbors_end_ind_.data(),
+                                    neighbors_end_ind_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<Node>(dev_neighbors, neighbors_.data(), neighbors_.size(), cudaMemcpyHostToDevice);
 
     // Copy the excess function and residual capacity to the device memory
-    cuda::memcpy(dev_residual_capacity, residual_capacity_.data(), residual_capacity_.size(),
-                 cudaMemcpyHostToDevice);
-    cuda::memcpy(dev_excess_func, excess_func_.data(), excess_func_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<Capacity>(dev_residual_capacity, residual_capacity_.data(),
+                           residual_capacity_.size(), cudaMemcpyHostToDevice);
+    cuda::memcpy<Excess>(dev_excess_func, excess_func_.data(), excess_func_.size(),
+                         cudaMemcpyHostToDevice);
 
     uint32_t num_blocks = (excess_func_.size() + block_size_ - 1) / block_size_;
 
@@ -356,8 +358,8 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
     Excess total_excess = 0;
     while (excess_func_[source] + excess_func_[sink] < total_excess) {
         // Copy the label function to the device memory
-        cuda::memcpy(dev_label_func, label_func_.data(), label_func_.size() * sizeof(uint32_t),
-                     cudaMemcpyHostToDevice);
+        cuda::memcpy<Label>(dev_label_func, label_func_.data(),
+                            label_func_.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
 
         // Call push-relabel GPU kernel
         push_relabel_kernel<<<num_blocks, block_size_>>>(
@@ -367,12 +369,12 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
         // Copy the residual capacity, label and excess functions from device to
         // the host memory
-        cuda::memcpy(residual_capacity_.data(), dev_residual_capacity, residual_capacity_.size(),
-                     cudaMemcpyDeviceToHost);
-        cuda::memcpy(excess_func_.data(), dev_excess_func, excess_func_.size(),
-                     cudaMemcpyDeviceToHost);
-        cuda::memcpy(label_func_.data(), dev_label_func, label_func_.size(),
-                     cudaMemcpyHostToDevice);
+        cuda::memcpy<Capacity>(residual_capacity_.data(), dev_residual_capacity,
+                               residual_capacity_.size(), cudaMemcpyDeviceToHost);
+        cuda::memcpy<Excess>(excess_func_.data(), dev_excess_func, excess_func_.size(),
+                             cudaMemcpyDeviceToHost);
+        cuda::memcpy<Label>(label_func_.data(), dev_label_func, label_func_.size(),
+                            cudaMemcpyHostToDevice);
 
         // Call global-relabel on CPU
         global_relabel(total_excess);
