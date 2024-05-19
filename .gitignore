@@ -36,3 +36,4 @@ ehthumbs.db
 Thumbs.db
 
 .cache/
+compile_commands.json
