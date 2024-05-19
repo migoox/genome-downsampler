@@ -15,6 +15,7 @@ The following flags must be specified for the program to run:
   - This flag is required to specify which algorithm to use. Currently available algorithms are:
     - test - test algorithm just to make sure CLI works properly
     - sequential-cost-scaling - deprecated algorithm of MinCostMaxFlow with cost scaling
+    - cuda-max-flow - CUDA implementation of max flow push-relabel algorithm based on this [paper](https://www.sciencedirect.com/science/article/pii/B9780123859631000058) 
   - Example: `-a "test"`
 
 - `-M`, `--max-coverage` : **Maximum coverage**
