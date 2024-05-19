@@ -18,7 +18,7 @@ std::vector<bam_api::ReadIndex> obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow);
 
-void qmcp::SequentialCostScalingNetworkSolver::Import(
+void qmcp::SequentialCostScalingNetworkSolver::import_reads(
     const std::filesystem::path& input, uint32_t min_seq_length,
     uint32_t min_seq_mapq) {
     input_ = input;
@@ -26,7 +26,7 @@ void qmcp::SequentialCostScalingNetworkSolver::Import(
         bam_api::BamApi::read_bam_aos(input, min_seq_length, min_seq_mapq);
     std::cout << "read bam\n";
 }
-void qmcp::SequentialCostScalingNetworkSolver::Solve(uint32_t max_coverage) {
+void qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage) {
     // TODO(implement the function):
     // ortools max flow example basing on the link:
     // https://developers.google.com/optimization/flow/maxflow#c++
@@ -46,7 +46,7 @@ void qmcp::SequentialCostScalingNetworkSolver::Solve(uint32_t max_coverage) {
     }
 }
 
-void qmcp::SequentialCostScalingNetworkSolver::Export(
+void qmcp::SequentialCostScalingNetworkSolver::export_reads(
     const std::filesystem::path& output) {
     bam_api::BamApi::write_bam(input_, output, output_sequence_);
 }

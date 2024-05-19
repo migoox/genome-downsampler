@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-#define LOG(level) logging::Log().Get(level)
+#define LOG(level) logging::Log().get(level)
 #define SET_LOG_LEVEL(level) logging::Log::ReportingLevel = level
 
 namespace logging {
@@ -13,7 +13,7 @@ class Log {
    public:
     Log() = default;
     virtual ~Log();
-    std::ostringstream& Get(LogLevel level = kInfo);
+    std::ostringstream& get(LogLevel level = kInfo);
     static inline LogLevel ReportingLevel = kInfo;
 
    private:

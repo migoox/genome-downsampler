@@ -72,7 +72,7 @@ void App::Parse(int argc, char** argv) {
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
 void App::Solve() {
-    solver_->Import(input_file_path_, min_seq_length_, min_seq_mapq_);
-    solver_->Solve(max_ref_coverage_);
-    solver_->Export(output_file_path_);
+    solver_->import_reads(input_file_path_, min_seq_length_, min_seq_mapq_);
+    solver_->solve(max_ref_coverage_);
+    solver_->export_reads(output_file_path_);
 }

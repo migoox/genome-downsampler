@@ -10,7 +10,7 @@ logging::Log::~Log() {
    }
 }
 
-std::ostringstream& logging::Log::Get(LogLevel level) {
+std::ostringstream& logging::Log::get(LogLevel level) {
     os_ << logLevelPrefixes_[level] << ": ";
     messageLevel_ = level;
     return os_;

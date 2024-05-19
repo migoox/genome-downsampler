@@ -5,7 +5,7 @@
 #include "bam-api/bam_api.hpp"
 #include "logging/log.hpp"
 
-void qmcp::TestSolver::Import(const std::filesystem::path& input,
+void qmcp::TestSolver::import_reads(const std::filesystem::path& input,
                               uint32_t min_seq_length, uint32_t min_seq_mapq) {
     input_ = input;
     LOG(logging::kDebug) << "Import, min_len: " << min_seq_length
@@ -17,7 +17,7 @@ void qmcp::TestSolver::Import(const std::filesystem::path& input,
     LOG(logging::kInfo) << paired_reads_.ids.size() << " sequences has been imported!";
 }
 
-void qmcp::TestSolver::Solve(uint32_t max_coverage) {
+void qmcp::TestSolver::solve(uint32_t max_coverage) {
     LOG(logging::kDebug) << "Solve (max_coverage set to " << max_coverage << ")";
 
     solution_ = std::vector<bam_api::ReadIndex>(
@@ -27,7 +27,7 @@ void qmcp::TestSolver::Solve(uint32_t max_coverage) {
     LOG(logging::kInfo) << "Solution have " << solution_.size() << " sequences!";
 }
 
-void qmcp::TestSolver::Export(const std::filesystem::path& output) {
+void qmcp::TestSolver::export_reads(const std::filesystem::path& output) {
     LOG(logging::kDebug) << "Output: " << output;
 
     uint32_t reads_written = 0;
