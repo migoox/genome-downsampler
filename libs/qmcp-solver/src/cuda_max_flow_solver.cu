@@ -396,6 +396,8 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
         if (cap == 0) {
             output_.push_back(i);
+            // Add paired read
+            output_.push_back(input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1));
         }
     }
 }
