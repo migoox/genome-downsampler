@@ -8,19 +8,19 @@
 namespace bam_api {
 
 typedef size_t ReadIndex;
-typedef size_t GenomeIndex;
+typedef size_t Index;
 typedef uint32_t ReadQuality;
 
 struct Read {
     ReadIndex id;
-    GenomeIndex start_ind;
-    GenomeIndex end_ind;
+    Index start_ind;
+    Index end_ind;
     ReadQuality quality;
     bool is_first_read;
 };
 
 struct PairedReads {
-    ReadIndex ref_genome_length = 0;
+    Index ref_genome_length = 0;
     std::vector<std::optional<ReadIndex>> read_pair_map;
 
     virtual void push_back(const Read& read) = 0;
@@ -30,8 +30,8 @@ struct PairedReads {
 
 struct SOAPairedReads : PairedReads {
     std::vector<ReadIndex> ids;
-    std::vector<ReadIndex> start_inds;
-    std::vector<ReadIndex> end_inds;
+    std::vector<Index> start_inds;
+    std::vector<Index> end_inds;
     std::vector<ReadQuality> qualities;
     std::vector<bool> is_first_reads;
 

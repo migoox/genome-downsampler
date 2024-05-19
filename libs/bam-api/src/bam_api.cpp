@@ -13,26 +13,23 @@
 #include "../include/bam-api/bam_paired_reads.hpp"
 #include "logging/log.hpp"
 
-bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(
-    const std::filesystem::path& filepath, uint32_t min_seq_length,
-    uint32_t min_mapq) {
+bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(const std::filesystem::path& filepath,
+                                                      uint32_t min_seq_length, uint32_t min_mapq) {
     SOAPairedReads paired_reads;
     LOG(logging::kDebug) << "bam-api reading " << filepath << " to soa";
     read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
 
-bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(
-    const std::filesystem::path& filepath, uint32_t min_seq_length,
-    uint32_t min_mapq) {
+bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(const std::filesystem::path& filepath,
+                                                      uint32_t min_seq_length, uint32_t min_mapq) {
     AOSPairedReads paired_reads;
     LOG(logging::kDebug) << "bam-api reading " << filepath << " to aos";
     read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
 
-void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
-                               PairedReads& paired_reads,
+void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedReads& paired_reads,
                                uint32_t min_seq_length, uint32_t min_mapq) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
@@ -72,8 +69,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     }
 
     if (sam_hdr_write(filtered_out_file, in_samhdr) < 0) {
-        LOG(logging::kError)
-            << "Can't write header to bam file: " << filtered_out_path;
+        LOG(logging::kError) << "Can't write header to bam file: " << filtered_out_path;
         std::exit(EXIT_FAILURE);
     }
 
@@ -93,15 +89,12 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     std::string current_qname;
     hts_pos_t rlen = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
-        rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar),
-                              bam_get_cigar(bamdata));
-        Read current_read{
-            .id = id,
-            .start_ind = static_cast<GenomeIndex>(bamdata->core.pos),
-            .end_ind = static_cast<GenomeIndex>(bamdata->core.pos + rlen - 1),
-            .quality = bamdata->core.qual,
-            .is_first_read =
-                static_cast<bool>(bamdata->core.flag & BAM_FREAD1)};
+        rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar), bam_get_cigar(bamdata));
+        Read current_read{.id = id,
+                          .start_ind = static_cast<Index>(bamdata->core.pos),
+                          .end_ind = static_cast<Index>(bamdata->core.pos + rlen - 1),
+                          .quality = bamdata->core.qual,
+                          .is_first_read = static_cast<bool>(bamdata->core.flag & BAM_FREAD1)};
         current_qname = bam_get_qname(bamdata);  // NOLINT
 
         auto read_one_iterator = read_map.find(current_qname);
@@ -115,12 +108,10 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
                 paired_reads.push_back(current_read);
             }
 
-            paired_reads.read_pair_map[read_one_iterator->second.id] =
-                current_read.id;
+            paired_reads.read_pair_map[read_one_iterator->second.id] = current_read.id;
             paired_reads.read_pair_map.push_back(read_one_iterator->second.id);
         } else {
-            if (bamdata->core.l_qseq >= min_seq_length &&
-                bamdata->core.qual >= min_mapq)
+            if (bamdata->core.l_qseq >= min_seq_length && bamdata->core.qual >= min_mapq)
                 read_map.insert({current_qname, current_read});
             paired_reads.read_pair_map.push_back(std::nullopt);
         }
@@ -129,8 +120,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     }
 
     if (ret_r >= 0)
-        LOG(logging::kError)
-            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
 
     sam_hdr_destroy(in_samhdr);
     // Reopen infile to read iterate through it second time
@@ -153,8 +143,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         if (!paired_reads.read_pair_map[id]) {
             if (sam_write1(filtered_out_file, in_samhdr, bamdata) < 0) {
-                LOG(logging::kError)
-                    << "Can't write line to bam file: " << filtered_out_path;
+                LOG(logging::kError) << "Can't write line to bam file: " << filtered_out_path;
                 std::exit(EXIT_FAILURE);
             }
         }
@@ -163,8 +152,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     }
 
     if (ret_r >= 0) {
-        LOG(logging::kError)
-            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
     } else {
         LOG(logging::kDebug) << "Read bam file have been read correctly";
     }
@@ -176,13 +164,11 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath,
     bam_destroy1(bamdata);
 }
 
-uint32_t bam_api::BamApi::write_bam(
-    const std::filesystem::path& input_filepath,
-    const std::filesystem::path& output_filepath,
-    std::vector<ReadIndex>& read_ids) {
-    LOG(logging::kDebug) << "bam-api writing" << read_ids.size() << " reads to "
-                         << output_filepath << " on the basis of "
-                         << input_filepath;
+uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
+                                    const std::filesystem::path& output_filepath,
+                                    std::vector<ReadIndex>& read_ids) {
+    LOG(logging::kDebug) << "bam-api writing" << read_ids.size() << " reads to " << output_filepath
+                         << " on the basis of " << input_filepath;
 
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
@@ -219,8 +205,7 @@ uint32_t bam_api::BamApi::write_bam(
     }
 
     if (sam_hdr_write(outfile, in_samhdr) < 0) {
-        LOG(logging::kError)
-            << "Can't write header to bam file: " << output_filepath;
+        LOG(logging::kError) << "Can't write header to bam file: " << output_filepath;
         std::exit(EXIT_FAILURE);
     }
 
@@ -233,8 +218,7 @@ uint32_t bam_api::BamApi::write_bam(
            current_read_i != read_ids.end()) {
         if (id == *current_read_i) {
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
-                LOG(logging::kError)
-                    << "Can't write line to bam file: " << output_filepath;
+                LOG(logging::kError) << "Can't write line to bam file: " << output_filepath;
                 std::exit(EXIT_FAILURE);
             }
 
@@ -246,8 +230,7 @@ uint32_t bam_api::BamApi::write_bam(
     }
 
     if (current_read_i != read_ids.end() && ret_r >= 0)
-        LOG(logging::kError)
-            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
 
     // cleanup
     if (in_samhdr) {
@@ -263,9 +246,8 @@ uint32_t bam_api::BamApi::write_bam(
         bam_destroy1(bamdata);
     }
 
-    LOG(logging::kDebug) << "bam-api " << reads_written
-                         << " reads have been written to " << output_filepath
-                         << " on the basis of " << input_filepath;
+    LOG(logging::kDebug) << "bam-api " << reads_written << " reads have been written to "
+                         << output_filepath << " on the basis of " << input_filepath;
 
     return reads_written;
 }

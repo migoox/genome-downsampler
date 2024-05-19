@@ -10,7 +10,7 @@ namespace qmcp {
 class SequentialCostScalingNetworkSolver : public Solver {
    public:
     void import_reads(const std::filesystem::path& input, uint32_t min_seq_length,
-                uint32_t min_seq_mapq) override;
+                      uint32_t min_seq_mapq) override;
     void solve(uint32_t max_coverage) override;
     void export_reads(const std::filesystem::path& output) override;
 

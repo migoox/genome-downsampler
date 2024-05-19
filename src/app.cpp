@@ -5,8 +5,7 @@
 App::App() {
     FillSolversMap();
 
-    app_.add_option("-i,--input", input_file_path_,
-                    ".bam input file path. Required option.")
+    app_.add_option("-i,--input", input_file_path_, ".bam input file path. Required option.")
         ->required()
         ->check(CLI::ExistingFile);
 
@@ -21,8 +20,7 @@ App::App() {
                 if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
                     solver_ = std::move(solvers_map_[algorithm_name]);
                 } else {
-                    std::cerr << "Algorithm not found: " << algorithm_name
-                              << std::endl;
+                    std::cerr << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
             "Algorithm to use.")
