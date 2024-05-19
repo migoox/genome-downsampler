@@ -41,14 +41,9 @@ void qmcp::SequentialMaxFlowSolver::solve() {
 void create_network_flow_graph(operations_research::SimpleMaxFlow& max_flow,
                                const bam_api::AOSPairedReads& sequence,
                                unsigned int M) {
-    std::vector<int64_t> start_nodes = {};
-    std::vector<int64_t> end_nodes = {};
-    std::vector<int64_t> capacities = {};
-
     // create normal edges
-    for (int i = 0; i < sequence.reads.size(); ++i) {
-        max_flow.AddArcWithCapacity(sequence.reads[i].start_ind - 1,
-                                    sequence.reads[i].end_ind, 1);
+    for (const bam_api::Read& read : sequence.reads) {
+        max_flow.AddArcWithCapacity(read.start_ind - 1, read.end_ind, 1);
     }
 
     // create backwards edges to push more flow
@@ -81,8 +76,8 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind;
-             j < sequence.reads[i].end_ind; ++j) {
-            b[j]++;
+             j <= sequence.reads[i].end_ind; ++j) {
+            ++b[j];
         }
     }
 

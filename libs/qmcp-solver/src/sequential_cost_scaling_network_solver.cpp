@@ -39,9 +39,9 @@ void qmcp::SequentialCostScalingNetworkSolver::solve() {
 void create_network_flow_graph(
     operations_research::SimpleMinCostFlow& min_cost_flow,
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
-    std::vector<int64_t> start_nodes = {};
-    std::vector<int64_t> end_nodes = {};
-    std::vector<int64_t> capacities = {};
+    const int capacity_upper_bound_multiplier = 100;
+    // it is safe to say that algorithm wont use more than c_u_b_m * M
+    // flow in one edge.
 
     // create normal edges
     for (int i = 0; i < sequence.reads.size(); ++i) {
@@ -54,11 +54,12 @@ void create_network_flow_graph(
 
     // create backwards edge
     for (int i = 0; i < sequence.ref_genome_length; ++i) {
-        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, M * 100, 0);
+        min_cost_flow.AddArcWithCapacityAndUnitCost(
+            i + 1, i, M * capacity_upper_bound_multiplier, 0);
     }
 
-    min_cost_flow.AddArcWithCapacityAndUnitCost(0, sequence.ref_genome_length,
-                                                M * 100, 0);
+    min_cost_flow.AddArcWithCapacityAndUnitCost(
+        0, sequence.ref_genome_length, M * capacity_upper_bound_multiplier, 0);
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
@@ -73,17 +74,13 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence,
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind;
-             j < sequence.reads[i].end_ind; j++) {
-            if (j > sequence.ref_genome_length) {
-                int p = 0;
-                continue;
-            }
-            b[j]++;
+             j < sequence.reads[i].end_ind; ++j) {
+            ++b[j];
         }
     }
 
     // cap nucleotides with more reads than M to M
-    for (unsigned int i = 0; i < sequence.ref_genome_length; ++i) {
+    for (unsigned int i = 0; i < sequence.ref_genome_length + 1; ++i) {
         if (b[i] > M) b[i] = M;
     }
     return b;
