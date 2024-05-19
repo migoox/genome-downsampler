@@ -396,8 +396,16 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
         if (cap == 0) {
             output_.push_back(i);
-            // Add paired read
-            output_.push_back(input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1));
+
+            bam_api::Index pair_ind = input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1);
+            Node pair_u = input_sequence_.start_inds[pair_ind];
+
+            // Check if the pair index also must be added
+            Capacity pair_cap = residual_capacity_[neighbors_start_ind_[pair_u] +
+                                                   read_ind_to_neighbor_ind_[pair_ind]];
+            if (pair_cap != 0) {
+                output_.push_back(pair_ind);
+            }
         }
     }
 }
