@@ -39,17 +39,14 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     solver.solve();
     auto stop = std::chrono::high_resolution_clock::now();
-    auto solve_duration =
-        std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+    auto solve_duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
 
-    std::cout << "SOLVE TOOK " << solve_duration.count() << "[seconds]"
-              << std::endl;
+    std::cout << "SOLVE TOOK " << solve_duration.count() << "[seconds]" << std::endl;
 
     auto output_sequnce = solver.output_sequence();
 
     // EXPORT RESULT
-    bam_api::BamApi::write_sam(input_bam_path,
-                               "../../out/reduced_reads_max_flow.bam",
+    bam_api::BamApi::write_sam(input_bam_path, "../../out/reduced_reads_max_flow.bam",
                                output_sequnce, true);
 
     // Define some variables
@@ -89,8 +86,7 @@ cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size) {
     cudaError_t cuda_status = cudaSetDevice(0);
     if (cuda_status != cudaSuccess) {
         fprintf(  // NOLINT
-            stderr,
-            "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+            stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
         goto Error;  // NOLINT
     }
 
@@ -114,15 +110,13 @@ cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size) {
     }
 
     // Copy input vectors from host memory to GPU buffers.
-    cuda_status =
-        cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
+    cuda_status = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
     if (cuda_status != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");  // NOLINT
         goto Error;                             // NOLINT
     }
 
-    cuda_status =
-        cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
+    cuda_status = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
     if (cuda_status != cudaSuccess) {
         fprintf(stderr,  // NOLINT
                 "cudaMemcpy failed!");
@@ -152,8 +146,7 @@ cudaError_t addWithCuda(int* c, const int* a, const int* b, unsigned int size) {
     }
 
     // Copy output vector from GPU buffer to host memory.
-    cuda_status =
-        cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cuda_status = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
     if (cuda_status != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");  // NOLINT
         goto Error;                             // NOLINT
