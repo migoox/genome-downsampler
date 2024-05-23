@@ -3,7 +3,8 @@ add_library(
     src/sequential_cost_scaling_network_solver.cpp
     src/sequential_max_flow_solver.cpp
     src/test_solver.cpp
-    src/cuda_max_flow_solver.cu)
+    src/cuda_max_flow_solver.cu
+    src/conjugate_gradient_solver.cpp)
 
 target_include_directories(qmcp-solver PUBLIC ${CMAKE_SOURCE_DIR}/libs/qmcp-solver/include)
 
@@ -12,4 +13,5 @@ target_link_libraries(
     PRIVATE Boost::boost
             ortools
             bam-api
-            logging)
+            logging
+            cg)

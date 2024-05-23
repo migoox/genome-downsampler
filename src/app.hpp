@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+#include "qmcp-solver/conjugate_gradient_solver.hpp"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
@@ -44,5 +45,6 @@ class App {
         solvers_map_.emplace("cuda-max-flow", std::make_unique<qmcp::CudaMaxFlowSolver>());
         solvers_map_.emplace("sequential-max-flow",
                              std::make_unique<qmcp::SequentialMaxFlowSolver>());
+        solvers_map_.emplace("conjugate-gradient", std::make_unique<qmcp::ConjugateGradientSolver>());
     }
 };
