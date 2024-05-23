@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bam-api/bam_paired_reads.hpp"
+#include "sample-data-generator/sample_data_generator.hpp"
 
 qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver() : is_data_loaded_(false){};
 
@@ -131,12 +132,21 @@ std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::output_sequence()
 }
 
 void qmcp::SequentialMaxFlowSolver::export_reads(const std::filesystem::path& filepath) {
-    bam_api::BamApi::write_bam(input_filepath_, filepath, output_sequence_);
+    // bam_api::BamApi::write_bam(input_filepath_, filepath, output_sequence_);
 }
 
 void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
                                                  uint32_t min_seq_length, uint32_t min_seq_mapq) {
+    /*
     input_filepath_ = filepath;
     input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
+    is_data_loaded_ = true;
+    */
+    // read reads from sample data loader
+    bam_api::AOSPairedReads paired_reads;
+    std::cout << "DUPA!!!\n";
+    sample_data_generator::SampleDataGenerator::create_mock_1(paired_reads, 1000, 1000);
+    std::cout << "PO DUPIE!!! \n";
+    input_sequence_ = paired_reads;
     is_data_loaded_ = true;
 }

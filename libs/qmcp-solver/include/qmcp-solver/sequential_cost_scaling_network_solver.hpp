@@ -7,6 +7,7 @@
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
+#include "sample-data-generator/sample_data_generator.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
