@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-#define LOG(level) logging::Log().get(level)
+#define LOG_WITH_LEVEL(level) logging::Log().get(level)
 #define SET_LOG_LEVEL(level) logging::Log::ReportingLevel = level
 
 namespace logging {

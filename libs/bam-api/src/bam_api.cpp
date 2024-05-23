@@ -16,7 +16,7 @@
 bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(const std::filesystem::path& filepath,
                                                       uint32_t min_seq_length, uint32_t min_mapq) {
     SOAPairedReads paired_reads;
-    LOG(logging::kDebug) << "bam-api reading " << filepath << " to soa";
+    LOG_WITH_LEVEL(logging::kDebug) << "bam-api reading " << filepath << " to soa";
     read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
@@ -24,7 +24,7 @@ bam_api::SOAPairedReads bam_api::BamApi::read_bam_soa(const std::filesystem::pat
 bam_api::AOSPairedReads bam_api::BamApi::read_bam_aos(const std::filesystem::path& filepath,
                                                       uint32_t min_seq_length, uint32_t min_mapq) {
     AOSPairedReads paired_reads;
-    LOG(logging::kDebug) << "bam-api reading " << filepath << " to aos";
+    LOG_WITH_LEVEL(logging::kDebug) << "bam-api reading " << filepath << " to aos";
     read_bam(filepath, paired_reads, min_seq_length, min_mapq);
     return paired_reads;
 }
@@ -39,14 +39,14 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
 
     bamdata = bam_init1();
     if (!bamdata) {
-        LOG(logging::kError) << "Failed to allocate data memory!";
+        LOG_WITH_LEVEL(logging::kError) << "Failed to allocate data memory!";
         std::exit(EXIT_FAILURE);
     }
 
     // open input file
     infile = sam_open(filepath.c_str(), "r");
     if (!infile) {
-        LOG(logging::kError) << "Could not open " << filepath;
+        LOG_WITH_LEVEL(logging::kError) << "Could not open " << filepath;
         sam_close(infile);
         std::exit(EXIT_FAILURE);
     }
@@ -55,7 +55,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     filtered_out_path.replace_filename("filtered_out_sequences.bam");
     filtered_out_file = sam_open(filtered_out_path.c_str(), "wb");
     if (!filtered_out_file) {
-        LOG(logging::kError) << "Could not open " << filtered_out_path;
+        LOG_WITH_LEVEL(logging::kError) << "Could not open " << filtered_out_path;
         sam_close(filtered_out_file);
         std::exit(EXIT_FAILURE);
     }
@@ -63,13 +63,13 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
-        LOG(logging::kError) << "Failed to read header from file!";
+        LOG_WITH_LEVEL(logging::kError) << "Failed to read header from file!";
         sam_close(infile);
         std::exit(EXIT_FAILURE);
     }
 
     if (sam_hdr_write(filtered_out_file, in_samhdr) < 0) {
-        LOG(logging::kError) << "Can't write header to bam file: " << filtered_out_path;
+        LOG_WITH_LEVEL(logging::kError) << "Can't write header to bam file: " << filtered_out_path;
         std::exit(EXIT_FAILURE);
     }
 
@@ -120,21 +120,22 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     }
 
     if (ret_r >= 0)
-        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG_WITH_LEVEL(logging::kError)
+            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
 
     sam_hdr_destroy(in_samhdr);
     // Reopen infile to read iterate through it second time
     sam_close(infile);
     infile = sam_open(filepath.c_str(), "r");
     if (!infile) {
-        LOG(logging::kError) << "Could not open " << filepath;
+        LOG_WITH_LEVEL(logging::kError) << "Could not open " << filepath;
         sam_close(infile);
         std::exit(EXIT_FAILURE);
     }
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
-        LOG(logging::kError) << "Failed to read header from file!";
+        LOG_WITH_LEVEL(logging::kError) << "Failed to read header from file!";
         sam_close(infile);
         std::exit(EXIT_FAILURE);
     }
@@ -143,7 +144,8 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         if (!paired_reads.read_pair_map[id]) {
             if (sam_write1(filtered_out_file, in_samhdr, bamdata) < 0) {
-                LOG(logging::kError) << "Can't write line to bam file: " << filtered_out_path;
+                LOG_WITH_LEVEL(logging::kError)
+                    << "Can't write line to bam file: " << filtered_out_path;
                 std::exit(EXIT_FAILURE);
             }
         }
@@ -152,9 +154,10 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     }
 
     if (ret_r >= 0) {
-        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG_WITH_LEVEL(logging::kError)
+            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
     } else {
-        LOG(logging::kDebug) << "Read bam file have been read correctly";
+        LOG_WITH_LEVEL(logging::kDebug) << "Read bam file have been read correctly";
     }
 
     // cleanup
@@ -167,8 +170,8 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
 uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
                                     const std::filesystem::path& output_filepath,
                                     std::vector<ReadIndex>& read_ids) {
-    LOG(logging::kDebug) << "bam-api writing" << read_ids.size() << " reads to " << output_filepath
-                         << " on the basis of " << input_filepath;
+    LOG_WITH_LEVEL(logging::kDebug) << "bam-api writing" << read_ids.size() << " reads to "
+                                    << output_filepath << " on the basis of " << input_filepath;
 
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
@@ -178,14 +181,14 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
 
     bamdata = bam_init1();
     if (!bamdata) {
-        LOG(logging::kError) << "Failed to allocate data memory!";
+        LOG_WITH_LEVEL(logging::kError) << "Failed to allocate data memory!";
         std::exit(EXIT_FAILURE);
     }
 
     // open input file
     infile = sam_open(input_filepath.c_str(), "r");
     if (!infile) {
-        LOG(logging::kError) << "Could not open " << input_filepath;
+        LOG_WITH_LEVEL(logging::kError) << "Could not open " << input_filepath;
         std::exit(EXIT_FAILURE);
     }
 
@@ -193,19 +196,19 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
     std::string open_mode = output_filepath.extension() == ".bam" ? "wb" : "w";
     outfile = sam_open(output_filepath.c_str(), open_mode.c_str());
     if (!outfile) {
-        LOG(logging::kError) << "Could not open " << output_filepath;
+        LOG_WITH_LEVEL(logging::kError) << "Could not open " << output_filepath;
         std::exit(EXIT_FAILURE);
     }
 
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
-        LOG(logging::kError) << "Failed to read header from file!";
+        LOG_WITH_LEVEL(logging::kError) << "Failed to read header from file!";
         std::exit(EXIT_FAILURE);
     }
 
     if (sam_hdr_write(outfile, in_samhdr) < 0) {
-        LOG(logging::kError) << "Can't write header to bam file: " << output_filepath;
+        LOG_WITH_LEVEL(logging::kError) << "Can't write header to bam file: " << output_filepath;
         std::exit(EXIT_FAILURE);
     }
 
@@ -218,7 +221,8 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
            current_read_i != read_ids.end()) {
         if (id == *current_read_i) {
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
-                LOG(logging::kError) << "Can't write line to bam file: " << output_filepath;
+                LOG_WITH_LEVEL(logging::kError)
+                    << "Can't write line to bam file: " << output_filepath;
                 std::exit(EXIT_FAILURE);
             }
 
@@ -230,7 +234,8 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
     }
 
     if (current_read_i != read_ids.end() && ret_r >= 0)
-        LOG(logging::kError) << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        LOG_WITH_LEVEL(logging::kError)
+            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
 
     // cleanup
     if (in_samhdr) {
@@ -246,8 +251,8 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
         bam_destroy1(bamdata);
     }
 
-    LOG(logging::kDebug) << "bam-api " << reads_written << " reads have been written to "
-                         << output_filepath << " on the basis of " << input_filepath;
+    LOG_WITH_LEVEL(logging::kDebug) << "bam-api " << reads_written << " reads have been written to "
+                                    << output_filepath << " on the basis of " << input_filepath;
 
     return reads_written;
 }
