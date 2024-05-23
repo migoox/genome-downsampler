@@ -39,11 +39,7 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
     unsigned int M) {
     // create normal edges
     for (const bam_api::Read& read : sequence.reads) {
-<<<<<<< HEAD
         max_flow.AddArcWithCapacity(read.start_ind, read.end_ind + 1, 1);
-=======
-        max_flow.AddArcWithCapacity(read.start_ind - 1, read.end_ind, 1);
->>>>>>> main
     }
 
     // create backwards edges to push more flow
@@ -53,11 +49,6 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
 
     // create edge between our virtual node and 0
     // (0 -> sequence.ref_genome_length)
-<<<<<<< HEAD
-    // max_flow.AddArcWithCapacity(0, sequence.ref_genome_length, INT64_MAX);
-=======
-    max_flow.AddArcWithCapacity(0, sequence.ref_genome_length, INT64_MAX);
->>>>>>> main
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
@@ -80,11 +71,7 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_b_function(
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind; j <= sequence.reads[i].end_ind; ++j) {
-<<<<<<< HEAD
             ++b[j + 1];
-=======
-            ++b[j];
->>>>>>> main
         }
     }
 
@@ -99,21 +86,12 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence, M);
 
-<<<<<<< HEAD
     int b_1 = b[1];
     for (int i = 1; i < sequence.ref_genome_length; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
     b[0] = -b_1;
-=======
-    int b_0 = b[0];
-    for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
-        b[i] = b[i] - b[i + 1];
-    }
-
-    b[sequence.ref_genome_length] = -b_0;
->>>>>>> main
 
     return b;
 }
