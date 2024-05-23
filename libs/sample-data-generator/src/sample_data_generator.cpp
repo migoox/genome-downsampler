@@ -7,14 +7,13 @@ void SampleDataGenerator::create_mock_1(bam_api::PairedReads& paired_reads,
     // pairs
 
     paired_reads.ref_genome_length = genom_length;
-
+    unsigned int total_index = 0;
     for (unsigned int nucleotide_index = 0; nucleotide_index < paired_reads.ref_genome_length - 1;
          nucleotide_index++) {
-        for (unsigned int i = 0; i < max_coverage; i++) {
-            unsigned int total_index = max_coverage * nucleotide_index + i;
-
+        unsigned int current_coverage = nucleotide_index == 20 ? 20 : max_coverage;
+        for (unsigned int i = 0; i < current_coverage; i++) {
             auto read =
-                bam_api::Read{total_index, nucleotide_index, nucleotide_index + 1, 60, true};
+                bam_api::Read{total_index++, nucleotide_index, nucleotide_index + 1, 60, true};
 
             paired_reads.push_back(read);
         }

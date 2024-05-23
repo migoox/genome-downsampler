@@ -79,6 +79,7 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_b_function(
     // cap nucleotides with more reads than M to M
     for (unsigned int i = 0; i < sequence.ref_genome_length + 1; ++i) {
         if (b[i] > M) b[i] = M;
+        std::cout << b[i] << std::endl;
     }
     return b;
 }
@@ -100,16 +101,30 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
 std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
     auto reduced_reads = std::vector<bam_api::ReadIndex>();
-    std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
+    // std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
 
     for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
         if (max_flow.Flow(read_id) > 0) {
             reduced_reads.push_back(read_id);
-            mapped_reads[read_id] = true;
+            // mapped_reads[read_id] = true;
         }
     }
 
-    add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    std::vector<int> output_coverage = std::vector<int>(sequence.ref_genome_length, 0);
+    for (unsigned int i = 0; i < reduced_reads.size(); ++i) {
+        auto read = sequence.reads[reduced_reads[i]];
+        for (unsigned int j = read.start_ind; j <= read.end_ind; ++j) {
+            ++output_coverage[j + 1];
+        }
+    }
+
+    for (int i = 1; i < sequence.ref_genome_length + 1; i++) {
+        // if (output_coverage[i] < 1000)
+        std::cout << "On index " << i << " outpout coverage is equal " << output_coverage[i]
+                  << std::endl;
+    }
+    // add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+
     return reduced_reads;
 }
 
@@ -144,9 +159,7 @@ void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& fi
     */
     // read reads from sample data loader
     bam_api::AOSPairedReads paired_reads;
-    std::cout << "DUPA!!!\n";
-    sample_data_generator::SampleDataGenerator::create_mock_1(paired_reads, 1000, 1000);
-    std::cout << "PO DUPIE!!! \n";
+    sample_data_generator::SampleDataGenerator::create_mock_1(paired_reads, 1000, 100);
     input_sequence_ = paired_reads;
     is_data_loaded_ = true;
 }
