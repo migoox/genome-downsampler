@@ -19,9 +19,7 @@ void qmcp::TestSolver::import_reads(const std::filesystem::path& input, uint32_t
 void qmcp::TestSolver::solve(uint32_t max_coverage) {
     LOG_WITH_LEVEL(logging::kDebug) << "Solve (max_coverage set to " << max_coverage << ")";
 
-    solution_ = std::vector<bam_api::ReadIndex>(
-        paired_reads_.ids.end() - kReadsFromEndOffset,
-        paired_reads_.ids.end() - kReadsFromEndOffset + kReadsCount);
+    solution_ = paired_reads_.ids;
 
     LOG_WITH_LEVEL(logging::kInfo) << "Solution have " << solution_.size() << " sequences!";
 }
