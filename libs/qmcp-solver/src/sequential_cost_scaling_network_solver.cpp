@@ -1,7 +1,5 @@
 #include "../include/qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 
-#include <ortools/graph/min_cost_flow.h>
-
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -9,26 +7,20 @@
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
 
-void create_network_flow_graph(operations_research::SimpleMinCostFlow& min_cost_flow,
-                               const bam_api::AOSPairedReads& sequence, unsigned int M);
-std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M);
-std::vector<bam_api::ReadIndex> obtain_sequence(
-    const bam_api::AOSPairedReads& sequence,
-    const operations_research::SimpleMinCostFlow& min_cost_flow);
+qmcp::SequentialCostScalingNetworkSolver::SequentialCostScalingNetworkSolver()
+    : is_data_loaded_(false){};
 
-void qmcp::SequentialCostScalingNetworkSolver::import_reads(const std::filesystem::path& input,
-                                                            uint32_t min_seq_length,
-                                                            uint32_t min_seq_mapq) {
-    input_ = input;
-    input_sequence_ = bam_api::BamApi::read_bam_aos(input, min_seq_length, min_seq_mapq);
-    std::cout << "read bam\n";
+qmcp::SequentialCostScalingNetworkSolver::SequentialCostScalingNetworkSolver(
+    const std::filesystem::path& filepath, uint32_t min_seq_length, uint32_t min_seq_mapq)
+    : input_filepath_(filepath) {
+    import_reads(input_filepath_, min_seq_length, min_seq_mapq);
 }
+
 void qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage) {
-    // TODO(implement the function):
-    // ortools max flow example basing on the link:
-    // https://developers.google.com/optimization/flow/maxflow#c++
-    // Worth reading:
-    // https://github.com/google/or-tools/blob/stable/ortools/graph/min_cost_flow.h
+    if (!is_data_loaded_) {
+        std::cerr << "Couldn't run solver: data has not been loaded.\n";
+        std::exit(EXIT_FAILURE);
+    }
     operations_research::SimpleMinCostFlow min_cost_flow;
 
     create_network_flow_graph(min_cost_flow, input_sequence_, max_coverage);
@@ -42,15 +34,12 @@ void qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage) {
     }
 }
 
-void qmcp::SequentialCostScalingNetworkSolver::export_reads(const std::filesystem::path& output) {
-    bam_api::BamApi::write_bam(input_, output, output_sequence_);
-}
-
-void create_network_flow_graph(operations_research::SimpleMinCostFlow& min_cost_flow,
-                               const bam_api::AOSPairedReads& sequence, unsigned int M) {
-    std::vector<int64_t> start_nodes = {};
-    std::vector<int64_t> end_nodes = {};
-    std::vector<int64_t> capacities = {};
+void qmcp::SequentialCostScalingNetworkSolver::create_network_flow_graph(
+    operations_research::SimpleMinCostFlow& min_cost_flow, const bam_api::AOSPairedReads& sequence,
+    unsigned int M) {
+    const int capacity_upper_bound_multiplier = 100;
+    // it is safe to say that algorithm wont use more than c_u_b_m * M
+    // flow in one edge.
 
     // create normal edges
     for (int i = 0; i < sequence.reads.size(); ++i) {
@@ -62,10 +51,12 @@ void create_network_flow_graph(operations_research::SimpleMinCostFlow& min_cost_
 
     // create backwards edge
     for (int i = 0; i < sequence.ref_genome_length; ++i) {
-        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, M * 100, 0);
+        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, M * capacity_upper_bound_multiplier,
+                                                    0);
     }
 
-    min_cost_flow.AddArcWithCapacityAndUnitCost(0, sequence.ref_genome_length, M * 100, 0);
+    min_cost_flow.AddArcWithCapacityAndUnitCost(0, sequence.ref_genome_length,
+                                                M * capacity_upper_bound_multiplier, 0);
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
@@ -78,23 +69,20 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsi
     std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
-        for (unsigned int j = sequence.reads[i].start_ind; j < sequence.reads[i].end_ind; j++) {
-            if (j > sequence.ref_genome_length) {
-                int p = 0;
-                continue;
-            }
-            b[j]++;
+        for (unsigned int j = sequence.reads[i].start_ind; j < sequence.reads[i].end_ind; ++j) {
+            ++b[j];
         }
     }
 
     // cap nucleotides with more reads than M to M
-    for (unsigned int i = 0; i < sequence.ref_genome_length; ++i) {
+    for (unsigned int i = 0; i < sequence.ref_genome_length + 1; ++i) {
         if (b[i] > M) b[i] = M;
     }
     return b;
 }
 
-std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence, unsigned int M) {
+std::vector<int> qmcp::SequentialCostScalingNetworkSolver::create_demand_function(
+    const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence, M);
 
     int b_0 = b[0];
@@ -107,19 +95,49 @@ std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
 
     return b;
 }
-
-std::vector<bam_api::ReadIndex> obtain_sequence(
+std::vector<bam_api::ReadIndex> qmcp::SequentialCostScalingNetworkSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
-    std::vector<bam_api::ReadIndex> reduced_paired_reads;
+    auto reduced_reads = std::vector<bam_api::ReadIndex>();
+    std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
 
-    for (std::size_t i = 0; i < sequence.reads.size(); ++i) {
-        int64_t cost = min_cost_flow.Flow(i) * min_cost_flow.UnitCost(i);
-        if (min_cost_flow.Flow(i) > 0) {
-            bam_api::Read read = bam_api::Read{sequence.reads[i]};
-            reduced_paired_reads.push_back(read.id);
+    for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
+        if (min_cost_flow.Flow(read_id) > 0) {
+            reduced_reads.push_back(read_id);
+            mapped_reads[read_id] = true;
         }
     }
 
-    return reduced_paired_reads;
+    add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    return reduced_reads;
+}
+
+void qmcp::SequentialCostScalingNetworkSolver::add_pairs(
+    std::vector<bam_api::ReadIndex>& reduced_reads, const std::vector<bool>& mapped_reads,
+    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map) {
+    for (const bam_api::ReadIndex& read_id : reduced_reads) {
+        auto paired_read = read_pair_map[read_id];
+        if (!paired_read.has_value()) continue;
+
+        int pair_id = paired_read.value();
+        if (!mapped_reads[pair_id]) {
+            reduced_reads.push_back(pair_id);
+        }
+    }
+}
+
+std::vector<bam_api::ReadIndex> qmcp::SequentialCostScalingNetworkSolver::output_sequence() {
+    return output_sequence_;
+}
+
+void qmcp::SequentialCostScalingNetworkSolver::export_reads(const std::filesystem::path& filepath) {
+    bam_api::BamApi::write_bam(input_filepath_, filepath, output_sequence_);
+}
+
+void qmcp::SequentialCostScalingNetworkSolver::import_reads(const std::filesystem::path& filepath,
+                                                            uint32_t min_seq_length,
+                                                            uint32_t min_seq_mapq) {
+    input_filepath_ = filepath;
+    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
+    is_data_loaded_ = true;
 }

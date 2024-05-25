@@ -16,10 +16,10 @@ qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver(const std::filesystem::pa
 }
 
 void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
-    // if (!is_data_loaded_) {
-    //     std::cerr << "Couldn't run solver: data has not been loaded.\n";
-    //     std::exit(EXIT_FAILURE);
-    // }
+    if (!is_data_loaded_) {
+        std::cerr << "Couldn't run solver: data has not been loaded.\n";
+        std::exit(EXIT_FAILURE);
+    }
     operations_research::SimpleMaxFlow max_flow;
 
     create_network_flow_graph(max_flow, input_sequence_, max_coverage);
@@ -39,7 +39,7 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
     unsigned int M) {
     // create normal edges
     for (const bam_api::Read& read : sequence.reads) {
-        max_flow.AddArcWithCapacity(read.start_ind - 1, read.end_ind, 1);
+        max_flow.AddArcWithCapacity(read.start_ind, read.end_ind + 1, 1);
     }
 
     // create backwards edges to push more flow
@@ -49,7 +49,6 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
 
     // create edge between our virtual node and 0
     // (0 -> sequence.ref_genome_length)
-    max_flow.AddArcWithCapacity(0, sequence.ref_genome_length, INT64_MAX);
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
@@ -72,7 +71,7 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_b_function(
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
         for (unsigned int j = sequence.reads[i].start_ind; j <= sequence.reads[i].end_ind; ++j) {
-            ++b[j];
+            ++b[j + 1];
         }
     }
 
@@ -87,12 +86,12 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence, M);
 
-    int b_0 = b[0];
-    for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
+    int b_1 = b[1];
+    for (int i = 1; i < sequence.ref_genome_length; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
-    b[sequence.ref_genome_length] = -b_0;
+    b[0] = -b_1;
 
     return b;
 }
@@ -140,8 +139,4 @@ void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& fi
     input_filepath_ = filepath;
     input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
     is_data_loaded_ = true;
-}
-
-void qmcp::SequentialMaxFlowSolver::import_reads(const bam_api::AOSPairedReads&& input_sequence) {
-    input_sequence_ = input_sequence;
 }

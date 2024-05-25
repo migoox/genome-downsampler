@@ -7,7 +7,7 @@ logging::Log::~Log() {
     if (messageLevel_ <= ReportingLevel) {
         os_ << std::endl;
         std::cerr << os_.str();
-   }
+    }
 }
 
 std::ostringstream& logging::Log::get(LogLevel level) {
