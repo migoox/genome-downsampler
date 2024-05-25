@@ -16,10 +16,10 @@ qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver(const std::filesystem::pa
 }
 
 void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
-    if (!is_data_loaded_) {
-        std::cerr << "Couldn't run solver: data has not been loaded.\n";
-        std::exit(EXIT_FAILURE);
-    }
+    // if (!is_data_loaded_) {
+    //     std::cerr << "Couldn't run solver: data has not been loaded.\n";
+    //     std::exit(EXIT_FAILURE);
+    // }
     operations_research::SimpleMaxFlow max_flow;
 
     create_network_flow_graph(max_flow, input_sequence_, max_coverage);
