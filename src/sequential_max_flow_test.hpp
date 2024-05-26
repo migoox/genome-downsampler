@@ -3,6 +3,7 @@
 #define SEQUENTIAL_MAX_FLOW_TESTS_HPP
 #include <cstdint>
 #include <random>
+#include <vector>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
@@ -60,6 +61,12 @@ bam_api::AOSPairedReads small_aos_reads_example() {
     result.ref_genome_length = 11;
 
     return result;
+}
+
+void print_vectors(const std::vector<uint32_t>& vec1, const std::vector<uint32_t>& vec2) {
+    for (int i = 0; i < vec1.size(); ++i) {
+        std::cout << i << "\t" << vec1[i] << "\t" << vec2[i] << std::endl;
+    }
 }
 
 void cap_cover(std::vector<uint32_t>& cover, uint32_t cap) {
@@ -136,7 +143,7 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
     const uint32_t pairs_count = 1'000'000;
     const uint32_t genome_length = 30'000;
     const uint32_t read_length = 150;
-    const uint32_t m = 1000;
+    const uint32_t m = 8000;
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads(mt, pairs_count, genome_length, read_length, dist_func);
@@ -150,6 +157,7 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
     solver.solve(m);
     auto output_indices = solver.get_output();
     auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    // test_helpers::print_vectors(input_cover, output_cover);
 
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
@@ -164,10 +172,17 @@ void random_low_coverage_on_both_sides_test() {
 
 void random_with_hole_test() {
     auto func = [](double x) {
-        if (x > 0.3684 && x < 0.6316) {                                   // NOLINT
-            return 1000 * (x * x - x + 0.25) * (x * x - x + 0.25) + 0.2;  // NOLINT
+        if (x > 0.3684 && x < 0.6316) {                                     // NOLINT
+            return 1000.0 * (x * x - x + 0.25) * (x * x - x + 0.25) + 0.2;  // NOLINT
         }
         return 0.5;  // NOLINT
+    };
+    random_with_func_dist_test(func);
+}
+
+void random_zero_coverage_on_both_sides_test() {
+    auto func = [](double x) {
+        return -10.0 * (x - 0.5) * (x - 0.5) + 1.0;  // NOLINT
     };
     random_with_func_dist_test(func);
 }

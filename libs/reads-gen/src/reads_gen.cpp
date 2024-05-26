@@ -14,10 +14,14 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
     double sum = 0;
     for (uint32_t i = 0; i < starts_count; ++i) {
         dist_data[i] = dist_func(static_cast<double>(i) / static_cast<double>(starts_count - 1));
+        if (dist_data[i] < 0.0) {
+            dist_data[i] = 0.0;
+        }
+
         sum += dist_data[i];
     }
 
-    for (uint32_t i = 0; i < genome_length - read_length; ++i) {
+    for (uint32_t i = 0; i < starts_count; ++i) {
         dist_data[i] /= sum;
     }
 
