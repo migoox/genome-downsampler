@@ -1,3 +1,4 @@
 add_subdirectory(bam-api)
 add_subdirectory(qmcp-solver)
+add_subdirectory(reads-gen)
 add_subdirectory(logging)

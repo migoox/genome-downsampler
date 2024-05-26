@@ -47,9 +47,6 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
         max_flow.AddArcWithCapacity(i + 1, i, INT64_MAX);
     }
 
-    // create edge between our virtual node and 0
-    // (0 -> sequence.ref_genome_length)
-
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
 
@@ -99,16 +96,16 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
 std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
     auto reduced_reads = std::vector<bam_api::ReadIndex>();
-    std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
+    // std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
 
     for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
         if (max_flow.Flow(read_id) > 0) {
             reduced_reads.push_back(read_id);
-            mapped_reads[read_id] = true;
+            // mapped_reads[read_id] = true;
         }
     }
 
-    add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    // add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
     return reduced_reads;
 }
 
@@ -139,4 +136,13 @@ void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& fi
     input_filepath_ = filepath;
     input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
     is_data_loaded_ = true;
+}
+
+void qmcp::SequentialMaxFlowSolver::set_reads(const bam_api::AOSPairedReads& input_sequence) {
+    input_sequence_ = input_sequence;
+    is_data_loaded_ = true;
+}
+
+const std::vector<bam_api::ReadIndex>& qmcp::SequentialMaxFlowSolver::get_output() {
+    return output_sequence_;
 }

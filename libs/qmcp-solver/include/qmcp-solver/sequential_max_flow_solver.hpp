@@ -20,9 +20,10 @@ class SequentialMaxFlowSolver : public Solver {
 
     void import_reads(const std::filesystem::path& filepath, uint32_t min_seq_length,
                       uint32_t min_seq_mapq) override;
-    void import_reads(const bam_api::AOSPairedReads&& input_sequence);
+    void set_reads(const bam_api::AOSPairedReads& input_sequence);
     void solve(uint32_t max_coverage) override;
     void export_reads(const std::filesystem::path& filepath) override;
+    const std::vector<bam_api::ReadIndex>& get_output();
 
     std::vector<bam_api::ReadIndex> output_sequence();
 

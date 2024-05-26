@@ -90,11 +90,9 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     hts_pos_t rlen = 0;
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar), bam_get_cigar(bamdata));
-        Read current_read{.id = id,
-                          .start_ind = static_cast<Index>(bamdata->core.pos),
-                          .end_ind = static_cast<Index>(bamdata->core.pos + rlen - 1),
-                          .quality = bamdata->core.qual,
-                          .is_first_read = static_cast<bool>(bamdata->core.flag & BAM_FREAD1)};
+        Read current_read(id, static_cast<Index>(bamdata->core.pos),
+                          static_cast<Index>(bamdata->core.pos + rlen - 1), bamdata->core.qual,
+                          static_cast<bool>(bamdata->core.flag & BAM_FREAD1));
         current_qname = bam_get_qname(bamdata);  // NOLINT
 
         auto read_one_iterator = read_map.find(current_qname);
@@ -108,20 +106,22 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
                 paired_reads.push_back(current_read);
             }
 
-            paired_reads.read_pair_map[read_one_iterator->second.id] = current_read.id;
-            paired_reads.read_pair_map.push_back(read_one_iterator->second.id);
+            paired_reads.read_pair_map[read_one_iterator->second.bam_id] = current_read.bam_id;
+            paired_reads.read_pair_map.push_back(read_one_iterator->second.bam_id);
         } else {
-            if (bamdata->core.l_qseq >= min_seq_length && bamdata->core.qual >= min_mapq)
+            if (bamdata->core.l_qseq >= min_seq_length && bamdata->core.qual >= min_mapq) {
                 read_map.insert({current_qname, current_read});
+            }
             paired_reads.read_pair_map.push_back(std::nullopt);
         }
 
         id++;
     }
 
-    if (ret_r >= 0)
+    if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::kError)
             << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+    }
 
     sam_hdr_destroy(in_samhdr);
     // Reopen infile to read iterate through it second time
@@ -165,6 +165,33 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     sam_close(infile);
     sam_close(filtered_out_file);
     bam_destroy1(bamdata);
+}
+
+std::vector<uint32_t> bam_api::BamApi::find_cover(const PairedReads& paired_reads) {
+    std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
+    for (bam_api::ReadIndex i = 0; i < paired_reads.get_reads_count(); ++i) {
+        Read curr_read = paired_reads.get_read_by_index(i);
+        for (bam_api::Index j = curr_read.start_ind; j <= curr_read.end_ind; ++j) {
+            result[j]++;
+        }
+    }
+
+    return result;
+}
+
+std::vector<uint32_t> bam_api::BamApi::find_cover_filtered(
+    const bam_api::PairedReads& paired_reads,
+    const std::vector<bam_api::ReadIndex>& reads_indices) {
+    std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
+
+    for (const auto read_ind : reads_indices) {
+        const auto& read = paired_reads.get_read_by_index(read_ind);
+        for (bam_api::Index i = read.start_ind; i <= read.end_ind; ++i) {
+            result[i]++;
+        }
+    }
+
+    return result;
 }
 
 uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,

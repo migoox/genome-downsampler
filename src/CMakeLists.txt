@@ -5,4 +5,5 @@ target_link_libraries(
     PRIVATE CLI11::CLI11
             bam-api
             qmcp-solver
+            reads-gen
             logging)
