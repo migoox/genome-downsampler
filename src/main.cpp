@@ -12,6 +12,8 @@
 int main(int argc, char** argv) {
     test::small_example_test();
     test::random_uniform_dist_test();
+    test::random_low_coverage_on_both_sides_test();
+    test::random_with_hole_test();
 
     // App app;
 

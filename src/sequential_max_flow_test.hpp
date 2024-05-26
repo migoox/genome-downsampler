@@ -130,8 +130,46 @@ void random_uniform_dist_test() {
     assert(valid == true);
 }
 
-void data_with_hole_test() {
-    // TODO(billyk)
+void random_with_func_dist_test(const std::function<double(double)>& dist_func) {
+    // GIVEN
+    const uint32_t seed = 12345;
+    const uint32_t pairs_count = 1'000'000;
+    const uint32_t genome_length = 30'000;
+    const uint32_t read_length = 150;
+    const uint32_t m = 1000;
+
+    std::mt19937 mt(seed);
+    auto input = reads_gen::rand_reads(mt, pairs_count, genome_length, read_length, dist_func);
+    auto input_cover = bam_api::BamApi::find_cover(input);
+
+    qmcp::SequentialMaxFlowSolver solver;
+    solver.find_pairs(false);
+    solver.set_reads(input);
+
+    // WHEN
+    solver.solve(m);
+    auto output_indices = solver.get_output();
+    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+
+    bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
+
+    // THEN
+    assert(valid == true);
+}
+
+void random_low_coverage_on_both_sides_test() {
+    auto func = [](double x) { return x - x * x; };
+    random_with_func_dist_test(func);
+}
+
+void random_with_hole_test() {
+    auto func = [](double x) {
+        if (x > 0.3684 && x < 0.6316) {                                   // NOLINT
+            return 1000 * (x * x - x + 0.25) * (x * x - x + 0.25) + 0.2;  // NOLINT
+        }
+        return 0.5;  // NOLINT
+    };
+    random_with_func_dist_test(func);
 }
 
 }  // namespace test

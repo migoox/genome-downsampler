@@ -9,11 +9,11 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
                                               bam_api::ReadIndex pairs_count,
                                               bam_api::Index genome_length, uint32_t read_length,
                                               const std::function<double(double)>& dist_func) {
-    std::vector<double> dist_data(genome_length - read_length - 1, 0);
+    uint32_t starts_count = genome_length - read_length + 1;
+    std::vector<double> dist_data(starts_count, 0);
     double sum = 0;
-    for (uint32_t i = 0; i < genome_length - read_length; ++i) {
-        dist_data[i] = dist_func(static_cast<double>(i) /
-                                 static_cast<double>(genome_length - read_length - 1));
+    for (uint32_t i = 0; i < starts_count; ++i) {
+        dist_data[i] = dist_func(static_cast<double>(i) / static_cast<double>(starts_count - 1));
         sum += dist_data[i];
     }
 
@@ -33,7 +33,10 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
             std::swap(first, second);
         }
 
-        if (first + read_length > second) {
+        if (first > genome_length - read_length * 2 && second > genome_length - read_length * 2) {
+            first = genome_length - read_length * 2;
+            second = genome_length - read_length;
+        } else if (first + read_length > second) {
             second = first + read_length;
         }
 
