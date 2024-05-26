@@ -28,7 +28,7 @@ void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
                                 input_sequence_.ref_genome_length + 2);
 
     if (status == operations_research::SimpleMaxFlow::OPTIMAL) {
-        output_sequence_ = obtain_sequence(input_sequence_, max_flow);
+        output_sequence_ = obtain_sequence(input_sequence_, max_flow, find_pairs_);
     } else {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: " << status;
     }
@@ -94,20 +94,32 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
 }
 
 std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::obtain_sequence(
-    const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
+    const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow,
+    bool find_pairs) {
     auto reduced_reads = std::vector<bam_api::ReadIndex>();
-    // std::vector<bool> mapped_reads = std::vector<bool>(sequence.read_pair_map.size());
 
-    for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
-        if (max_flow.Flow(read_id) > 0) {
+    std::vector<bool> mapped_reads;
+    if (find_pairs) {
+        mapped_reads.resize(sequence.read_pair_map.size(), false);
+    }
+
+    for (bam_api::ReadIndex read_id = 0; read_id < sequence.reads.size(); ++read_id) {
+        if (max_flow.Flow(static_cast<int32_t>(read_id)) > 0) {
             reduced_reads.push_back(read_id);
-            // mapped_reads[read_id] = true;
+            if (find_pairs) {
+                mapped_reads[read_id] = true;
+            }
         }
     }
 
-    // add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    if (find_pairs) {
+        add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
+    }
+
     return reduced_reads;
 }
+
+void qmcp::SequentialMaxFlowSolver::find_pairs(bool flag) { find_pairs_ = flag; }
 
 void qmcp::SequentialMaxFlowSolver::add_pairs(
     std::vector<bam_api::ReadIndex>& reduced_reads, const std::vector<bool>& mapped_reads,

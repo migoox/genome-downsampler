@@ -89,6 +89,7 @@ void small_example_test() {
     auto input_cover = bam_api::BamApi::find_cover(input);
 
     qmcp::SequentialMaxFlowSolver solver;
+    solver.find_pairs(false);
     solver.set_reads(input);
 
     // WHEN
@@ -115,6 +116,7 @@ void random_uniform_dist_test() {
     auto input_cover = bam_api::BamApi::find_cover(input);
 
     qmcp::SequentialMaxFlowSolver solver;
+    solver.find_pairs(false);
     solver.set_reads(input);
 
     // WHEN
