@@ -2,6 +2,7 @@
 #ifndef SEQUENTIAL_MAX_FLOW_TESTS_HPP
 #define SEQUENTIAL_MAX_FLOW_TESTS_HPP
 #include <cstdint>
+#include <filesystem>
 #include <random>
 #include <vector>
 
@@ -103,6 +104,9 @@ void small_example_test() {
     solver.solve(m);
     auto output_indices = solver.get_output();
     auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+#ifdef TESTS_VERBOSE_DATA
+    test_helpers::print_vectors(input_cover, output_cover);
+#endif
 
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
@@ -130,6 +134,9 @@ void random_uniform_dist_test() {
     solver.solve(m);
     auto output_indices = solver.get_output();
     auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+#ifdef TESTS_VERBOSE_DATA
+    test_helpers::print_vectors(input_cover, output_cover);
+#endif
 
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
@@ -157,7 +164,9 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
     solver.solve(m);
     auto output_indices = solver.get_output();
     auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
-    // test_helpers::print_vectors(input_cover, output_cover);
+#ifdef TESTS_VERBOSE_DATA
+    test_helpers::print_vectors(input_cover, output_cover);
+#endif
 
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
@@ -187,6 +196,29 @@ void random_zero_coverage_on_both_sides_test() {
     random_with_func_dist_test(func);
 }
 
+void bam_file_test(const std::filesystem::path& path) {
+    // GIVEN
+    const uint32_t m = 1000;
+    auto input = bam_api::BamApi::read_bam_aos(path, 100, 30);
+
+    auto input_cover = bam_api::BamApi::find_cover(input);
+
+    qmcp::SequentialMaxFlowSolver solver;
+    solver.find_pairs(true);
+    solver.set_reads(input);
+
+    // WHEN
+    solver.solve(m);
+    auto output_indices = solver.get_output();
+    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+#ifdef TESTS_VERBOSE_DATA
+    test_helpers::print_vectors(input_cover, output_cover);
+#endif
+    bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
+
+    // THEN
+    assert(valid == true);
+}
 }  // namespace test
 
 #endif
