@@ -58,6 +58,10 @@ bam_api::AOSPairedReads small_aos_reads_example() {
     // NOLINTNEXTLINE
     result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, false));
 
+    for(bam_api::ReadIndex i; i < result.get_reads_count(); ++i) {
+        result.bam_id_to_read_index.push_back(i);
+    }
+
     // NOLINTNEXTLINE
     result.ref_genome_length = 11;
 

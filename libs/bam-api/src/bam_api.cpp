@@ -4,8 +4,10 @@
 #include <htslib/sam.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <vector>
@@ -88,6 +90,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
     std::map<std::string, Read> read_map;
     std::string current_qname;
     hts_pos_t rlen = 0;
+
     while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
         rlen = bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar), bam_get_cigar(bamdata));
         Read current_read(id, static_cast<Index>(bamdata->core.pos),
@@ -127,6 +130,8 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
 
         id++;
     }
+
+    assert(paired_reads.bam_id_to_read_index.size() == paired_reads.read_pair_map.size());
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::kError)

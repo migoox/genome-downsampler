@@ -1,12 +1,12 @@
 #ifndef PAIRED_READS_HPP
 #define PAIRED_READS_HPP
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <optional>
 #include <vector>
-
-#include "logging/log.hpp"
 
 namespace bam_api {
 
@@ -44,8 +44,7 @@ struct PairedReads {
     std::vector<std::optional<ReadIndex>> bam_id_to_read_index;
 
     inline Read get_read_by_bam_id(BAMReadId bam_id) const {
-        if (!bam_id_to_read_index[bam_id]) {
-            LOG_WITH_LEVEL(logging::kError) << "No read of BAM id " << bam_id << "!";
+        if (bam_id >= bam_id_to_read_index.size() || !bam_id_to_read_index[bam_id]) {
             exit(EXIT_FAILURE);
         }
 
