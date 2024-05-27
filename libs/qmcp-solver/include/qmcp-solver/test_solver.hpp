@@ -13,7 +13,7 @@ class TestSolver : public Solver {
 
    private:
     bam_api::SOAPairedReads paired_reads_;
-    std::vector<bam_api::ReadIndex> solution_;
+    std::vector<bam_api::BAMReadId> solution_;
     std::filesystem::path input_;
 };
 }  // namespace qmcp

@@ -397,7 +397,7 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
         Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
 
         if (cap == 0) {
-            output_.push_back(i);
+            output_.push_back(input_sequence_.ids[i]);
 
             bam_api::Index pair_ind = input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1);
             Node pair_u = input_sequence_.start_inds[pair_ind];
@@ -406,7 +406,7 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
             Capacity pair_cap = residual_capacity_[neighbors_start_ind_[pair_u] +
                                                    read_ind_to_neighbor_ind_[pair_ind]];
             if (pair_cap != 0) {
-                output_.push_back(pair_ind);
+                output_.push_back(input_sequence_.ids[pair_ind]);
             }
         }
     }

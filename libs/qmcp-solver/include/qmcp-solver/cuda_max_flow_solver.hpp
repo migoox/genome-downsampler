@@ -60,7 +60,7 @@ class CudaMaxFlowSolver : public Solver {
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
 
-    std::vector<bam_api::ReadIndex> output_;
+    std::vector<bam_api::BAMReadId> output_;
 
     // === Graph data ===
     std::vector<Excess> excess_func_;
