@@ -108,12 +108,14 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& filepath, PairedRead
                 paired_reads.push_back(read_one_iterator->second);
 
                 paired_reads.bam_id_to_read_index.push_back(first_read_index);
-                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] = first_read_index + 1;
+                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] =
+                    first_read_index + 1;
             } else {
                 paired_reads.push_back(read_one_iterator->second);
                 paired_reads.push_back(current_read);
 
-                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] = first_read_index;
+                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] =
+                    first_read_index;
                 paired_reads.bam_id_to_read_index.push_back(first_read_index + 1);
             }
 
@@ -195,8 +197,7 @@ std::vector<uint32_t> bam_api::BamApi::find_cover(const PairedReads& paired_read
 }
 
 std::vector<uint32_t> bam_api::BamApi::find_cover_filtered(
-    const bam_api::PairedReads& paired_reads,
-    const std::vector<bam_api::BAMReadId>& bam_ids) {
+    const bam_api::PairedReads& paired_reads, const std::vector<bam_api::BAMReadId>& bam_ids) {
     std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
 
     for (const auto bam_id : bam_ids) {

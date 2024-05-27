@@ -24,7 +24,7 @@ class BamApi {
     // Returns number of reads written
     static uint32_t write_bam(const std::filesystem::path& input_filepath,
                               const std::filesystem::path& output_filepath,
-                              std::vector<BAMReadId>& read_ids);
+                              std::vector<BAMReadId>& bam_ids);
 };
 
 }  // namespace bam_api

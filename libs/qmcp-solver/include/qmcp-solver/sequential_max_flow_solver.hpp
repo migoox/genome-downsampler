@@ -31,7 +31,7 @@ class SequentialMaxFlowSolver : public Solver {
                                           const bam_api::AOSPairedReads& sequence, unsigned int M);
     static std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
                                                    unsigned int M);
-    static std::vector<bam_api::ReadIndex> obtain_sequence(
+    static std::vector<bam_api::BAMReadId> obtain_sequence(
         const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow,
         bool find_pairs);
     static void add_pairs(std::vector<bam_api::BAMReadId>& reduced_reads,
