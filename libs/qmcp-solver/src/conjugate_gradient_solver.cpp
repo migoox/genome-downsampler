@@ -1,6 +1,7 @@
 
 #include "qmcp-solver/conjugate_gradient_solver.hpp"
 
+#include <cstdint>
 #include <iostream>
 
 #include "bam-api/bam_api.hpp"
@@ -18,35 +19,78 @@ void qmcp::ConjugateGradientSolver::import_reads(const std::filesystem::path& in
     LOG_WITH_LEVEL(logging::kInfo) << paired_reads_.ids.size() << " sequences has been imported!";
 }
 
+void qmcp::ConjugateGradientSolver::make_matrix(int32_t* n_out, int32_t** row_offsets_out,
+                                                int32_t** columns_out, double** values_out) {
+    uint64_t n = paired_reads_.ref_genome_length;
+    uint64_t nnz = 0;
+    for (uint32_t i = 0; i < paired_reads_.ids.size(); ++i) {
+        nnz += paired_reads_.end_inds[i] - paired_reads_.start_inds[i] + 1;
+    }
+
+    int* row_offsets = *row_offsets_out = (int*)malloc((n + 1) * sizeof(int));
+    int* columns = *columns_out = (int*)malloc(nnz * sizeof(int));
+    double* values = *values_out = (double*)malloc(nnz * sizeof(double));
+
+    uint32_t value_ind = 0;
+    for(uint32_t ref_ind_it = 0; ref_ind_it < paired_reads_.ref_genome_length; ++ref_ind_it) {
+      row_offsets[ref_ind_it] = value_ind;
+      for(uint32_t read_it = 0; read_it < paired_reads_.ids.size(); ++read_it) {
+          if(paired_reads_.start_inds[read_it] <= ref_ind_it && paired_reads_.end_inds[read_it] >= ref_ind_it) {
+            values[value_ind] = 1;
+            value_ind++;
+          }
+      }
+    }
+
+    row_offsets[n] = value_ind;
+
+    LOG_WITH_LEVEL(logging::kDebug) << "nnz: " << nnz << ", last offset: " << value_ind;
+}
+
+std::vector<double> qmcp::ConjugateGradientSolver::create_x_vector(uint32_t M) {
+    std::vector<double> x(paired_reads_.ref_genome_length + 1, 0);
+
+    for (uint32_t i = 0; i < paired_reads_.ids.size(); ++i) {
+        for (uint32_t j = paired_reads_.start_inds[i]; j <= paired_reads_.end_inds[i]; ++j) {
+            ++x[j];
+        }
+    }
+
+    // cap nucleotides with more reads than M to M
+    for (uint32_t i = 0; i < paired_reads_.ref_genome_length + 1; ++i) {
+        if (x[i] > M) x[i] = M;
+    }
+
+    return x;
+}
+
 void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     LOG_WITH_LEVEL(logging::kDebug) << "Solve (max_coverage set to " << max_coverage << ")";
 
     solution_ = paired_reads_.ids;
 
-    const int maxIterations = 10000;
+    const int32_t maxIterations = 10000;
     const double tolerance = 1e-8f;
 
-    int base = 0;
-    int m = -1;
-    int* h_A_rows = NULL;
-    int* h_A_columns = NULL;
+    int32_t base = 0;
+    int32_t m = -1;
+    int32_t* h_A_rows = NULL;
+    int32_t* h_A_columns = NULL;
     double* h_A_values = NULL;
-    make_laplace_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
-    int num_offsets = m + 1;
-    int nnz = h_A_rows[m];
-    double* h_X = (double*)malloc(m * sizeof(double));
+    make_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
+    int32_t num_offsets = m + 1;
+    int32_t nnz = h_A_rows[m];
 
-    printf("Testing CG\n");
-    for (int i = 0; i < m; i++) h_X[i] = 1.0;
+    std::vector<double> h_X = create_x_vector(max_coverage);
     //--------------------------------------------------------------------------
     // ### Device memory management ###
-    int *d_A_rows, *d_A_columns;
+    int32_t *d_A_rows, *d_A_columns;
     double *d_A_values, *d_L_values;
     Vec d_B, d_X, d_R, d_R_aux, d_P, d_T, d_tmp;
 
     // allocate device memory for CSR matrices
-    CHECK_CUDA(cudaMalloc((void**)&d_A_rows, num_offsets * sizeof(int)))
-    CHECK_CUDA(cudaMalloc((void**)&d_A_columns, nnz * sizeof(int)))
+    CHECK_CUDA(cudaMalloc((void**)&d_A_rows, num_offsets * sizeof(int32_t)))
+    CHECK_CUDA(cudaMalloc((void**)&d_A_columns, nnz * sizeof(int32_t)))
     CHECK_CUDA(cudaMalloc((void**)&d_A_values, nnz * sizeof(double)))
     CHECK_CUDA(cudaMalloc((void**)&d_L_values, nnz * sizeof(double)))
 
@@ -59,11 +103,11 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     CHECK_CUDA(cudaMalloc((void**)&d_tmp.ptr, m * sizeof(double)))
 
     // copy the CSR matrices and vectors into device memory
-    CHECK_CUDA(cudaMemcpy(d_A_rows, h_A_rows, num_offsets * sizeof(int), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(d_A_columns, h_A_columns, nnz * sizeof(int), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_A_rows, h_A_rows, num_offsets * sizeof(int32_t), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_A_columns, h_A_columns, nnz * sizeof(int32_t), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_A_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_L_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X, m * sizeof(double), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X.data(), h_X.size() * sizeof(double), cudaMemcpyHostToDevice))
     //--------------------------------------------------------------------------
     // ### cuSPARSE Handle and descriptors initialization ###
     // create the test matrix on the host
@@ -82,8 +126,8 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
 
     cusparseIndexBase_t baseIdx = CUSPARSE_INDEX_BASE_ZERO;
     cusparseSpMatDescr_t matA, matL;
-    int* d_L_rows = d_A_rows;
-    int* d_L_columns = d_A_columns;
+    int32_t* d_L_rows = d_A_rows;
+    int32_t* d_L_columns = d_A_columns;
     cusparseFillMode_t fill_lower = CUSPARSE_FILL_MODE_LOWER;
     cusparseDiagType_t diag_non_unit = CUSPARSE_DIAG_TYPE_NON_UNIT;
     // A
@@ -116,7 +160,7 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     // Perform Incomplete-Cholesky factorization of A (csric0) -> L, L^T
     cusparseMatDescr_t descrM;
     csric02Info_t infoM = NULL;
-    int bufferSizeIC = 0;
+    int32_t bufferSizeIC = 0;
     void* d_bufferIC;
     CHECK_CUSPARSE(cusparseCreateMatDescr(&descrM))
     CHECK_CUSPARSE(cusparseSetMatIndexBase(descrM, baseIdx))
@@ -131,13 +175,13 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     CHECK_CUSPARSE(cusparseDcsric02_analysis(cusparseHandle, m, nnz, descrM, d_L_values, d_A_rows,
                                              d_A_columns, infoM, CUSPARSE_SOLVE_POLICY_NO_LEVEL,
                                              d_bufferIC))
-    int structural_zero;
+    int32_t structural_zero;
     CHECK_CUSPARSE(cusparseXcsric02_zeroPivot(cusparseHandle, infoM, &structural_zero))
     // M = L * L^T
     CHECK_CUSPARSE(cusparseDcsric02(cusparseHandle, m, nnz, descrM, d_L_values, d_A_rows,
                                     d_A_columns, infoM, CUSPARSE_SOLVE_POLICY_NO_LEVEL, d_bufferIC))
     // Find numerical zero
-    int numerical_zero;
+    int32_t numerical_zero;
     CHECK_CUSPARSE(cusparseXcsric02_zeroPivot(cusparseHandle, infoM, &numerical_zero))
 
     CHECK_CUSPARSE(cusparseDestroyCsric02Info(infoM))
@@ -165,7 +209,6 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     free(h_A_rows);
     free(h_A_columns);
     free(h_A_values);
-    free(h_X);
 
     CHECK_CUDA(cudaFree(d_X.ptr))
     CHECK_CUDA(cudaFree(d_B.ptr))
