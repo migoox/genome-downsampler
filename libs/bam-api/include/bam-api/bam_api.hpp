@@ -19,12 +19,12 @@ class BamApi {
     static std::vector<uint32_t> find_cover(const PairedReads& paired_reads);
 
     static std::vector<uint32_t> find_cover_filtered(const PairedReads& paired_reads,
-                                                     const std::vector<ReadIndex>& reads_indices);
+                                                     const std::vector<BAMReadId>& bam_ids);
 
     // Returns number of reads written
     static uint32_t write_bam(const std::filesystem::path& input_filepath,
                               const std::filesystem::path& output_filepath,
-                              std::vector<ReadIndex>& read_ids);
+                              std::vector<BAMReadId>& bam_ids);
 };
 
 }  // namespace bam_api

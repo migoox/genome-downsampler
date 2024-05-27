@@ -1,7 +1,10 @@
 #ifndef PAIRED_READS_HPP
 #define PAIRED_READS_HPP
 
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -32,7 +35,22 @@ struct Read {
 
 struct PairedReads {
     Index ref_genome_length = 0;
-    std::vector<std::optional<ReadIndex>> read_pair_map;
+
+    // maps BAMReadId -> BAMReadId of paired read
+    // IT IS NOT ReadIndex
+    std::vector<std::optional<BAMReadId>> read_pair_map;
+
+    // maps BAMReadId -> ReadIndex
+    std::vector<std::optional<ReadIndex>> bam_id_to_read_index;
+
+    inline Read get_read_by_bam_id(BAMReadId bam_id) const {
+        if (bam_id >= bam_id_to_read_index.size() || !bam_id_to_read_index[bam_id]) {
+            exit(EXIT_FAILURE);
+        }
+
+        ReadIndex index = bam_id_to_read_index[bam_id].value();
+        return get_read_by_index(index);
+    }
 
     virtual void push_back(const Read& read) = 0;
     virtual Read get_read_by_index(ReadIndex index) const = 0;

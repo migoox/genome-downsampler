@@ -93,18 +93,19 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
     return b;
 }
 
-std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::obtain_sequence(
+std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow,
     bool find_pairs) {
-    auto reduced_reads = std::vector<bam_api::ReadIndex>();
+    auto reduced_reads = std::vector<bam_api::BAMReadId>();
 
     std::vector<bool> mapped_reads;
     if (find_pairs) {
         mapped_reads.resize(sequence.read_pair_map.size(), false);
     }
 
-    for (bam_api::ReadIndex read_id = 0; read_id < sequence.reads.size(); ++read_id) {
-        if (max_flow.Flow(static_cast<int32_t>(read_id)) > 0) {
+    for (bam_api::ReadIndex read_index = 0; read_index < sequence.reads.size(); ++read_index) {
+        if (max_flow.Flow(read_index) > 0) {
+            bam_api::BAMReadId read_id = sequence.reads[read_index].bam_id;
             reduced_reads.push_back(read_id);
             if (find_pairs) {
                 mapped_reads[read_id] = true;
@@ -123,8 +124,8 @@ void qmcp::SequentialMaxFlowSolver::find_pairs(bool flag) { find_pairs_ = flag; 
 
 void qmcp::SequentialMaxFlowSolver::add_pairs(
     std::vector<bam_api::ReadIndex>& reduced_reads, const std::vector<bool>& mapped_reads,
-    const std::vector<std::optional<bam_api::ReadIndex>>& read_pair_map) {
-    for (const bam_api::ReadIndex& read_id : reduced_reads) {
+    const std::vector<std::optional<bam_api::BAMReadId>>& read_pair_map) {
+    for (const bam_api::BAMReadId& read_id : reduced_reads) {
         auto paired_read = read_pair_map[read_id];
         if (!paired_read.has_value()) continue;
 
@@ -135,7 +136,7 @@ void qmcp::SequentialMaxFlowSolver::add_pairs(
     }
 }
 
-std::vector<bam_api::ReadIndex> qmcp::SequentialMaxFlowSolver::output_sequence() {
+std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::output_sequence() {
     return output_sequence_;
 }
 
@@ -155,6 +156,6 @@ void qmcp::SequentialMaxFlowSolver::set_reads(const bam_api::AOSPairedReads& inp
     is_data_loaded_ = true;
 }
 
-const std::vector<bam_api::ReadIndex>& qmcp::SequentialMaxFlowSolver::get_output() {
+const std::vector<bam_api::BAMReadId>& qmcp::SequentialMaxFlowSolver::get_output() {
     return output_sequence_;
 }
