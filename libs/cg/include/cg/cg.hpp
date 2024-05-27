@@ -99,14 +99,6 @@ typedef struct VecStruct {
 
 //==============================================================================
 
-/// A 5-point Laplacian on a g x g grid with Dirichlet boundary conditions.
-/// This code allocates. The caller must free.
-void make_laplace_matrix(int * n_out,
-                         int **row_offsets_out,
-                         int **columns_out,
-                         double **values_out);
-//==============================================================================
-
 int gpu_CG(cublasHandle_t       cublasHandle,
            cusparseHandle_t     cusparseHandle,
            int                  m,

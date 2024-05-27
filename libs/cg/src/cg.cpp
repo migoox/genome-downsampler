@@ -52,68 +52,8 @@
 #include <stdio.h>  // fopen
 #include <stdlib.h> // EXIT_FAILURE
 #include <string.h> // strtok
-#include <assert.h>
 
 #include "../include/cg/cg.hpp"
-
-void make_laplace_matrix(int * n_out,
-                         int **row_offsets_out,
-                         int **columns_out,
-                         double **values_out) {
-    int grid = 700; // grid resolution
-
-    int n = grid * grid;
-    *n_out = n;
-    // vertices have 5 neighbors,
-    // but each vertex on the boundary loses 1. corners lose 2.
-    int nnz = 5 * n - 4 * grid;
-
-    printf("Creating 5-point time-dependent diffusion matrix.\n"
-           " grid size: %d x %d\n"
-           " matrix rows:   %d\n"
-           " matrix cols:   %d\n"
-           " nnz:         %d\n",
-           grid, grid, n, n, nnz);
-
-    int* row_offsets = *row_offsets_out = (int*)malloc((n + 1) * sizeof(int));
-    int* columns     = *columns_out     = (int*)malloc(nnz * sizeof(int));
-    double* values   = *values_out      = (double*)malloc(nnz * sizeof(double));
-    assert(row_offsets);
-    assert(columns);
-    assert(values);
-
-    // The Laplacian stencil looks like [-1;-1,4,-1;-1].
-    // ICHOL doesn't work great with that stencil.
-    // ICHOL is better suited when there's some more mass on the diagonal.
-    double mass = 0.04;
-
-    int it = 0; // next unused index into `columns`/`values`
-
-#define INSERT(u,v, x)                    \
-    if(0<=(u) && (u)<grid &&              \
-       0<=(v) && (v)<grid)                \
-    {                                     \
-        columns[it] = ((u) * grid + (v)); \
-        values[it] = x;                   \
-        ++it;                             \
-    }
-
-    int row = 0;
-    row_offsets[row] = 0;
-    for (int i = 0; i < grid; ++i) {
-        for (int j = 0; j < grid; ++j)
-        {
-            INSERT(i - 1, j    , -1.0);
-            INSERT(i    , j - 1, -1.0);
-            INSERT(i    , j    ,  4.0 + mass);
-            INSERT(i    , j + 1, -1.0);
-            INSERT(i + 1, j    , -1.0);
-            row_offsets[++row] = it;
-        }
-    }
-    assert(it == nnz);
-#undef INSERT
-}
 
 int gpu_CG(cublasHandle_t       cublasHandle,
            cusparseHandle_t     cusparseHandle,
