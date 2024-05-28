@@ -1,10 +1,13 @@
 
 #include "qmcp-solver/conjugate_gradient_solver.hpp"
+#include <driver_types.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 
 #include "bam-api/bam_api.hpp"
+#include "bam-api/bam_paired_reads.hpp"
 #include "cg/cg.hpp"
 #include "logging/log.hpp"
 
@@ -37,6 +40,7 @@ void qmcp::ConjugateGradientSolver::make_matrix(int32_t* n_out, int32_t** row_of
       for(uint32_t read_it = 0; read_it < paired_reads_.ids.size(); ++read_it) {
           if(paired_reads_.start_inds[read_it] <= ref_ind_it && paired_reads_.end_inds[read_it] >= ref_ind_it) {
             values[value_ind] = 1;
+            columns[value_ind] = read_it;
             value_ind++;
           }
       }
@@ -47,7 +51,7 @@ void qmcp::ConjugateGradientSolver::make_matrix(int32_t* n_out, int32_t** row_of
     LOG_WITH_LEVEL(logging::kDebug) << "nnz: " << nnz << ", last offset: " << value_ind;
 }
 
-std::vector<double> qmcp::ConjugateGradientSolver::create_x_vector(uint32_t M) {
+std::vector<double> qmcp::ConjugateGradientSolver::create_b_vector(uint32_t M) {
     std::vector<double> x(paired_reads_.ref_genome_length + 1, 0);
 
     for (uint32_t i = 0; i < paired_reads_.ids.size(); ++i) {
@@ -67,8 +71,6 @@ std::vector<double> qmcp::ConjugateGradientSolver::create_x_vector(uint32_t M) {
 void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     LOG_WITH_LEVEL(logging::kDebug) << "Solve (max_coverage set to " << max_coverage << ")";
 
-    solution_ = paired_reads_.ids;
-
     const int32_t maxIterations = 10000;
     const double tolerance = 1e-8f;
 
@@ -81,7 +83,7 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     int32_t num_offsets = m + 1;
     int32_t nnz = h_A_rows[m];
 
-    std::vector<double> h_X = create_x_vector(max_coverage);
+    std::vector<double> h_B = create_b_vector(max_coverage);
     //--------------------------------------------------------------------------
     // ### Device memory management ###
     int32_t *d_A_rows, *d_A_columns;
@@ -107,7 +109,7 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     CHECK_CUDA(cudaMemcpy(d_A_columns, h_A_columns, nnz * sizeof(int32_t), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_A_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_L_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X.data(), h_X.size() * sizeof(double), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_B.ptr, h_B.data(), h_B.size() * sizeof(double), cudaMemcpyHostToDevice))
     //--------------------------------------------------------------------------
     // ### cuSPARSE Handle and descriptors initialization ###
     // create the test matrix on the host
@@ -192,6 +194,10 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     printf("CG loop:\n");
     gpu_CG(cublasHandle, cusparseHandle, m, matA, matL, d_B, d_X, d_R, d_R_aux, d_P, d_T, d_tmp,
            d_bufferMV, maxIterations, tolerance);
+
+
+    std::vector<double> h_X;
+    CHECK_CUDA(cudaMemcpy(h_X.data(), d_X.ptr, h_B.size() * sizeof(double), cudaMemcpyDeviceToHost))
     //--------------------------------------------------------------------------
     // ### Free resources ###
     CHECK_CUSPARSE(cusparseDestroyDnVec(d_B.vec))
@@ -223,7 +229,31 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     CHECK_CUDA(cudaFree(d_L_values))
     CHECK_CUDA(cudaFree(d_bufferMV))
 
+    for(bam_api::ReadIndex i = 0; i < paired_reads_.get_reads_count(); ++i) {
+        if(h_X[i] > 0) {
+            LOG_WITH_LEVEL(logging::kDebug) << "h_X[" << i << "]: " << h_X[i];
+            solution_.push_back(paired_reads_.ids[i]);
+        }
+    }
+
     LOG_WITH_LEVEL(logging::kInfo) << "Solution have " << solution_.size() << " sequences!";
+}
+
+
+void qmcp::ConjugateGradientSolver::find_pairs(bool flag) {
+  find_pairs_ = flag;
+}
+
+void qmcp::ConjugateGradientSolver::set_reads(const bam_api::SOAPairedReads& input_sequence) {
+  paired_reads_ = input_sequence;
+}
+
+const std::vector<bam_api::BAMReadId>& qmcp::ConjugateGradientSolver::get_output() {
+    return solution_;
+}
+
+std::vector<bam_api::BAMReadId> qmcp::ConjugateGradientSolver::output_sequence() {
+    return solution_;
 }
 
 void qmcp::ConjugateGradientSolver::export_reads(const std::filesystem::path& output) {

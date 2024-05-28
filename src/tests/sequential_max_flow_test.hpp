@@ -7,92 +7,11 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "test_helpers.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "reads_gen.hpp"
 
 namespace test {
-namespace test_helpers {
-
-bam_api::AOSPairedReads small_aos_reads_example() {
-    bam_api::AOSPairedReads result;
-    bam_api::ReadIndex id = 0;
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, false));
-
-    for (bam_api::ReadIndex i; i < result.get_reads_count(); ++i) {
-        result.bam_id_to_read_index.push_back(i);
-    }
-
-    // NOLINTNEXTLINE
-    result.ref_genome_length = 11;
-
-    return result;
-}
-
-void print_vectors(const std::vector<uint32_t>& vec1, const std::vector<uint32_t>& vec2) {
-    for (int i = 0; i < vec1.size(); ++i) {
-        std::cout << i << "\t" << vec1[i] << "\t" << vec2[i] << std::endl;
-    }
-}
-
-void cap_cover(std::vector<uint32_t>& cover, uint32_t cap) {
-    for (uint32_t i = 0; i < cover.size(); ++i) {
-        cover[i] = cover[i] > cap ? cap : cover[i];
-    }
-}
-
-bool is_out_cover_valid(std::vector<uint32_t>& in_cover, const std::vector<uint32_t>& out_cover,
-                        uint32_t m) {
-    test_helpers::cap_cover(in_cover, m);
-    for (uint32_t i = 0; i < out_cover.size(); ++i) {
-        if (in_cover[i] > out_cover[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-}  // namespace test_helpers
-
 void small_example_test() {
     // GIVEN
     const uint32_t m = 4;
