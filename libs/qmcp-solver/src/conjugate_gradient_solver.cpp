@@ -25,6 +25,7 @@ void qmcp::ConjugateGradientSolver::import_reads(const std::filesystem::path& in
 void qmcp::ConjugateGradientSolver::make_matrix(int32_t* n_out, int32_t** row_offsets_out,
                                                 int32_t** columns_out, double** values_out) {
     uint64_t n = paired_reads_.ref_genome_length;
+    *n_out = n;
     uint64_t nnz = 0;
     for (uint32_t i = 0; i < paired_reads_.ids.size(); ++i) {
         nnz += paired_reads_.end_inds[i] - paired_reads_.start_inds[i] + 1;
@@ -52,7 +53,7 @@ void qmcp::ConjugateGradientSolver::make_matrix(int32_t* n_out, int32_t** row_of
 }
 
 std::vector<double> qmcp::ConjugateGradientSolver::create_b_vector(uint32_t M) {
-    std::vector<double> x(paired_reads_.ref_genome_length + 1, 0);
+    std::vector<double> x(paired_reads_.ref_genome_length, 0);
 
     for (uint32_t i = 0; i < paired_reads_.ids.size(); ++i) {
         for (uint32_t j = paired_reads_.start_inds[i]; j <= paired_reads_.end_inds[i]; ++j) {
@@ -61,7 +62,7 @@ std::vector<double> qmcp::ConjugateGradientSolver::create_b_vector(uint32_t M) {
     }
 
     // cap nucleotides with more reads than M to M
-    for (uint32_t i = 0; i < paired_reads_.ref_genome_length + 1; ++i) {
+    for (uint32_t i = 0; i < paired_reads_.ref_genome_length; ++i) {
         if (x[i] > M) x[i] = M;
     }
 
@@ -109,7 +110,7 @@ void qmcp::ConjugateGradientSolver::solve(uint32_t max_coverage) {
     CHECK_CUDA(cudaMemcpy(d_A_columns, h_A_columns, nnz * sizeof(int32_t), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_A_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_L_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(d_B.ptr, h_B.data(), h_B.size() * sizeof(double), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_B.ptr, h_B.data(), m * sizeof(double), cudaMemcpyHostToDevice))
     //--------------------------------------------------------------------------
     // ### cuSPARSE Handle and descriptors initialization ###
     // create the test matrix on the host
