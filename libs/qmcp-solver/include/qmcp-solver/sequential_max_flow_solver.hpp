@@ -16,10 +16,10 @@ class SequentialMaxFlowSolver : public Solver {
    public:
     SequentialMaxFlowSolver();
     explicit SequentialMaxFlowSolver(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                                     uint32_t min_seq_mapq);
+                                     uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon);
     void find_pairs(bool flag);
     void import_reads(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                      uint32_t min_seq_mapq) override;
+                      uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) override;
     void set_reads(const bam_api::AOSPairedReads& input_sequence);
     void solve(uint32_t max_coverage) override;
     void export_reads(const std::filesystem::path& filepath) override;

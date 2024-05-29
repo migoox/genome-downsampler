@@ -33,6 +33,8 @@ class App {
     std::filesystem::path input_file_path_;
     std::filesystem::path output_file_path_;
     std::filesystem::path csv_historical_runs_file_path_;
+    std::filesystem::path bed_amplicon_file_path_;
+    std::filesystem::path tsv_amplicon_pairings_file_path_;
     std::map<std::string, std::unique_ptr<qmcp::Solver>> solvers_map_;
 
     void FillSolversMap() {

@@ -22,10 +22,10 @@ class CudaMaxFlowSolver : public Solver {
 
     enum class EdgeDirection : uint8_t { Forward, Backward };
     explicit CudaMaxFlowSolver(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                               uint32_t min_seq_mapq);
+                               uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon);
 
     void import_reads(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                      uint32_t min_seq_mapq) override;
+                      uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) override;
     void solve(uint32_t required_cover) override;
     void export_reads(const std::filesystem::path& filepath) override;
 

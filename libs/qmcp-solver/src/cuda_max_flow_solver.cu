@@ -69,15 +69,15 @@ __global__ void push_relabel_kernel(
 qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver() : is_data_loaded_(false) {}
 
 qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq)
+                                           uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon)
     : is_data_loaded_(false) {
-    import_reads(filepath, min_seq_length, min_seq_mapq);
+    import_reads(filepath, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
 }
 
 void qmcp::CudaMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq) {
+                                           uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
     input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_soa(filepath, min_seq_length, min_seq_mapq);
+    input_sequence_ = bam_api::BamApi::read_bam_soa(filepath, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
 
     // Create max coverage function
     max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);

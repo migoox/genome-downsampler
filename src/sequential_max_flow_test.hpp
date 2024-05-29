@@ -203,7 +203,7 @@ void random_zero_coverage_on_both_sides_test() {
 void bam_file_test(const std::filesystem::path& path) {
     // GIVEN
     const uint32_t m = 1000;
-    auto input = bam_api::BamApi::read_bam_aos(path, 100, 30);
+    auto input = bam_api::BamApi::read_bam_aos(path, 100, 30, std::filesystem::path(), std::filesystem::path());
 
     auto input_cover = bam_api::BamApi::find_cover(input);
 

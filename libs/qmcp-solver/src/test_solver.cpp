@@ -6,12 +6,12 @@
 #include "logging/log.hpp"
 
 void qmcp::TestSolver::import_reads(const std::filesystem::path& input, uint32_t min_seq_length,
-                                    uint32_t min_seq_mapq) {
+                                    uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
     input_ = input;
     LOG_WITH_LEVEL(logging::kDebug) << "Import, min_len: " << min_seq_length
                                     << ", min_mapq: " << min_seq_mapq << ", input: " << input;
 
-    paired_reads_ = bam_api::BamApi::read_bam_soa(input, min_seq_length, min_seq_mapq);
+    paired_reads_ = bam_api::BamApi::read_bam_soa(input, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
 
     LOG_WITH_LEVEL(logging::kInfo) << paired_reads_.ids.size() << " sequences has been imported!";
 }

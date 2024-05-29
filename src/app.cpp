@@ -1,5 +1,7 @@
 #include "app.hpp"
 
+#include <CLI/Validators.hpp>
+
 #include "logging/log.hpp"
 
 App::App() {
@@ -36,6 +38,19 @@ App::App() {
                     ".bam output file path. Default is \"output.bam\" in "
                     "input's directory.");
 
+    app_.add_option("-b,--bed", bed_amplicon_file_path_,
+                    ".bed amplicon bounds specification. It would be used to filter out or lower "
+                    "the priority "
+                    "of pair of sequences from different amplicons. The behaviour depends on "
+                    "algorithm used.")
+        ->check(CLI::ExistingFile);
+
+    app_.add_option("-t,--tsv", tsv_amplicon_pairings_file_path_,
+                    ".tsv file which describes which of the (must be specified with this option) "
+                    ".bed amplicon bounds should be paired together creating amplicon. used in "
+                    "filtering or prioritizing pairs of sequences.")
+        ->check(CLI::ExistingFile);
+
     app_.add_option("-c,--csv-history", csv_historical_runs_file_path_,
                     ".csv historical runs data file path. If it is not "
                     "specified, no historical data would be saved!");
@@ -70,7 +85,7 @@ void App::Parse(int argc, char** argv) {
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
 void App::Solve() {
-    solver_->import_reads(input_file_path_, min_seq_length_, min_seq_mapq_);
+    solver_->import_reads(input_file_path_, min_seq_length_, min_seq_mapq_, bed_amplicon_file_path_, tsv_amplicon_pairings_file_path_);
     solver_->solve(max_ref_coverage_);
     solver_->export_reads(output_file_path_);
 }

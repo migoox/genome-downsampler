@@ -11,9 +11,9 @@ qmcp::SequentialCostScalingNetworkSolver::SequentialCostScalingNetworkSolver()
     : is_data_loaded_(false){};
 
 qmcp::SequentialCostScalingNetworkSolver::SequentialCostScalingNetworkSolver(
-    const std::filesystem::path& filepath, uint32_t min_seq_length, uint32_t min_seq_mapq)
+    const std::filesystem::path& filepath, uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon)
     : input_filepath_(filepath) {
-    import_reads(input_filepath_, min_seq_length, min_seq_mapq);
+    import_reads(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
 }
 
 void qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage) {
@@ -136,8 +136,8 @@ void qmcp::SequentialCostScalingNetworkSolver::export_reads(const std::filesyste
 
 void qmcp::SequentialCostScalingNetworkSolver::import_reads(const std::filesystem::path& filepath,
                                                             uint32_t min_seq_length,
-                                                            uint32_t min_seq_mapq) {
+                                                            uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
     input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
+    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
     is_data_loaded_ = true;
 }

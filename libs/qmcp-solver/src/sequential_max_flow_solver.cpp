@@ -10,9 +10,9 @@ qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver() : is_data_loaded_(false
 
 qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver(const std::filesystem::path& filepath,
                                                        uint32_t min_seq_length,
-                                                       uint32_t min_seq_mapq)
+                                                       uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon)
     : input_filepath_(filepath) {
-    import_reads(input_filepath_, min_seq_length, min_seq_mapq);
+    import_reads(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
 }
 
 void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
@@ -145,9 +145,9 @@ void qmcp::SequentialMaxFlowSolver::export_reads(const std::filesystem::path& fi
 }
 
 void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
-                                                 uint32_t min_seq_length, uint32_t min_seq_mapq) {
+                                                 uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
     input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq);
+    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
     is_data_loaded_ = true;
 }
 
