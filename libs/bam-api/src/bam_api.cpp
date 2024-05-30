@@ -220,14 +220,43 @@ const bam_api::PairedReads& bam_api::BamApi::get_paired_reads() {
     return aos_paired_reads_;
 }
 
+bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) {
+    bool ret = have_min_mapq(r1, r2, min_mapq_) && have_min_length(r1, r2, min_seq_length_);
+
+    if (amplicon_behaviour_ == FILTER) {
+        ret = ret && are_from_single_amplicon(r1, r2, amplicon_set_);
+    }
+
+    return ret;
+}
+
+bool bam_api::BamApi::have_min_length(const Read& r1, const Read& r2, uint32_t min_length) {
+    return (r1.end_ind - r1.start_ind + 1 >= min_length) &&
+           (r2.end_ind - r2.start_ind + 1 >= min_length);
+}
+
+bool bam_api::BamApi::have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq) {
+    return (r1.quality >= min_mapq) && (r2.quality >= min_mapq);
+}
+
+bool bam_api::BamApi::are_from_single_amplicon(const Read& r1, const Read& r2,
+                                               const AmpliconSet& amplicon_set) {
+    return amplicon_set.member_includes_both(r1, r2);
+}
+
+void bam_api::BamApi::apply_amplicon_inclusion_grading(Read& r1, Read& r2,
+                                                       const AmpliconSet& amplicon_set) {
+    // TODO(mytkom): think of better grading
+    if (are_from_single_amplicon(r1, r2, amplicon_set)) {
+        r1.quality += kMaxMAPQ;
+        r2.quality += kMaxMAPQ;
+    }
+}
+
 void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
-                               PairedReads& paired_reads, uint32_t min_seq_length,
-                               uint32_t min_mapq,
-                               const std::filesystem::path& bed_amplicon_bounds_filepath,
-                               const std::filesystem::path& tsv_amplicon_pairs_filepath) {
+                               PairedReads& paired_reads) {
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
-    samFile* filtered_out_file = NULL;
     int ret_r = 0;
     bam1_t* bamdata = NULL;
 
@@ -245,25 +274,11 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         std::exit(EXIT_FAILURE);
     }
 
-    auto filtered_out_path = input_filepath;
-    filtered_out_path.replace_filename("filtered_out_sequences.bam");
-    filtered_out_file = sam_open(filtered_out_path.c_str(), "wb");
-    if (!filtered_out_file) {
-        LOG_WITH_LEVEL(logging::kError) << "Could not open " << filtered_out_path;
-        sam_close(filtered_out_file);
-        std::exit(EXIT_FAILURE);
-    }
-
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
         LOG_WITH_LEVEL(logging::kError) << "Failed to read header from file!";
         sam_close(infile);
-        std::exit(EXIT_FAILURE);
-    }
-
-    if (sam_hdr_write(filtered_out_file, in_samhdr) < 0) {
-        LOG_WITH_LEVEL(logging::kError) << "Can't write header to bam file: " << filtered_out_path;
         std::exit(EXIT_FAILURE);
     }
 
@@ -290,94 +305,57 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
                           static_cast<bool>(bamdata->core.flag & BAM_FREAD1));
         current_qname = bam_get_qname(bamdata);  // NOLINT
 
+        // You cannot resize it before because bam index can be not available for input
+        paired_reads.read_pair_map.push_back(std::nullopt);
+        paired_reads.bam_id_to_read_index.push_back(std::nullopt);
+
         auto read_one_iterator = read_map.find(current_qname);
         if (read_one_iterator != read_map.end()) {
+            Read& r1 = read_one_iterator->second;
+            Read& r2 = current_read;
+
+            if (should_be_filtered_out(r1, r2)) {
+                continue;
+            }
+
+            if(amplicon_behaviour_ == GRADE) {
+                apply_amplicon_inclusion_grading(r1, r2, amplicon_set_);
+            }
+
+            if (r2.is_first_read) {
+                std::swap(r1, r2);
+            }
+
             ReadIndex first_read_index = paired_reads.get_reads_count();
+            paired_reads.push_back(r1);
+            paired_reads.push_back(r2);
 
-            // if first read of pair is under index i, second is under i+1
-            if (current_read.is_first_read) {
-                paired_reads.push_back(current_read);
-                paired_reads.push_back(read_one_iterator->second);
+            paired_reads.bam_id_to_read_index[r1.bam_id] = first_read_index;
+            paired_reads.bam_id_to_read_index[r2.bam_id] = first_read_index + 1;
 
-                paired_reads.bam_id_to_read_index.push_back(first_read_index);
-                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] =
-                    first_read_index + 1;
-            } else {
-                paired_reads.push_back(read_one_iterator->second);
-                paired_reads.push_back(current_read);
-
-                paired_reads.bam_id_to_read_index[read_one_iterator->second.bam_id] =
-                    first_read_index;
-                paired_reads.bam_id_to_read_index.push_back(first_read_index + 1);
-            }
-
-            paired_reads.read_pair_map[read_one_iterator->second.bam_id] = current_read.bam_id;
-            paired_reads.read_pair_map.push_back(read_one_iterator->second.bam_id);
-
-        } else {
-            if (bamdata->core.l_qseq >= min_seq_length && bamdata->core.qual >= min_mapq) {
-                read_map.insert({current_qname, current_read});
-            }
-            paired_reads.read_pair_map.push_back(std::nullopt);
-            paired_reads.bam_id_to_read_index.push_back(std::nullopt);
+            paired_reads.bam_id_to_read_index[r1.bam_id] = r2.bam_id;
+            paired_reads.bam_id_to_read_index[r2.bam_id] = r1.bam_id;
         }
 
         id++;
     }
 
     assert(paired_reads.bam_id_to_read_index.size() == paired_reads.read_pair_map.size());
+    assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
+           paired_reads.read_pair_map.size());
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::kError)
             << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
-    }
-
-    sam_hdr_destroy(in_samhdr);
-    // Reopen infile to read iterate through it second time
-    sam_close(infile);
-    infile = sam_open(input_filepath.c_str(), "r");
-    if (!infile) {
-        LOG_WITH_LEVEL(logging::kError) << "Could not open " << input_filepath;
-        sam_close(infile);
-        std::exit(EXIT_FAILURE);
-    }
-    // read header
-    in_samhdr = sam_hdr_read(infile);
-    if (!in_samhdr) {
-        LOG_WITH_LEVEL(logging::kError) << "Failed to read header from file!";
-        sam_close(infile);
-        std::exit(EXIT_FAILURE);
-    }
-
-    id = 0;
-    while ((ret_r = sam_read1(infile, in_samhdr, bamdata)) >= 0) {
-        if (!paired_reads.read_pair_map[id]) {
-            if (sam_write1(filtered_out_file, in_samhdr, bamdata) < 0) {
-                LOG_WITH_LEVEL(logging::kError)
-                    << "Can't write line to bam file: " << filtered_out_path;
-                std::exit(EXIT_FAILURE);
-            }
-        }
-
-        id++;
-    }
-
-    if (ret_r >= 0) {
-        LOG_WITH_LEVEL(logging::kError)
-            << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
-    } else {
-        LOG_WITH_LEVEL(logging::kDebug) << "Read bam file have been read correctly";
     }
 
     // cleanup
-
     sam_hdr_destroy(in_samhdr);
     sam_close(infile);
-    sam_close(filtered_out_file);
     bam_destroy1(bamdata);
 }
 
-
+// TODO(mytkom):
 uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
                                     const std::filesystem::path& output_filepath,
                                     std::vector<BAMReadId>& bam_ids) {
