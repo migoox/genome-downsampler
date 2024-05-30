@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LOG_HPP
+#define LOG_HPP
 
 #include <sstream>
 #include <string>
@@ -7,14 +8,14 @@
 #define SET_LOG_LEVEL(level) logging::Log::ReportingLevel = level
 
 namespace logging {
-enum LogLevel { kError, kInfo, kDebug };
+enum LogLevel { ERROR, INFO, DEBUG };
 
 class Log {
    public:
     Log() = default;
     virtual ~Log();
-    std::ostringstream& get(LogLevel level = kInfo);
-    static inline LogLevel ReportingLevel = kInfo;
+    std::ostringstream& get(LogLevel level = INFO);
+    static inline LogLevel ReportingLevel = INFO;
 
    private:
     Log(const Log&);
@@ -28,3 +29,5 @@ class Log {
     };
 };
 }  // namespace logging
+
+#endif

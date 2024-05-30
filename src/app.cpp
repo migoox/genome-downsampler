@@ -1,12 +1,15 @@
 #include "app.hpp"
 
+#include <CLI/App.hpp>
 #include <CLI/Validators.hpp>
+#include <filesystem>
 
+#include "bam-api/bam_api.hpp"
+#include "bam-api/bam_paired_reads.hpp"
 #include "logging/log.hpp"
+#include "qmcp-solver/solver.hpp"
 
 App::App() {
-    FillSolversMap();
-
     app_.add_option("-i,--input", input_file_path_, ".bam input file path. Required option.")
         ->required()
         ->check(CLI::ExistingFile);
@@ -20,9 +23,10 @@ App::App() {
             "-a,--algorithm",
             [this](const std::string& algorithm_name) {
                 if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
-                    solver_ = std::move(solvers_map_[algorithm_name]);
+                    solver_factory_function_ = solvers_map_[algorithm_name];
                 } else {
-                    std::cerr << "Algorithm not found: " << algorithm_name << std::endl;
+                    LOG_WITH_LEVEL(logging::ERROR)
+                        << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
             "Algorithm to use.")
@@ -38,14 +42,14 @@ App::App() {
                     ".bam output file path. Default is \"output.bam\" in "
                     "input's directory.");
 
-    app_.add_option("-b,--bed", bed_amplicon_file_path_,
+    app_.add_option("-b,--bed", bam_api_config_.bed_filepath,
                     ".bed amplicon bounds specification. It would be used to filter out or lower "
                     "the priority "
                     "of pair of sequences from different amplicons. The behaviour depends on "
                     "algorithm used.")
         ->check(CLI::ExistingFile);
 
-    app_.add_option("-t,--tsv", tsv_amplicon_pairings_file_path_,
+    app_.add_option("-t,--tsv", bam_api_config_.tsv_filepath,
                     ".tsv file which describes which of the (must be specified with this option) "
                     ".bed amplicon bounds should be paired together creating amplicon. used in "
                     "filtering or prioritizing pairs of sequences.")
@@ -55,13 +59,13 @@ App::App() {
                     ".csv historical runs data file path. If it is not "
                     "specified, no historical data would be saved!");
 
-    app_.add_option("-l,--min-length", min_seq_length_,
+    app_.add_option("-l,--min-length", bam_api_config_.min_seq_length,
                     "Minimal sequence length. Default is 90. Sequences "
                     "shorter than this "
                     "integer would be filtered before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
-    app_.add_option("-q,--min-mapq", min_seq_mapq_,
+    app_.add_option("-q,--min-mapq", bam_api_config_.min_mapq,
                     "Minimal MAPQ value of the sequence. Default is 30. "
                     "Sequences with smaller MAPQ than this integer would be "
                     "filtered before algorithm execution.")
@@ -79,13 +83,23 @@ void App::Parse(int argc, char** argv) {
         output_file_path_.replace_filename("output.bam");
     }
 
-    SET_LOG_LEVEL(verbose_mode_ ? logging::kDebug : logging::kInfo);
+    SET_LOG_LEVEL(verbose_mode_ ? logging::DEBUG : logging::INFO);
 }
 
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
+// TODO(mytkom): Add DEBUG chrono logging and other informational logs, add flag for filtered_out
+// reads
 void App::Solve() {
-    solver_->import_reads(input_file_path_, min_seq_length_, min_seq_mapq_, bed_amplicon_file_path_, tsv_amplicon_pairings_file_path_);
-    solver_->solve(max_ref_coverage_);
-    solver_->export_reads(output_file_path_);
+    bam_api::BamApi bam_api(input_file_path_, bam_api_config_);
+
+    std::unique_ptr<qmcp::Solver> solver = solver_factory_function_(bam_api);
+    std::vector<bam_api::BAMReadId> solution = solver->solve(max_ref_coverage_);
+
+    std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(solution);
+    bam_api.write_paired_reads(output_file_path_, paired_solution);
+
+    std::filesystem::path filtered_out_filepath = output_file_path_;
+    filtered_out_filepath.replace_filename("filtered_out_sequences.bam");
+    bam_api.write_bam_api_filtered_out_reads(output_file_path_);
 }

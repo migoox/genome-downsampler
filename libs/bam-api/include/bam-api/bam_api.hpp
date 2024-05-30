@@ -31,37 +31,42 @@ enum class AmpliconBehaviour {
     GRADE,
 };
 
+struct BamApiConfig {
+    std::filesystem::path bed_filepath;
+    std::filesystem::path tsv_filepath;
+    uint32_t min_seq_length = 0;
+    uint32_t min_mapq = 0;
+};
+
 class BamApi {
    public:
-    explicit BamApi(const std::filesystem::path& input_filepath)
-        : input_filepath_(input_filepath) {}
+    BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
+        : input_filepath_(input_filepath) {
+        set_min_length_filter(config.min_seq_length);
+        set_min_mapq_filter(config.min_mapq);
+        set_amplicon_filter(config.bed_filepath, config.tsv_filepath);
+    }
     explicit BamApi(const AOSPairedReads& paired_reads_)
         : aos_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::AOS) {}
     explicit BamApi(const SOAPairedReads& paired_reads_)
         : soa_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::SOA) {}
 
-    void add_min_length_filter(uint32_t min_length);
-    void add_min_mapq_filter(uint32_t min_mapq);
-    void add_amplicon_filter(const std::filesystem::path& bed_filepath,
-                             const std::filesystem::path& tsv_filepath = std::filesystem::path());
-
+    // each solver should set it for itself
     void set_amplicon_behaviour(AmpliconBehaviour amplicon_behaviour);
 
     // if input_filepath provided in constructor
     // reading and filtering occurs on first execution of one of these functions
     const AOSPairedReads& get_paired_reads_aos();
     const SOAPairedReads& get_paired_reads_soa();
-    const std::vector<Read>& get_filtered_out_reads() const;
+    const std::vector<BAMReadId>& get_filtered_out_reads() const;
+    std::vector<BAMReadId> find_pairs(const std::vector<BAMReadId>& bam_ids) const;
 
     // Returns number of reads written
-    // TODO(mytkom):
     uint32_t write_paired_reads(const std::filesystem::path& output_filepath,
-                                const std::vector<BAMReadId>& active_bam_ids) const;
+                                std::vector<BAMReadId>& active_bam_ids) const;
+    uint32_t write_bam_api_filtered_out_reads(const std::filesystem::path& output_filepath);
 
-    // TODO(mytkom):
-    uint32_t write_bam_api_filtered_out_reads(const std::filesystem::path& output_filepath) const;
-
-    // Testing purposes
+    // testing purposes
     std::vector<uint32_t> find_input_cover();
     std::vector<uint32_t> find_filtered_cover(const std::vector<BAMReadId>& active_bam_ids);
 
@@ -71,31 +76,38 @@ class BamApi {
     PairedReadsType stored_paired_reads_ = PairedReadsType::NONE;
     AmpliconSet amplicon_set_;
     AmpliconBehaviour amplicon_behaviour_ = AmpliconBehaviour::IGNORE;
-    std::vector<Read> filtered_out_reads_;
+    std::vector<BAMReadId> filtered_out_reads_;
     std::filesystem::path input_filepath_;
     uint32_t min_seq_length_ = 0;
     uint32_t min_mapq_ = 0;
 
-    const PairedReads& get_paired_reads();
-    static std::map<std::string, std::pair<Index, Index>> process_bed_file(const std::filesystem::path& filepath);
-    static std::vector<std::pair<std::string, std::string>> process_tsv_file(const std::filesystem::path& filepath);
+    const PairedReads& get_paired_reads() const;
+    static std::map<std::string, std::pair<Index, Index>> process_bed_file(
+        const std::filesystem::path& filepath);
+    static std::vector<std::pair<std::string, std::string>> process_tsv_file(
+        const std::filesystem::path& filepath);
 
     // Returns number of reads written
-    // TODO(mytkom):
     static uint32_t write_bam(const std::filesystem::path& input_filepath,
                               const std::filesystem::path& output_filepath,
                               std::vector<BAMReadId>& bam_ids);
     void read_bam(const std::filesystem::path& input_filepath, PairedReads& paired_reads);
 
+    void set_min_length_filter(uint32_t min_length);
+    void set_min_mapq_filter(uint32_t min_mapq);
+    void set_amplicon_filter(const std::filesystem::path& bed_filepath,
+                             const std::filesystem::path& tsv_filepath = std::filesystem::path());
+
     // Filtering helpers
     bool should_be_filtered_out(const Read& r1, const Read& r2);
     static bool have_min_length(const Read& r1, const Read& r2, uint32_t min_length);
     static bool have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq);
-    static bool are_from_single_amplicon(const Read& r1, const Read& r2, const AmpliconSet& amplicon_set);
+    static bool are_from_single_amplicon(const Read& r1, const Read& r2,
+                                         const AmpliconSet& amplicon_set);
 
     // Grading helpers
-    static void apply_amplicon_inclusion_grading(Read& r1, Read& r2, const AmpliconSet& amplicon_set);
-
+    static void apply_amplicon_inclusion_grading(Read& r1, Read& r2,
+                                                 const AmpliconSet& amplicon_set);
 };
 
 }  // namespace bam_api

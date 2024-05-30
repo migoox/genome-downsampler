@@ -98,16 +98,15 @@ void small_example_test() {
     const uint32_t m = 4;
 
     auto input = test_helpers::small_aos_reads_example();
-    auto input_cover = bam_api::BamApi::find_cover(input);
 
-    qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
+
+    qmcp::SequentialMaxFlowSolver solver(bam_api);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m);
+    auto output_cover = bam_api.find_filtered_cover(output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -128,16 +127,15 @@ void random_uniform_dist_test() {
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads_uniform(mt, pairs_count, genome_length, read_length);
-    auto input_cover = bam_api::BamApi::find_cover(input);
 
-    qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
+
+    qmcp::SequentialMaxFlowSolver solver(bam_api);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m);
+    auto output_cover = bam_api.find_filtered_cover(output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -158,16 +156,15 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads(mt, pairs_count, genome_length, read_length, dist_func);
-    auto input_cover = bam_api::BamApi::find_cover(input);
 
-    qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
+
+    qmcp::SequentialMaxFlowSolver solver(bam_api);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m);
+    auto output_cover = bam_api.find_filtered_cover(output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -203,21 +200,23 @@ void random_zero_coverage_on_both_sides_test() {
 void bam_file_test(const std::filesystem::path& path) {
     // GIVEN
     const uint32_t m = 1000;
-    auto input = bam_api::BamApi::read_bam_aos(path, 100, 30, std::filesystem::path(), std::filesystem::path());
+    bam_api::BamApiConfig config{
+        .min_seq_length = 100,
+        .min_mapq = 30,
+    };
+    bam_api::BamApi bam_api(path, config);
 
-    auto input_cover = bam_api::BamApi::find_cover(input);
-
-    qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(true);
-    solver.set_reads(input);
+    qmcp::SequentialMaxFlowSolver solver(bam_api);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m);
+
+    auto input_cover = bam_api.find_input_cover();
+    auto output_cover = bam_api.find_filtered_cover(output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
+
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
     // THEN

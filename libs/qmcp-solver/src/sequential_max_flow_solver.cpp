@@ -1,25 +1,13 @@
 #include "../include/qmcp-solver/sequential_max_flow_solver.hpp"
 
 #include <cstdint>
-#include <optional>
 #include <vector>
 
 #include "bam-api/bam_paired_reads.hpp"
 
-qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver() : is_data_loaded_(false){};
+std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
+    input_sequence_ = bam_api_.get_paired_reads_aos();
 
-qmcp::SequentialMaxFlowSolver::SequentialMaxFlowSolver(const std::filesystem::path& filepath,
-                                                       uint32_t min_seq_length,
-                                                       uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon)
-    : input_filepath_(filepath) {
-    import_reads(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
-}
-
-void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
-    if (!is_data_loaded_) {
-        std::cerr << "Couldn't run solver: data has not been loaded.\n";
-        std::exit(EXIT_FAILURE);
-    }
     operations_research::SimpleMaxFlow max_flow;
 
     create_network_flow_graph(max_flow, input_sequence_, max_coverage);
@@ -27,11 +15,11 @@ void qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
     int status = max_flow.Solve(input_sequence_.ref_genome_length + 1,
                                 input_sequence_.ref_genome_length + 2);
 
-    if (status == operations_research::SimpleMaxFlow::OPTIMAL) {
-        output_sequence_ = obtain_sequence(input_sequence_, max_flow, find_pairs_);
-    } else {
+    if (status != operations_research::SimpleMaxFlow::OPTIMAL) {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: " << status;
     }
+
+    return obtain_sequence(input_sequence_, max_flow);
 }
 
 void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
@@ -94,68 +82,18 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
 }
 
 std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::obtain_sequence(
-    const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow,
-    bool find_pairs) {
+    const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
     auto reduced_reads = std::vector<bam_api::BAMReadId>();
 
     std::vector<bool> mapped_reads;
-    if (find_pairs) {
-        mapped_reads.resize(sequence.read_pair_map.size(), false);
-    }
 
     for (bam_api::ReadIndex read_index = 0; read_index < sequence.reads.size(); ++read_index) {
         if (max_flow.Flow(read_index) > 0) {
             bam_api::BAMReadId read_id = sequence.reads[read_index].bam_id;
             reduced_reads.push_back(read_id);
-            if (find_pairs) {
-                mapped_reads[read_id] = true;
-            }
         }
-    }
-
-    if (find_pairs) {
-        add_pairs(reduced_reads, mapped_reads, sequence.read_pair_map);
     }
 
     return reduced_reads;
 }
 
-void qmcp::SequentialMaxFlowSolver::find_pairs(bool flag) { find_pairs_ = flag; }
-
-void qmcp::SequentialMaxFlowSolver::add_pairs(
-    std::vector<bam_api::ReadIndex>& reduced_reads, const std::vector<bool>& mapped_reads,
-    const std::vector<std::optional<bam_api::BAMReadId>>& read_pair_map) {
-    for (const bam_api::BAMReadId& read_id : reduced_reads) {
-        auto paired_read = read_pair_map[read_id];
-        if (!paired_read.has_value()) continue;
-
-        int pair_id = paired_read.value();
-        if (!mapped_reads[pair_id]) {
-            reduced_reads.push_back(pair_id);
-        }
-    }
-}
-
-std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::output_sequence() {
-    return output_sequence_;
-}
-
-void qmcp::SequentialMaxFlowSolver::export_reads(const std::filesystem::path& filepath) {
-    bam_api::BamApi::write_bam(input_filepath_, filepath, output_sequence_);
-}
-
-void qmcp::SequentialMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
-                                                 uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
-    input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_aos(input_filepath_, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
-    is_data_loaded_ = true;
-}
-
-void qmcp::SequentialMaxFlowSolver::set_reads(const bam_api::AOSPairedReads& input_sequence) {
-    input_sequence_ = input_sequence;
-    is_data_loaded_ = true;
-}
-
-const std::vector<bam_api::BAMReadId>& qmcp::SequentialMaxFlowSolver::get_output() {
-    return output_sequence_;
-}

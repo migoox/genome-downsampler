@@ -1,10 +1,10 @@
 #ifndef PAIRED_READS_HPP
 #define PAIRED_READS_HPP
 
-#include <algorithm>
+#include <htslib/sam.h>
+
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -24,6 +24,16 @@ struct Read {
     Index end_ind;
     ReadQuality quality;
     bool is_first_read;
+
+    Read(BAMReadId id, bam1_t* bamdata)
+        : bam_id(id),
+          start_ind(static_cast<Index>(bamdata->core.pos)),
+          quality(bamdata->core.qual),
+          is_first_read(static_cast<bool>(bamdata->core.flag & BAM_FREAD1)) {
+        uint64_t rlen =
+            bam_cigar2rlen(static_cast<int32_t>(bamdata->core.n_cigar), bam_get_cigar(bamdata));
+        end_ind = static_cast<Index>(bamdata->core.pos + rlen - 1);
+    }
 
     Read(BAMReadId id, Index start_ind, Index end_ind, ReadQuality quality, bool is_first)
         : bam_id(id),

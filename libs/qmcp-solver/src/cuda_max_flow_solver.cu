@@ -66,18 +66,8 @@ __global__ void push_relabel_kernel(
     }
 }
 
-qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver() : is_data_loaded_(false) {}
-
-qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon)
-    : is_data_loaded_(false) {
-    import_reads(filepath, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
-}
-
-void qmcp::CudaMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) {
-    input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_soa(filepath, min_seq_length, min_seq_mapq, bed_amplicon, tsv_amplicon);
+void qmcp::CudaMaxFlowSolver::import_reads() {
+    input_sequence_ = bam_api_.get_paired_reads_soa();
 
     // Create max coverage function
     max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
@@ -87,9 +77,8 @@ void qmcp::CudaMaxFlowSolver::import_reads(const std::filesystem::path& filepath
             ++max_coverage_[j + 1];
         }
     }
-
-    is_data_loaded_ = true;
 }
+
 void qmcp::CudaMaxFlowSolver::add_edge(std::vector<std::vector<Node>>& neighbors_dict,
                                        std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
                                        std::vector<std::vector<Capacity>>& residual_capacity_dict,
@@ -307,21 +296,14 @@ void qmcp::CudaMaxFlowSolver::clear_graph() {
     output_.clear();
 }
 
-void qmcp::CudaMaxFlowSolver::export_reads(const std::filesystem::path& filepath) {
-    bam_api::BamApi::write_bam(input_filepath_, filepath, output_);
-}
-
 void qmcp::CudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
 
 void qmcp::CudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
-void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
-    if (!is_data_loaded_) {
-        std::cerr << "Couldn't run solver: data has not been loaded.\n";
-        std::exit(EXIT_FAILURE);
-    }
+std::vector<bam_api::BAMReadId> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
+    import_reads();
 
     create_graph(input_sequence_, required_cover);
 
@@ -398,16 +380,8 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
 
         if (cap == 0) {
             output_.push_back(input_sequence_.ids[i]);
-
-            bam_api::Index pair_ind = input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1);
-            Node pair_u = input_sequence_.start_inds[pair_ind];
-
-            // Check if the pair index also must be added
-            Capacity pair_cap = residual_capacity_[neighbors_start_ind_[pair_u] +
-                                                   read_ind_to_neighbor_ind_[pair_ind]];
-            if (pair_cap != 0) {
-                output_.push_back(input_sequence_.ids[pair_ind]);
-            }
         }
     }
+
+    return output_;
 }

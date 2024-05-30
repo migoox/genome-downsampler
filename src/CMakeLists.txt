@@ -1,4 +1,4 @@
-add_executable(cuda-dna-downsampler main.cpp app.cpp)
+add_executable(cuda-dna-downsampler main.cpp app.cpp solver_factory_functions.cpp)
 
 target_link_libraries(
     cuda-dna-downsampler

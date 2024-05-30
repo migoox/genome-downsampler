@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <memory>
+#include <vector>
 
 #include "bam-api/bam_paired_reads.hpp"
 #include "solver.hpp"
@@ -12,22 +12,18 @@ namespace qmcp {
 
 class CudaMaxFlowSolver : public Solver {
    public:
+    using Solver::Solver;
     typedef uint32_t Node;
     typedef uint32_t Capacity;
     typedef uint32_t Label;
     typedef uint32_t NeighborInfoIndex;
     typedef int32_t Excess;
 
-    CudaMaxFlowSolver();
-
     enum class EdgeDirection : uint8_t { Forward, Backward };
-    explicit CudaMaxFlowSolver(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                               uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon);
 
-    void import_reads(const std::filesystem::path& filepath, uint32_t min_seq_length,
-                      uint32_t min_seq_mapq, const std::filesystem::path& bed_amplicon, const std::filesystem::path& tsv_amplicon) override;
-    void solve(uint32_t required_cover) override;
-    void export_reads(const std::filesystem::path& filepath) override;
+
+    void import_reads();
+    std::vector<bam_api::BAMReadId> solve(uint32_t required_cover) override;
 
     void set_block_size(uint32_t block_size);
     void set_kernel_cycles(uint32_t kernel_cycles);
@@ -54,7 +50,6 @@ class CudaMaxFlowSolver : public Solver {
 
     uint32_t block_size_ = kDefaultBlockSize;
     uint32_t kernel_cycles_ = kDefaultKernelCycles;
-    bool is_data_loaded_ = false;
 
     std::filesystem::path input_filepath_;
     bam_api::SOAPairedReads input_sequence_;
