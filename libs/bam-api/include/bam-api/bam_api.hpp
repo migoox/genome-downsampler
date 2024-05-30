@@ -40,16 +40,9 @@ struct BamApiConfig {
 
 class BamApi {
    public:
-    BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
-        : input_filepath_(input_filepath) {
-        set_min_length_filter(config.min_seq_length);
-        set_min_mapq_filter(config.min_mapq);
-        set_amplicon_filter(config.bed_filepath, config.tsv_filepath);
-    }
-    explicit BamApi(const AOSPairedReads& paired_reads_)
-        : aos_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::AOS) {}
-    explicit BamApi(const SOAPairedReads& paired_reads_)
-        : soa_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::SOA) {}
+    BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config);
+    explicit BamApi(const AOSPairedReads& paired_reads_);
+    explicit BamApi(const SOAPairedReads& paired_reads_);
 
     // each solver should set it for itself
     void set_amplicon_behaviour(AmpliconBehaviour amplicon_behaviour);

@@ -20,6 +20,20 @@
 #include "bam-api/amplicons.hpp"
 #include "logging/log.hpp"
 
+bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
+    : input_filepath_(input_filepath) {
+    set_min_length_filter(config.min_seq_length);
+    set_min_mapq_filter(config.min_mapq);
+
+    if (!config.bed_filepath.empty()) {
+        set_amplicon_filter(config.bed_filepath, config.tsv_filepath);
+    }
+}
+bam_api::BamApi::BamApi(const AOSPairedReads& paired_reads_)
+    : aos_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::AOS) {}
+bam_api::BamApi::BamApi(const SOAPairedReads& paired_reads_)
+    : soa_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::SOA) {}
+
 void bam_api::BamApi::set_min_length_filter(uint32_t min_length) { min_seq_length_ = min_length; }
 
 void bam_api::BamApi::set_min_mapq_filter(uint32_t min_mapq) { min_mapq_ = min_mapq; }
@@ -375,8 +389,6 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     }
 
     assert(paired_reads.bam_id_to_read_index.size() == paired_reads.read_pair_map.size());
-    assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
-           paired_reads.read_pair_map.size());
 
     for (BAMReadId bam_id = 0; bam_id < paired_reads.bam_id_to_read_index.size(); ++bam_id) {
         // no mapping between bam_id and read_index - this sequence was filtered out
@@ -384,6 +396,9 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             filtered_out_reads_.push_back(bam_id);
         }
     }
+
+    assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
+         paired_reads.read_pair_map.size());
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::ERROR)
