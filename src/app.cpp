@@ -97,9 +97,9 @@ void App::Solve() {
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
     LOG_WITH_LEVEL(logging::DEBUG) << "APP: solution have: " << solution->size() << " sequences";
 
-    // std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
-    // LOG_WITH_LEVEL(logging::DEBUG) << "APP: paired_solution have: " << paired_solution.size() << " sequences";
-    bam_api.write_paired_reads(output_file_path_, *solution);
+    std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
+    LOG_WITH_LEVEL(logging::DEBUG) << "APP: paired_solution have: " << paired_solution.size() << " sequences";
+    bam_api.write_paired_reads(output_file_path_, paired_solution);
 
     std::filesystem::path filtered_out_filepath = output_file_path_;
     filtered_out_filepath.replace_filename("filtered_out_sequences.bam");
