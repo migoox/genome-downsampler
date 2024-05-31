@@ -6,7 +6,8 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
+
 #include "solver.hpp"
 
 namespace qmcp {
@@ -14,6 +15,7 @@ namespace qmcp {
 class SequentialMaxFlowSolver : public Solver {
    public:
     std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
+    bool uses_quality_of_reads() override { return false; }
 
    private:
     static void create_network_flow_graph(operations_research::SimpleMaxFlow& max_flow,

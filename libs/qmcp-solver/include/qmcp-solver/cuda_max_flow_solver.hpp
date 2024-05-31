@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
@@ -24,6 +24,7 @@ class CudaMaxFlowSolver : public Solver {
 
 
     std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::BamApi& bam_api) override;
+    bool uses_quality_of_reads() override { return false; }
 
     void set_block_size(uint32_t block_size);
     void set_kernel_cycles(uint32_t kernel_cycles);

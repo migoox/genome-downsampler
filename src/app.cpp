@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 
@@ -95,14 +95,22 @@ int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 // TODO(mytkom): Add DEBUG chrono logging and other informational logs, add flag for filtered_out
 // reads
 void App::Solve() {
+    if (solver_->uses_quality_of_reads()) {
+        bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::GRADE;
+    } else {
+        bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::FILTER;
+    }
+
     bam_api::BamApi bam_api(input_file_path_, bam_api_config_);
 
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
-    LOG_WITH_LEVEL(logging::DEBUG) << "APP: pairs_read: " << bam_api.get_paired_reads_soa().get_reads_count() << " sequences";
+    LOG_WITH_LEVEL(logging::DEBUG)
+        << "APP: pairs_read: " << bam_api.get_paired_reads().get_reads_count() << " sequences";
     LOG_WITH_LEVEL(logging::DEBUG) << "APP: solution have: " << solution->size() << " sequences";
 
     std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
-    LOG_WITH_LEVEL(logging::DEBUG) << "APP: paired_solution have: " << paired_solution.size() << " sequences";
+    LOG_WITH_LEVEL(logging::DEBUG)
+        << "APP: paired_solution have: " << paired_solution.size() << " sequences";
     bam_api.write_paired_reads(output_file_path_, paired_solution);
 
     std::filesystem::path filtered_out_filepath = output_file_path_;

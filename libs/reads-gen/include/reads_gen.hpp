@@ -4,7 +4,7 @@
 #include <functional>
 #include <random>
 
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 
 namespace reads_gen {
 

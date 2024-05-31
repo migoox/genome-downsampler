@@ -1,4 +1,4 @@
-add_library(bam-api STATIC src/bam_api.cpp)
+add_library(bam-api STATIC src/bam_api.cpp src/read.cpp src/aos_paired_reads.cpp src/soa_paired_reads.cpp)
 
 target_include_directories(bam-api PUBLIC ${CMAKE_SOURCE_DIR}/libs/bam-api/include)
 

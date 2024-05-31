@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"

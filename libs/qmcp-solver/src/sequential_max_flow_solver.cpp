@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/solver.hpp"
 
 std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {

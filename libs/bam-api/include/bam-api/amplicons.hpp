@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 
 namespace bam_api {
 struct Amplicon {

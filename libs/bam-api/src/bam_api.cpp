@@ -1,4 +1,4 @@
-#include "../include/bam-api/bam_api.hpp"
+#include "bam-api/bam_api.hpp"
 
 #include <htslib/hts.h>
 #include <htslib/regidx.h>
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "../include/bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "bam-api/amplicons.hpp"
 #include "logging/log.hpp"
 
@@ -27,12 +27,15 @@ bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamAp
 
     if (!config.bed_filepath.empty()) {
         set_amplicon_filter(config.bed_filepath, config.tsv_filepath);
+        amplicon_behaviour_ = config.amplicon_behaviour;
+    } else {
+        amplicon_behaviour_ = AmpliconBehaviour::IGNORE;
     }
 }
 bam_api::BamApi::BamApi(const AOSPairedReads& paired_reads_)
-    : aos_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::AOS) {}
+    : aos_paired_reads_{paired_reads_}, is_aos_loaded_(true) {}
 bam_api::BamApi::BamApi(const SOAPairedReads& paired_reads_)
-    : soa_paired_reads_{paired_reads_}, stored_paired_reads_(PairedReadsType::SOA) {}
+    : soa_paired_reads_{paired_reads_}, is_soa_loaded_(true) {}
 
 void bam_api::BamApi::set_min_length_filter(uint32_t min_length) { min_seq_length_ = min_length; }
 
@@ -98,6 +101,11 @@ std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi
         std::string end;
         std::string name;
 
+        std::getline(ss, chrom, '\t');
+        std::getline(ss, start, '\t');
+        std::getline(ss, end, '\t');
+        std::getline(ss, name, '\t');
+
         Index start_idx = 0;
         Index end_idx = 0;
 
@@ -111,11 +119,6 @@ std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi
             LOG_WITH_LEVEL(logging::ERROR) << "Out of range: " << e.what();
             continue;
         }
-
-        std::getline(ss, chrom, '\t');
-        std::getline(ss, start, '\t');
-        std::getline(ss, end, '\t');
-        std::getline(ss, name, '\t');
 
         if (!chrom.empty() && !start.empty() && !end.empty() && !name.empty()) {
             LOG_WITH_LEVEL(logging::DEBUG) << "Chromosome: " << chrom << ", Start: " << start
@@ -165,14 +168,14 @@ std::vector<std::pair<std::string, std::string>> bam_api::BamApi::process_tsv_fi
 }
 
 const bam_api::AOSPairedReads& bam_api::BamApi::get_paired_reads_aos() {
-    if (stored_paired_reads_ == PairedReadsType::AOS) {
+    if (is_aos_loaded_) {
         return aos_paired_reads_;
     }
 
-    if (stored_paired_reads_ == PairedReadsType::SOA) {
-        LOG_WITH_LEVEL(logging::INFO)
-            << "WARNING: You are reading input file more than once. Consider using only one of "
-               "SOA and AOS structures for paired reads.";
+    if (is_soa_loaded_) {
+        aos_paired_reads_ = soa_paired_reads_;
+        is_aos_loaded_ = true;
+        return aos_paired_reads_;
     }
 
     if (input_filepath_.empty()) {
@@ -182,20 +185,20 @@ const bam_api::AOSPairedReads& bam_api::BamApi::get_paired_reads_aos() {
     }
 
     read_bam(input_filepath_, aos_paired_reads_);
-    stored_paired_reads_ = PairedReadsType::AOS;
+    is_aos_loaded_ = true;
 
     return aos_paired_reads_;
 }
 
 const bam_api::SOAPairedReads& bam_api::BamApi::get_paired_reads_soa() {
-    if (stored_paired_reads_ == PairedReadsType::SOA) {
+    if (is_soa_loaded_) {
         return soa_paired_reads_;
     }
 
-    if (stored_paired_reads_ == PairedReadsType::AOS) {
-        LOG_WITH_LEVEL(logging::INFO)
-            << "WARNING: You are reading input file more than once. Consider using only one of "
-               "SOA and AOS structures for paired reads.";
+    if (is_aos_loaded_) {
+        soa_paired_reads_ = aos_paired_reads_;
+        is_soa_loaded_ = true;
+        return soa_paired_reads_;
     }
 
     if (input_filepath_.empty()) {
@@ -205,7 +208,7 @@ const bam_api::SOAPairedReads& bam_api::BamApi::get_paired_reads_soa() {
     }
 
     read_bam(input_filepath_, soa_paired_reads_);
-    stored_paired_reads_ = PairedReadsType::SOA;
+    is_soa_loaded_ = true;
 
     return soa_paired_reads_;
 }
@@ -258,7 +261,7 @@ std::vector<uint32_t> bam_api::BamApi::find_filtered_cover(
 
     for (const auto bam_id : bam_ids) {
         const auto& read = paired_reads.get_read_by_bam_id(bam_id);
-        for (bam_api::Index i = read.start_ind; i <= read.end_ind; ++i) {
+        for (bam_api::Index i = read->start_ind; i <= read->end_ind; ++i) {
             result[i]++;
         }
     }
@@ -267,7 +270,7 @@ std::vector<uint32_t> bam_api::BamApi::find_filtered_cover(
 }
 
 const bam_api::PairedReads& bam_api::BamApi::get_paired_reads() const {
-    if (stored_paired_reads_ == PairedReadsType::SOA) {
+    if (is_soa_loaded_) {
         return soa_paired_reads_;
     }
 
@@ -285,8 +288,7 @@ bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) {
 }
 
 bool bam_api::BamApi::have_min_length(const Read& r1, const Read& r2, uint32_t min_length) {
-    return (r1.seq_length >= min_length) &&
-           (r2.seq_length >= min_length);
+    return (r1.seq_length >= min_length) && (r2.seq_length >= min_length);
 }
 
 bool bam_api::BamApi::have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq) {
@@ -387,7 +389,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             paired_reads.read_pair_map[r1.bam_id] = r2.bam_id;
             paired_reads.read_pair_map[r2.bam_id] = r1.bam_id;
         } else {
-            read_map.insert({ current_qname, current_read });
+            read_map.insert({current_qname, current_read});
         }
 
         id++;
@@ -404,7 +406,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     }
 
     assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
-         paired_reads.read_pair_map.size());
+           paired_reads.read_pair_map.size());
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::ERROR)

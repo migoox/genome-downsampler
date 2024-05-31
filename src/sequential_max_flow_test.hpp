@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "reads_gen.hpp"
 

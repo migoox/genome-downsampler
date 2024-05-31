@@ -9,6 +9,7 @@ namespace qmcp {
 class TestSolver : public Solver {
    public:
     std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
+    bool uses_quality_of_reads() override { return false; }
 };
 }  // namespace qmcp
 
