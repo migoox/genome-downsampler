@@ -58,7 +58,7 @@ bam_api::AOSPairedReads small_aos_reads_example() {
     // NOLINTNEXTLINE
     result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, false));
 
-    for (bam_api::ReadIndex i = 0 ; i < result.get_reads_count(); ++i) {
+    for (bam_api::ReadIndex i = 0; i < result.get_reads_count(); ++i) {
         result.bam_id_to_read_index.push_back(i);
     }
 
