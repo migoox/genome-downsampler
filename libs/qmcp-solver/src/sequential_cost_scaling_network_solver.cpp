@@ -2,13 +2,15 @@
 
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
+#include "qmcp-solver/solver.hpp"
 
-std::vector<bam_api::BAMReadId> qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage) {
-    input_sequence_ = bam_api_.get_paired_reads_aos();
+std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
+    input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMinCostFlow min_cost_flow;
 
@@ -84,14 +86,14 @@ std::vector<int> qmcp::SequentialCostScalingNetworkSolver::create_demand_functio
 
     return b;
 }
-std::vector<bam_api::ReadIndex> qmcp::SequentialCostScalingNetworkSolver::obtain_sequence(
+std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
-    auto reduced_reads = std::vector<bam_api::ReadIndex>();
+    auto reduced_reads = std::make_unique<Solution>();
 
     for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
         if (min_cost_flow.Flow(read_id) > 0) {
-            reduced_reads.push_back(read_id);
+            reduced_reads->push_back(read_id);
         }
     }
 

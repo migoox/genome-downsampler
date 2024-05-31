@@ -1,12 +1,15 @@
 #include "../include/qmcp-solver/sequential_max_flow_solver.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
+#include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
+#include "qmcp-solver/solver.hpp"
 
-std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage) {
-    input_sequence_ = bam_api_.get_paired_reads_aos();
+std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
+    input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMaxFlow max_flow;
 
@@ -81,16 +84,16 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
     return b;
 }
 
-std::vector<bam_api::BAMReadId> qmcp::SequentialMaxFlowSolver::obtain_sequence(
+std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
-    auto reduced_reads = std::vector<bam_api::BAMReadId>();
+    auto reduced_reads = std::make_unique<Solution>();
 
     std::vector<bool> mapped_reads;
 
     for (bam_api::ReadIndex read_index = 0; read_index < sequence.reads.size(); ++read_index) {
         if (max_flow.Flow(read_index) > 0) {
             bam_api::BAMReadId read_id = sequence.reads[read_index].bam_id;
-            reduced_reads.push_back(read_id);
+            reduced_reads->push_back(read_id);
         }
     }
 

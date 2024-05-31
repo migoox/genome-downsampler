@@ -3,6 +3,7 @@
 #include <CLI/App.hpp>
 #include <CLI/Validators.hpp>
 #include <filesystem>
+#include <memory>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
@@ -23,7 +24,7 @@ App::App() {
             "-a,--algorithm",
             [this](const std::string& algorithm_name) {
                 if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
-                    solver_factory_function_ = solvers_map_[algorithm_name];
+                    solver_ = solvers_map_[algorithm_name];
                 } else {
                     LOG_WITH_LEVEL(logging::ERROR)
                         << "Algorithm not found: " << algorithm_name << std::endl;
@@ -93,11 +94,12 @@ int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 void App::Solve() {
     bam_api::BamApi bam_api(input_file_path_, bam_api_config_);
 
-    std::unique_ptr<qmcp::Solver> solver = solver_factory_function_(bam_api);
-    std::vector<bam_api::BAMReadId> solution = solver->solve(max_ref_coverage_);
+    std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+    LOG_WITH_LEVEL(logging::DEBUG) << "APP: solution have: " << solution->size() << " sequences";
 
-    std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(solution);
-    bam_api.write_paired_reads(output_file_path_, paired_solution);
+    // std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
+    // LOG_WITH_LEVEL(logging::DEBUG) << "APP: paired_solution have: " << paired_solution.size() << " sequences";
+    bam_api.write_paired_reads(output_file_path_, *solution);
 
     std::filesystem::path filtered_out_filepath = output_file_path_;
     filtered_out_filepath.replace_filename("filtered_out_sequences.bam");

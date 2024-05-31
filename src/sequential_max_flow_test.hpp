@@ -102,11 +102,11 @@ void small_example_test() {
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
 
-    qmcp::SequentialMaxFlowSolver solver(bam_api);
+    qmcp::SequentialMaxFlowSolver solver;
 
     // WHEN
-    auto output_indices = solver.solve(m);
-    auto output_cover = bam_api.find_filtered_cover(output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -131,11 +131,11 @@ void random_uniform_dist_test() {
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
 
-    qmcp::SequentialMaxFlowSolver solver(bam_api);
+    qmcp::SequentialMaxFlowSolver solver;
 
     // WHEN
-    auto output_indices = solver.solve(m);
-    auto output_cover = bam_api.find_filtered_cover(output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -160,11 +160,11 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
 
-    qmcp::SequentialMaxFlowSolver solver(bam_api);
+    qmcp::SequentialMaxFlowSolver solver;
 
     // WHEN
-    auto output_indices = solver.solve(m);
-    auto output_cover = bam_api.find_filtered_cover(output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -206,13 +206,13 @@ void bam_file_test(const std::filesystem::path& path) {
     };
     bam_api::BamApi bam_api(path, config);
 
-    qmcp::SequentialMaxFlowSolver solver(bam_api);
+    qmcp::SequentialMaxFlowSolver solver;
 
     // WHEN
-    auto output_indices = solver.solve(m);
+    auto output_indices = solver.solve(m, bam_api);
 
     auto input_cover = bam_api.find_input_cover();
-    auto output_cover = bam_api.find_filtered_cover(output_indices);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif

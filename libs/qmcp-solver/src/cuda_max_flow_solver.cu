@@ -8,11 +8,13 @@
 #include <limits>
 #include <list>
 #include <optional>
+#include <memory>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
+#include "qmcp-solver/solver.hpp"
 
 __global__ void push_relabel_kernel(
     uint32_t kernel_cycles, uint32_t nodes_count, qmcp::CudaMaxFlowSolver::Excess* excess_func,
@@ -62,19 +64,6 @@ __global__ void push_relabel_kernel(
 
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]], delta);
             atomicSub(&excess_func[node], delta);
-        }
-    }
-}
-
-void qmcp::CudaMaxFlowSolver::import_reads() {
-    input_sequence_ = bam_api_.get_paired_reads_soa();
-
-    // Create max coverage function
-    max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
-    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
-        for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
-             ++i) {
-            ++max_coverage_[j + 1];
         }
     }
 }
@@ -293,7 +282,6 @@ void qmcp::CudaMaxFlowSolver::clear_graph() {
     neighbors_end_ind_.clear();
     residual_capacity_.clear();
     max_coverage_.clear();
-    output_.clear();
 }
 
 void qmcp::CudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
@@ -302,8 +290,17 @@ void qmcp::CudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
-std::vector<bam_api::BAMReadId> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
-    import_reads();
+std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover, bam_api::BamApi& bam_api) {
+    input_sequence_ = bam_api.get_paired_reads_soa();
+
+    // Create max coverage function
+    max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
+    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
+        for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
+             ++i) {
+            ++max_coverage_[j + 1];
+        }
+    }
 
     create_graph(input_sequence_, required_cover);
 
@@ -373,15 +370,17 @@ std::vector<bam_api::BAMReadId> qmcp::CudaMaxFlowSolver::solve(uint32_t required
     cuda::free(dev_residual_capacity);
     cuda::free(dev_edge_dir);
 
+    std::unique_ptr<Solution> output = std::make_unique<Solution>();
+
     // Create output data
     for (bam_api::ReadIndex i = 0; i < read_ind_to_neighbor_ind_.size(); ++i) {
         Node u = input_sequence_.start_inds[i];
         Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
 
         if (cap == 0) {
-            output_.push_back(input_sequence_.ids[i]);
+            output->push_back(input_sequence_.ids[i]);
         }
     }
 
-    return output_;
+    return output;
 }

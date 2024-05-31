@@ -227,7 +227,7 @@ std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
         }
 
         std::optional<BAMReadId> pair_bam_id = paired_reads.read_pair_map[bam_id];
-        if (!read_mapped[bam_id] && pair_bam_id) {
+        if (pair_bam_id && !read_mapped[pair_bam_id.value()]) {
             paired_bam_ids.push_back(pair_bam_id.value());
             read_mapped[pair_bam_id.value()] = true;
         }
@@ -273,10 +273,10 @@ const bam_api::PairedReads& bam_api::BamApi::get_paired_reads() const {
 }
 
 bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) {
-    bool ret = have_min_mapq(r1, r2, min_mapq_) && have_min_length(r1, r2, min_seq_length_);
+    bool ret = !have_min_mapq(r1, r2, min_mapq_) || !have_min_length(r1, r2, min_seq_length_);
 
     if (amplicon_behaviour_ == AmpliconBehaviour::FILTER) {
-        ret = ret && are_from_single_amplicon(r1, r2, amplicon_set_);
+        ret = ret || !are_from_single_amplicon(r1, r2, amplicon_set_);
     }
 
     return ret;
@@ -381,8 +381,10 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             paired_reads.bam_id_to_read_index[r1.bam_id] = first_read_index;
             paired_reads.bam_id_to_read_index[r2.bam_id] = first_read_index + 1;
 
-            paired_reads.bam_id_to_read_index[r1.bam_id] = r2.bam_id;
-            paired_reads.bam_id_to_read_index[r2.bam_id] = r1.bam_id;
+            paired_reads.read_pair_map[r1.bam_id] = r2.bam_id;
+            paired_reads.read_pair_map[r2.bam_id] = r1.bam_id;
+        } else {
+            read_map.insert({ current_qname, current_read });
         }
 
         id++;

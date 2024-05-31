@@ -9,12 +9,15 @@
 #include <string>
 
 #include "bam-api/bam_api.hpp"
+#include "qmcp-solver/cuda_max_flow_solver.hpp"
+#include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
+#include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
-#include "solver_factory_functions.hpp"
+#include "qmcp-solver/test_solver.hpp"
 
 class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
-    static constexpr uint32_t kDefaultMinSeqQmap = 30;
+    static constexpr uint32_t kDefaultMinSeqMAPQ = 30;
 
    public:
     App();
@@ -27,17 +30,17 @@ class App {
     bam_api::BamApiConfig bam_api_config_;
     bool verbose_mode_ = false;
     uint32_t max_ref_coverage_;
-    std::function<std::unique_ptr<qmcp::Solver>(bam_api::BamApi&)> solver_factory_function_;
+    std::shared_ptr<qmcp::Solver> solver_;
     std::filesystem::path input_file_path_;
     std::filesystem::path output_file_path_;
     std::filesystem::path csv_historical_runs_file_path_;
-    std::map<std::string, std::function<std::unique_ptr<qmcp::Solver>(bam_api::BamApi&)>>
+    std::map<std::string, std::shared_ptr<qmcp::Solver>>
         solvers_map_{
-            {"test", solver_factory_functions::createTestSolver},
+            {"test", std::make_shared<qmcp::TestSolver>()},
             {"sequential-cost-scaling",
-             solver_factory_functions::createSequentialCostScalingNetworkSolver},
-            {"cuda-max-flow", solver_factory_functions::createCudaMaxFlowSolver},
-            {"sequential-max-flow", solver_factory_functions::createSequentialMaxFlowSolver},
+             std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
+            {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
+            {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
         };
 };
 

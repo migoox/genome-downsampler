@@ -3,23 +3,24 @@
 
 #include <ortools/graph/min_cost_flow.h>
 
+#include <memory>
 #include <vector>
 
+#include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
 class SequentialCostScalingNetworkSolver : public Solver {
    public:
-    using Solver::Solver;
-    std::vector<bam_api::BAMReadId> solve(uint32_t max_coverage) override;
+    std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
 
    private:
     static void create_network_flow_graph(operations_research::SimpleMinCostFlow& min_cost_flow,
                                           const bam_api::AOSPairedReads& sequence, unsigned int M);
     static std::vector<int> create_demand_function(const bam_api::AOSPairedReads& sequence,
                                                    unsigned int M);
-    static std::vector<bam_api::ReadIndex> obtain_sequence(
+    static std::unique_ptr<Solution> obtain_sequence(
         const bam_api::AOSPairedReads& sequence,
         const operations_research::SimpleMinCostFlow& min_cost_flow);
 

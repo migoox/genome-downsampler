@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <vector>
 
+#include "bam-api/bam_api.hpp"
 #include "bam-api/bam_paired_reads.hpp"
 #include "solver.hpp"
 
@@ -12,7 +14,6 @@ namespace qmcp {
 
 class CudaMaxFlowSolver : public Solver {
    public:
-    using Solver::Solver;
     typedef uint32_t Node;
     typedef uint32_t Capacity;
     typedef uint32_t Label;
@@ -22,8 +23,7 @@ class CudaMaxFlowSolver : public Solver {
     enum class EdgeDirection : uint8_t { Forward, Backward };
 
 
-    void import_reads();
-    std::vector<bam_api::BAMReadId> solve(uint32_t required_cover) override;
+    std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::BamApi& bam_api) override;
 
     void set_block_size(uint32_t block_size);
     void set_kernel_cycles(uint32_t kernel_cycles);
@@ -54,8 +54,6 @@ class CudaMaxFlowSolver : public Solver {
     std::filesystem::path input_filepath_;
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
-
-    std::vector<bam_api::BAMReadId> output_;
 
     // === Graph data ===
     std::vector<Excess> excess_func_;
