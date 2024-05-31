@@ -103,5 +103,5 @@ void App::Solve() {
 
     std::filesystem::path filtered_out_filepath = output_file_path_;
     filtered_out_filepath.replace_filename("filtered_out_sequences.bam");
-    bam_api.write_bam_api_filtered_out_reads(output_file_path_);
+    bam_api.write_bam_api_filtered_out_reads(filtered_out_filepath);
 }

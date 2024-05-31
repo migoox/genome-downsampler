@@ -363,6 +363,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             Read& r2 = current_read;
 
             if (should_be_filtered_out(r1, r2)) {
+                id++;
                 continue;
             }
 
@@ -391,6 +392,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     }
 
     assert(paired_reads.bam_id_to_read_index.size() == paired_reads.read_pair_map.size());
+    assert(paired_reads.bam_id_to_read_index.size() == id);
 
     for (BAMReadId bam_id = 0; bam_id < paired_reads.bam_id_to_read_index.size(); ++bam_id) {
         // no mapping between bam_id and read_index - this sequence was filtered out
@@ -426,7 +428,7 @@ uint32_t bam_api::BamApi::write_bam_api_filtered_out_reads(
 uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
                                     const std::filesystem::path& output_filepath,
                                     std::vector<BAMReadId>& bam_ids) {
-    LOG_WITH_LEVEL(logging::DEBUG) << "bam-api writing" << bam_ids.size() << " reads to "
+    LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: writing " << bam_ids.size() << " reads to "
                                    << output_filepath << " on the basis of " << input_filepath;
 
     sam_hdr_t* in_samhdr = NULL;
@@ -507,7 +509,7 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
         bam_destroy1(bamdata);
     }
 
-    LOG_WITH_LEVEL(logging::DEBUG) << "bam-api " << reads_written << " reads have been written to "
+    LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: " << reads_written << " reads have been written to "
                                    << output_filepath << " on the basis of " << input_filepath;
 
     return reads_written;
