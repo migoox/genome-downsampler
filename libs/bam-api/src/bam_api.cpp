@@ -182,6 +182,7 @@ const bam_api::AOSPairedReads& bam_api::BamApi::get_paired_reads_aos() {
     }
 
     read_bam(input_filepath_, aos_paired_reads_);
+    stored_paired_reads_ = PairedReadsType::AOS;
 
     return aos_paired_reads_;
 }
@@ -204,6 +205,7 @@ const bam_api::SOAPairedReads& bam_api::BamApi::get_paired_reads_soa() {
     }
 
     read_bam(input_filepath_, soa_paired_reads_);
+    stored_paired_reads_ = PairedReadsType::SOA;
 
     return soa_paired_reads_;
 }
@@ -283,8 +285,8 @@ bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) {
 }
 
 bool bam_api::BamApi::have_min_length(const Read& r1, const Read& r2, uint32_t min_length) {
-    return (r1.end_ind - r1.start_ind + 1 >= min_length) &&
-           (r2.end_ind - r2.start_ind + 1 >= min_length);
+    return (r1.seq_length >= min_length) &&
+           (r2.seq_length >= min_length);
 }
 
 bool bam_api::BamApi::have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq) {

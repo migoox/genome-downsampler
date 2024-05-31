@@ -19,46 +19,46 @@ bam_api::AOSPairedReads small_aos_reads_example() {
     bam_api::ReadIndex id = 0;
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, 4, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, 4, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, 4, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, 5, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, 4, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, false));
 
-    for (bam_api::ReadIndex i; i < result.get_reads_count(); ++i) {
+    for (bam_api::ReadIndex i = 0 ; i < result.get_reads_count(); ++i) {
         result.bam_id_to_read_index.push_back(i);
     }
 

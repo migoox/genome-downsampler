@@ -11,6 +11,9 @@
 #include "qmcp-solver/solver.hpp"
 
 App::App() {
+    bam_api_config_.min_mapq = kDefaultMinSeqMAPQ;
+    bam_api_config_.min_seq_length = kDefaultMinSeqLength;
+
     app_.add_option("-i,--input", input_file_path_, ".bam input file path. Required option.")
         ->required()
         ->check(CLI::ExistingFile);
@@ -95,6 +98,7 @@ void App::Solve() {
     bam_api::BamApi bam_api(input_file_path_, bam_api_config_);
 
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+    LOG_WITH_LEVEL(logging::DEBUG) << "APP: pairs_read: " << bam_api.get_paired_reads_soa().get_reads_count() << " sequences";
     LOG_WITH_LEVEL(logging::DEBUG) << "APP: solution have: " << solution->size() << " sequences";
 
     std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
