@@ -2,6 +2,7 @@
 
 #include <CLI/App.hpp>
 #include <CLI/Validators.hpp>
+#include <chrono>
 #include <filesystem>
 #include <memory>
 
@@ -105,7 +106,14 @@ void App::Solve() {
     }
 
     bam_api::BamApi bam_api(input_file_path_, config_buider.get_config());
+
+    auto start = std::chrono::high_resolution_clock::now();
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "solve took " << elapsed.count() << " seconds";
+
+
     std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
     bam_api.write_paired_reads(output_file_path_, paired_solution);
 
