@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "bam-api/bam_api_config.hpp"
 #include "bam-api/amplicon_set.hpp"
 #include "bam-api/paired_reads.hpp"
 #include "bam-api/aos_paired_reads.hpp"
@@ -15,23 +16,6 @@
 namespace bam_api {
 
 constexpr uint32_t kMaxMAPQ = 60;
-
-enum class AmpliconBehaviour {
-    // Ignore amplicons at all
-    IGNORE,
-    // Filter out all non-single amplicon inclusive pairs of reads
-    FILTER,
-    // Grade pairs of reads with its `quality` field to prioritize single amplicon pairs
-    GRADE,
-};
-
-struct BamApiConfig {
-    std::filesystem::path bed_filepath;
-    std::filesystem::path tsv_filepath;
-    uint32_t min_seq_length = 0;
-    uint32_t min_mapq = 0;
-    AmpliconBehaviour amplicon_behaviour = AmpliconBehaviour::IGNORE;
-};
 
 class BamApi {
    public:

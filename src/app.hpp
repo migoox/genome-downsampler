@@ -8,7 +8,6 @@
 #include <memory>
 #include <string>
 
-#include "bam-api/bam_api.hpp"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
@@ -27,13 +26,16 @@ class App {
 
    private:
     CLI::App app_;
-    bam_api::BamApiConfig bam_api_config_;
+    uint32_t min_mapq_ = kDefaultMinSeqMAPQ;
+    uint32_t min_seq_length_ = kDefaultMinSeqLength;
     bool verbose_mode_ = false;
     uint32_t max_ref_coverage_;
     std::shared_ptr<qmcp::Solver> solver_;
     std::filesystem::path input_file_path_;
     std::filesystem::path output_file_path_;
     std::filesystem::path filtered_out_path_;
+    std::filesystem::path bed_path_;
+    std::filesystem::path tsv_path_;
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
         {"test", std::make_shared<qmcp::TestSolver>()},
         {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
