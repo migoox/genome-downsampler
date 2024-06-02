@@ -74,8 +74,7 @@ App::App() {
                     "filtered before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
-    app_.add_option("-@,--threads", hts_thread_count_,
-                    "Set thread coun for htslib read/write.")
+    app_.add_option("-@,--threads", hts_thread_count_, "Set thread coun for htslib read/write.")
         ->check(CLI::PositiveNumber);
 
     app_.add_flag("-v,--verbose", verbose_mode_,
