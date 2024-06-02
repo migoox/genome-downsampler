@@ -34,8 +34,8 @@ struct BamApiConfig {
 class BamApi {
    public:
     BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config);
-    explicit BamApi(const AOSPairedReads& paired_reads_);
-    explicit BamApi(const SOAPairedReads& paired_reads_);
+    explicit BamApi(const AOSPairedReads& paired_reads);
+    explicit BamApi(const SOAPairedReads& paired_reads);
 
     // each solver should set it for itself
     void set_amplicon_behaviour(AmpliconBehaviour amplicon_behaviour);

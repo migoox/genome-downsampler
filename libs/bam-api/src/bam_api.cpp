@@ -32,10 +32,10 @@ bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamAp
         amplicon_behaviour_ = AmpliconBehaviour::IGNORE;
     }
 }
-bam_api::BamApi::BamApi(const AOSPairedReads& paired_reads_)
-    : aos_paired_reads_{paired_reads_}, is_aos_loaded_(true) {}
-bam_api::BamApi::BamApi(const SOAPairedReads& paired_reads_)
-    : soa_paired_reads_{paired_reads_}, is_soa_loaded_(true) {}
+bam_api::BamApi::BamApi(const AOSPairedReads& paired_reads)
+    : aos_paired_reads_{paired_reads}, is_aos_loaded_(true) {}
+bam_api::BamApi::BamApi(const SOAPairedReads& paired_reads)
+    : soa_paired_reads_{paired_reads}, is_soa_loaded_(true) {}
 
 void bam_api::BamApi::set_min_length_filter(uint32_t min_length) { min_seq_length_ = min_length; }
 
