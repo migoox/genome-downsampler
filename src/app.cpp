@@ -74,6 +74,10 @@ App::App() {
                     "filtered before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
+    app_.add_option("-@,--threads", hts_thread_count_,
+                    "Set thread coun for htslib read/write.")
+        ->check(CLI::PositiveNumber);
+
     app_.add_flag("-v,--verbose", verbose_mode_,
                   "If specified app_ executes with additional logging.");
 }
@@ -94,6 +98,7 @@ int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 void App::Solve() {
     bam_api::BamApiConfigBuilder config_buider;
 
+    config_buider.add_hts_thread_count(hts_thread_count_);
     config_buider.add_min_mapq(min_mapq_);
     config_buider.add_min_seq_length(min_seq_length_);
 

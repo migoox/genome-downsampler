@@ -55,6 +55,9 @@ class BamApi {
     std::filesystem::path input_filepath_;
     uint32_t min_seq_length_ = 0;
     uint32_t min_mapq_ = 0;
+    uint32_t hts_thread_count_ = 1;
+    uint32_t min_imported_mapq_ = UINT32_MAX;
+    uint32_t max_imported_mapq_ = 0;
 
     static std::map<std::string, std::pair<Index, Index>> process_bed_file(
         const std::filesystem::path& filepath);
@@ -64,13 +67,15 @@ class BamApi {
     // Returns number of reads written
     static uint32_t write_bam(const std::filesystem::path& input_filepath,
                               const std::filesystem::path& output_filepath,
-                              std::vector<BAMReadId>& bam_ids);
+                              std::vector<BAMReadId>& bam_ids, uint32_t hts_thread_count);
     void read_bam(const std::filesystem::path& input_filepath, PairedReads& paired_reads);
 
     void set_min_length_filter(uint32_t min_length);
     void set_min_mapq_filter(uint32_t min_mapq);
     void set_amplicon_filter(const std::filesystem::path& bed_filepath,
                              const std::filesystem::path& tsv_filepath = std::filesystem::path());
+
+    void analyse_mapq(const Read& r);
 
     // Filtering helpers
     bool should_be_filtered_out(const Read& r1, const Read& r2);
@@ -79,9 +84,7 @@ class BamApi {
     static bool are_from_single_amplicon(const Read& r1, const Read& r2,
                                          const AmpliconSet& amplicon_set);
 
-    // Grading helpers
-    static void apply_amplicon_inclusion_grading(Read& r1, Read& r2,
-                                                 const AmpliconSet& amplicon_set);
+    void apply_amplicon_inclusion_grading(PairedReads& paired_reads, std::vector<bool>& is_in_single_amplicon) const;
 };
 
 }  // namespace bam_api

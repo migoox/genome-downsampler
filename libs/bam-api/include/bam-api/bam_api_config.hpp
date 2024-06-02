@@ -18,6 +18,7 @@ enum class AmpliconBehaviour {
 struct BamApiConfig {
     std::filesystem::path bed_filepath;
     std::filesystem::path tsv_filepath;
+    uint32_t hts_thread_count = 1;
     uint32_t min_seq_length = 0;
     uint32_t min_mapq = 0;
     AmpliconBehaviour amplicon_behaviour = AmpliconBehaviour::IGNORE;

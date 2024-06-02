@@ -18,6 +18,8 @@ struct AOSPairedReads : PairedReads {
 
     inline void push_back(Read&& read) override;
     inline void push_back(const Read& read) override;
+    ReadQuality get_quality(ReadIndex index) const override;
+    void set_quality(ReadIndex index, ReadQuality quality) override;
     Read get_read_by_index(ReadIndex index) const override;
     ReadIndex get_reads_count() const override;
     inline void reserve(size_t size) override;

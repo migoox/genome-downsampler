@@ -51,7 +51,11 @@ The following flags must be specified for the cuda-dna-downsampler to run:
 
 - `-t`, `--tsv` : **TSV file with primers pairing file path**
   - Should be always used with (-b|--bed) flag. It specifies which primers should be paired to create the amplicon.
-  - Example: `-b /path/to/pairs.tsv`
+  - Example: `-t /path/to/pairs.tsv`
+
+- `-@`, `--threads` : **Number of threads**
+  - Number of threads for compression/decompression during reading/writing .bam files. Default is set to 2.
+  - Example: `-@ 2`
 
 ### Usage Examples
 

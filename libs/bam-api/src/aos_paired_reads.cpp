@@ -10,6 +10,14 @@ void bam_api::AOSPairedReads::push_back(const Read& read) {
     reads.push_back(read);
 }
 
+bam_api::ReadQuality bam_api::AOSPairedReads::get_quality(ReadIndex index) const {
+    return reads[index].quality;
+}
+
+void bam_api::AOSPairedReads::set_quality(ReadIndex index, ReadQuality quality) {
+    reads[index].quality = quality;
+}
+
 bam_api::Read bam_api::AOSPairedReads::get_read_by_index(ReadIndex index) const {
     return reads[index];
 }

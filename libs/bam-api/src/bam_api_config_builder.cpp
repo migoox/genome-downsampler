@@ -20,6 +20,10 @@ void bam_api::BamApiConfigBuilder::add_amplicon_filtering(
     bam_api_config_.tsv_filepath = tsv_filepath;
 }
 
+void bam_api::BamApiConfigBuilder::add_hts_thread_count(uint32_t hts_thread_count) {
+    bam_api_config_.hts_thread_count = hts_thread_count;
+}
+
 const bam_api::BamApiConfig& bam_api::BamApiConfigBuilder::get_config() const {
     return bam_api_config_;
 }

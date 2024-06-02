@@ -17,6 +17,7 @@
 class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
     static constexpr uint32_t kDefaultMinSeqMAPQ = 30;
+    static constexpr uint32_t kDefaultThreadCount = 2;
 
    public:
     App();
@@ -26,6 +27,7 @@ class App {
 
    private:
     CLI::App app_;
+    uint32_t hts_thread_count_ = kDefaultThreadCount;
     uint32_t min_mapq_ = kDefaultMinSeqMAPQ;
     uint32_t min_seq_length_ = kDefaultMinSeqLength;
     bool verbose_mode_ = false;

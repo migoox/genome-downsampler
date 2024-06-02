@@ -20,6 +20,14 @@ void bam_api::SOAPairedReads::push_back(const Read& read) {
     is_first_reads.push_back(read.is_first_read);
 }
 
+bam_api::ReadQuality bam_api::SOAPairedReads::get_quality(ReadIndex index) const {
+    return qualities[index];
+}
+
+void bam_api::SOAPairedReads::set_quality(ReadIndex index, ReadQuality quality) {
+    qualities[index] = quality;
+}
+
 bam_api::Read bam_api::SOAPairedReads::get_read_by_index(ReadIndex index) const {
     return Read(ids[index], start_inds[index], end_inds[index], qualities[index],
                 seq_lengths[index], is_first_reads[index]);

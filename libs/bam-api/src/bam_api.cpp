@@ -3,6 +3,7 @@
 #include <htslib/hts.h>
 #include <htslib/regidx.h>
 #include <htslib/sam.h>
+#include <htslib/thread_pool.h>
 
 #include <algorithm>
 #include <cassert>
@@ -12,16 +13,24 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "bam-api/paired_reads.hpp"
 #include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
+#define RELEASE_TPOOL(X)                  \
+    {                                     \
+        hts_tpool* ptr = (hts_tpool*)(X); \
+        if (ptr) {                        \
+            hts_tpool_destroy(ptr);       \
+        }                                 \
+    }
+
 bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
-    : input_filepath_(input_filepath) {
+    : input_filepath_(input_filepath), hts_thread_count_(config.hts_thread_count) {
     set_min_length_filter(config.min_seq_length);
     set_min_mapq_filter(config.min_mapq);
 
@@ -322,12 +331,28 @@ bool bam_api::BamApi::are_from_single_amplicon(const Read& r1, const Read& r2,
     return amplicon_set.member_includes_both(r1, r2);
 }
 
-void bam_api::BamApi::apply_amplicon_inclusion_grading(Read& r1, Read& r2,
-                                                       const AmpliconSet& amplicon_set) {
-    // TODO(mytkom): think of better grading
-    if (are_from_single_amplicon(r1, r2, amplicon_set)) {
-        r1.quality += kMaxMAPQ;
-        r2.quality += kMaxMAPQ;
+void bam_api::BamApi::apply_amplicon_inclusion_grading(bam_api::PairedReads& paired_reads,
+                                                       std::vector<bool>& is_in_single_amplicon) const {
+    LOG_WITH_LEVEL(logging::DEBUG) << "Grading: min_mapq: " << min_imported_mapq_ << ", max_mapq: " << max_imported_mapq_;
+    if (max_imported_mapq_ > 0 && min_imported_mapq_ < UINT32_MAX) {
+        for (ReadIndex i = 0; i < paired_reads.get_reads_count(); ++i) {
+            ReadQuality quality = paired_reads.get_quality(i);
+            quality -= min_imported_mapq_;
+            if (is_in_single_amplicon[i]) {
+              quality  += max_imported_mapq_ - min_imported_mapq_;
+            }
+            paired_reads.set_quality(i, quality);
+        }
+    }
+}
+
+void bam_api::BamApi::analyse_mapq(const Read& r) {
+    if (r.quality < min_imported_mapq_) {
+        min_imported_mapq_ = r.quality;
+    }
+
+    if (r.quality > max_imported_mapq_) {
+        max_imported_mapq_ = r.quality;
     }
 }
 
@@ -358,15 +383,30 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         std::exit(EXIT_FAILURE);
     }
 
+    htsThreadPool tpool = {NULL, 0};
+    if (hts_thread_count_ > 1) {
+        if (!(tpool.pool = hts_tpool_init(hts_thread_count_))) {
+            hts_log_info("Could not initialize thread pool!");
+        }
+
+        // set threads
+        if (hts_set_thread_pool(infile, &tpool) < 0) {
+            LOG_WITH_LEVEL(logging::ERROR) << "Cannot set threads for writing " << input_filepath;
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
         LOG_WITH_LEVEL(logging::ERROR) << "Failed to read header from file!";
         sam_close(infile);
+        RELEASE_TPOOL(tpool.pool);
         std::exit(EXIT_FAILURE);
     }
 
     std::vector<bool> is_accepted;
+    std::vector<bool> is_in_single_amplicon;
 
     // Reserve memory for reads if index is present
     hts_idx_t* idx = sam_index_load(infile, input_filepath.c_str());
@@ -375,6 +415,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         hts_idx_get_stat(idx, 0, &mapped_seq_c, &unmapped_seq_c);
         paired_reads.reserve(mapped_seq_c);
         is_accepted.reserve(mapped_seq_c);
+        is_in_single_amplicon.reserve(mapped_seq_c);
         hts_idx_destroy(idx);
     }
 
@@ -401,7 +442,15 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             }
 
             if (amplicon_behaviour_ == AmpliconBehaviour::GRADE) {
-                apply_amplicon_inclusion_grading(r1, r2, amplicon_set_);
+                analyse_mapq(r1);
+                analyse_mapq(r2);
+                if (are_from_single_amplicon(r1, r2, amplicon_set_)) {
+                    is_in_single_amplicon.push_back(true);
+                    is_in_single_amplicon.push_back(true);
+                } else {
+                    is_in_single_amplicon.push_back(false);
+                    is_in_single_amplicon.push_back(false);
+                }
             }
 
             if (r2.is_first_read) {
@@ -428,8 +477,11 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         }
     }
 
-    assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
-           is_accepted.size());
+    assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) == is_accepted.size());
+
+    if (amplicon_behaviour_ == AmpliconBehaviour::GRADE) {
+        apply_amplicon_inclusion_grading(paired_reads, is_in_single_amplicon);
+    }
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::ERROR)
@@ -440,6 +492,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     sam_hdr_destroy(in_samhdr);
     sam_close(infile);
     bam_destroy1(bamdata);
+    RELEASE_TPOOL(tpool.pool);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -455,19 +508,19 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
 
 uint32_t bam_api::BamApi::write_paired_reads(const std::filesystem::path& output_filepath,
                                              std::vector<ReadIndex>& active_ids) const {
-    LOG_WITH_LEVEL(logging::INFO) << "Writing solution of size " << active_ids.size()
-                                  << " reads " << output_filepath.filename() << "...";
+    LOG_WITH_LEVEL(logging::INFO) << "Writing solution of size " << active_ids.size() << " reads "
+                                  << output_filepath.filename() << "...";
 
     const PairedReads& paired_reads = get_paired_reads();
 
     std::vector<BAMReadId> active_bam_ids;
     active_bam_ids.reserve(active_ids.size());
 
-    for(const auto& id : active_ids) {
+    for (const auto& id : active_ids) {
         active_bam_ids.push_back(paired_reads.get_read_by_index(id).bam_id);
     }
 
-    return write_bam(input_filepath_, output_filepath, active_bam_ids);
+    return write_bam(input_filepath_, output_filepath, active_bam_ids, hts_thread_count_);
 }
 
 uint32_t bam_api::BamApi::write_bam_api_filtered_out_reads(
@@ -475,12 +528,12 @@ uint32_t bam_api::BamApi::write_bam_api_filtered_out_reads(
     LOG_WITH_LEVEL(logging::INFO) << "Writing " << filtered_out_reads_.size()
                                   << " preprocessing filtered out reads to "
                                   << output_filepath.filename() << "...";
-    return write_bam(input_filepath_, output_filepath, filtered_out_reads_);
+    return write_bam(input_filepath_, output_filepath, filtered_out_reads_, hts_thread_count_);
 }
 
 uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
                                     const std::filesystem::path& output_filepath,
-                                    std::vector<BAMReadId>& bam_ids) {
+                                    std::vector<BAMReadId>& bam_ids, uint32_t hts_thread_count) {
     LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: writing " << bam_ids.size() << " reads to "
                                    << output_filepath << " on the basis of " << input_filepath;
 
@@ -513,15 +566,36 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
         std::exit(EXIT_FAILURE);
     }
 
+    htsThreadPool tpool = {NULL, 0};
+    if (hts_thread_count > 1) {
+        if (!(tpool.pool = hts_tpool_init(hts_thread_count))) {
+            hts_log_info("Could not initialize thread pool!");
+        }
+
+        // set threads
+        if (hts_set_thread_pool(infile, &tpool) < 0) {
+            LOG_WITH_LEVEL(logging::ERROR) << "Cannot set threads for reading " << input_filepath;
+            std::exit(EXIT_FAILURE);
+        }
+
+        if (hts_set_thread_pool(outfile, &tpool) < 0) {
+            LOG_WITH_LEVEL(logging::ERROR) << "Cannot set threads for writing " << output_filepath;
+            RELEASE_TPOOL(tpool.pool);
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
     // read header
     in_samhdr = sam_hdr_read(infile);
     if (!in_samhdr) {
         LOG_WITH_LEVEL(logging::ERROR) << "Failed to read header from file!";
+        RELEASE_TPOOL(tpool.pool);
         std::exit(EXIT_FAILURE);
     }
 
     if (sam_hdr_write(outfile, in_samhdr) < 0) {
         LOG_WITH_LEVEL(logging::ERROR) << "Can't write header to bam file: " << output_filepath;
+        RELEASE_TPOOL(tpool.pool);
         std::exit(EXIT_FAILURE);
     }
 
@@ -536,6 +610,7 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
             if (sam_write1(outfile, in_samhdr, bamdata) < 0) {
                 LOG_WITH_LEVEL(logging::ERROR)
                     << "Can't write line to bam file: " << output_filepath;
+                RELEASE_TPOOL(tpool.pool);
                 std::exit(EXIT_FAILURE);
             }
 
@@ -546,9 +621,12 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
         id++;
     }
 
-    if (current_read_i != bam_ids.end() && ret_r >= 0)
+    if (current_read_i != bam_ids.end() && ret_r >= 0) {
         LOG_WITH_LEVEL(logging::ERROR)
             << "Failed to read bam file (sam_read1 error code:" << ret_r << ")";
+        RELEASE_TPOOL(tpool.pool);
+        std::exit(EXIT_FAILURE);
+    }
 
     // cleanup
     if (in_samhdr) {
@@ -563,6 +641,8 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
     if (bamdata) {
         bam_destroy1(bamdata);
     }
+
+    RELEASE_TPOOL(tpool.pool);
 
     auto end = std::chrono::high_resolution_clock::now();
 

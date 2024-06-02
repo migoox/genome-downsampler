@@ -13,6 +13,8 @@ struct PairedReads {
     virtual void push_back(Read&& read) = 0;
     virtual void push_back(const Read& read) = 0;
     virtual Read get_read_by_index(ReadIndex index) const = 0;
+    virtual ReadQuality get_quality(ReadIndex index) const = 0;
+    virtual void set_quality(ReadIndex index, ReadQuality quality) = 0;
     virtual ReadIndex get_reads_count() const = 0;
     virtual void reserve(size_t size) = 0;
     virtual ~PairedReads() = default;
