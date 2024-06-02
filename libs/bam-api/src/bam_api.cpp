@@ -83,6 +83,8 @@ void bam_api::BamApi::set_amplicon_behaviour(AmpliconBehaviour amplicon_behaviou
 
 std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi::process_bed_file(
     const std::filesystem::path& filepath) {
+    LOG_WITH_LEVEL(logging::INFO) << "Reading " << filepath.filename() << " file...";
+
     std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> ret;
 
     std::ifstream file(filepath);
@@ -134,6 +136,8 @@ std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi
 
 std::vector<std::pair<std::string, std::string>> bam_api::BamApi::process_tsv_file(
     const std::filesystem::path& filepath) {
+    LOG_WITH_LEVEL(logging::INFO) << "Reading " << filepath.filename() << " file...";
+
     std::vector<std::pair<std::string, std::string>> ret;
 
     std::ifstream file(filepath);
@@ -217,6 +221,9 @@ const std::vector<bam_api::BAMReadId>& bam_api::BamApi::get_filtered_out_reads()
 
 std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
     const std::vector<BAMReadId>& bam_ids) const {
+    LOG_WITH_LEVEL(logging::INFO) << "Finding paired reads for solution...";
+    LOG_WITH_LEVEL(logging::DEBUG) << "Unpaired solution have " << bam_ids.size() << " reads";
+
     std::vector<BAMReadId> paired_bam_ids;
     paired_bam_ids.reserve(bam_ids.size());
 
@@ -235,6 +242,8 @@ std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
             read_mapped[pair_bam_id.value()] = true;
         }
     }
+
+    LOG_WITH_LEVEL(logging::DEBUG) << "Paired solution have " << paired_bam_ids.size() << " reads";
 
     return paired_bam_ids;
 }
@@ -309,6 +318,8 @@ void bam_api::BamApi::apply_amplicon_inclusion_grading(Read& r1, Read& r2,
 
 void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
                                PairedReads& paired_reads) {
+    LOG_WITH_LEVEL(logging::INFO) << "Reading " << input_filepath.filename() <<  " input file...";
+
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
     int ret_r = 0;
@@ -419,11 +430,13 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
 
 uint32_t bam_api::BamApi::write_paired_reads(const std::filesystem::path& output_filepath,
                                              std::vector<BAMReadId>& active_bam_ids) const {
+    LOG_WITH_LEVEL(logging::INFO) << "Exporting solution of size " << active_bam_ids.size() << " reads...";
     return write_bam(input_filepath_, output_filepath, active_bam_ids);
 }
 
 uint32_t bam_api::BamApi::write_bam_api_filtered_out_reads(
     const std::filesystem::path& output_filepath) {
+    LOG_WITH_LEVEL(logging::INFO) << "Exporting " << filtered_out_reads_.size() << " preprocessing filtered out reads...";
     return write_bam(input_filepath_, output_filepath, filtered_out_reads_);
 }
 
