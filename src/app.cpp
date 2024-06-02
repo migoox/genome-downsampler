@@ -99,9 +99,11 @@ void App::Solve() {
 
     if (!bed_path_.empty()) {
         if (solver_->uses_quality_of_reads()) {
-            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::GRADE, bed_path_, tsv_path_);
+            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::GRADE, bed_path_,
+                                                 tsv_path_);
         } else {
-            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::FILTER, bed_path_, tsv_path_);
+            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::FILTER, bed_path_,
+                                                 tsv_path_);
         }
     }
 
@@ -112,7 +114,6 @@ void App::Solve() {
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     LOG_WITH_LEVEL(logging::DEBUG) << "solve took " << elapsed.count() << " seconds";
-
 
     std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
     bam_api.write_paired_reads(output_file_path_, paired_solution);
