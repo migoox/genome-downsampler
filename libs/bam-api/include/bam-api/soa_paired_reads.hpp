@@ -29,7 +29,7 @@ struct SOAPairedReads : PairedReads {
     ReadIndex get_reads_count() const override;
     inline void reserve(size_t size) override;
     void clear();
-    SOAPairedReads& operator=(const AOSPairedReads& aos);
+    SOAPairedReads& from(const AOSPairedReads& aos);
 };
 
 }  // namespace bam_api

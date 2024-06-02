@@ -26,7 +26,7 @@ void bam_api::AOSPairedReads::clear() {
     reads.clear();
 }
 
-bam_api::AOSPairedReads& bam_api::AOSPairedReads::operator=(const SOAPairedReads& soa) {
+bam_api::AOSPairedReads& bam_api::AOSPairedReads::from(const SOAPairedReads& soa) {
     this->reserve(soa.get_reads_count());
     this->clear();
 

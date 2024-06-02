@@ -171,7 +171,7 @@ const bam_api::AOSPairedReads& bam_api::BamApi::get_paired_reads_aos() {
     }
 
     if (is_soa_loaded_) {
-        aos_paired_reads_ = soa_paired_reads_;
+        aos_paired_reads_.from(soa_paired_reads_);
         is_aos_loaded_ = true;
         return aos_paired_reads_;
     }
@@ -194,7 +194,7 @@ const bam_api::SOAPairedReads& bam_api::BamApi::get_paired_reads_soa() {
     }
 
     if (is_aos_loaded_) {
-        soa_paired_reads_ = aos_paired_reads_;
+        soa_paired_reads_.from(aos_paired_reads_);
         is_soa_loaded_ = true;
         return soa_paired_reads_;
     }

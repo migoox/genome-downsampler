@@ -45,7 +45,7 @@ void bam_api::SOAPairedReads::clear() {
     is_first_reads.clear();
 }
 
-bam_api::SOAPairedReads& bam_api::SOAPairedReads::operator=(const AOSPairedReads& aos) {
+bam_api::SOAPairedReads& bam_api::SOAPairedReads::from(const AOSPairedReads& aos) {
     this->reserve(aos.get_reads_count());
     this->clear();
 
