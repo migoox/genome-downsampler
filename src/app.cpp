@@ -59,7 +59,7 @@ App::App() {
         ->check(CLI::ExistingFile);
 
     app_.add_option("-p,--preprocessing-out", filtered_out_path_,
-                    ".bam output file for reads, which was filtered out during preprocessing. It "
+                    ".bam output file for reads, which were filtered out during preprocessing. It "
                     "can be useful for debugging.");
 
     app_.add_option("-l,--min-length", min_seq_length_,
@@ -71,10 +71,10 @@ App::App() {
     app_.add_option("-q,--min-mapq", min_mapq_,
                     "Minimal MAPQ value of the sequence. Default is 30. "
                     "Sequences with smaller MAPQ than this integer would be "
-                    "filtered before algorithm execution.")
+                    "filtered out before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
-    app_.add_option("-@,--threads", hts_thread_count_, "Set thread coun for htslib read/write.")
+    app_.add_option("-@,--threads", hts_thread_count_, "Set thread count for htslib read/write.")
         ->check(CLI::PositiveNumber);
 
     app_.add_flag("-v,--verbose", verbose_mode_,
