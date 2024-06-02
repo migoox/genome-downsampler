@@ -1,9 +1,6 @@
 #include "../include/reads_gen.hpp"
 
-#include <iostream>
 #include <random>
-
-#include "bam-api/paired_reads.hpp"
 
 bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
                                               bam_api::ReadIndex pairs_count,

@@ -1,4 +1,5 @@
-#include "bam-api/paired_reads.hpp"
+#include "bam-api/soa_paired_reads.hpp"
+#include "bam-api/aos_paired_reads.hpp"
 
 // SOAPairedReads methods
 void bam_api::SOAPairedReads::push_back(Read&& read) {

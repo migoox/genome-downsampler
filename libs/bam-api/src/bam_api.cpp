@@ -16,8 +16,6 @@
 #include <string>
 #include <vector>
 
-#include "bam-api/paired_reads.hpp"
-#include "bam-api/amplicons.hpp"
 #include "logging/log.hpp"
 
 bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)

@@ -7,8 +7,10 @@
 #include <utility>
 #include <vector>
 
-#include "bam-api/amplicons.hpp"
+#include "bam-api/amplicon_set.hpp"
 #include "bam-api/paired_reads.hpp"
+#include "bam-api/aos_paired_reads.hpp"
+#include "bam-api/soa_paired_reads.hpp"
 
 namespace bam_api {
 
