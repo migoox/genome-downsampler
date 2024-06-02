@@ -33,7 +33,6 @@ class App {
     std::shared_ptr<qmcp::Solver> solver_;
     std::filesystem::path input_file_path_;
     std::filesystem::path output_file_path_;
-    std::filesystem::path csv_historical_runs_file_path_;
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
         {"test", std::make_shared<qmcp::TestSolver>()},
         {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},

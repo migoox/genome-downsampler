@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/paired_reads.hpp"
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 
@@ -59,9 +58,11 @@ App::App() {
                     "filtering or prioritizing pairs of sequences.")
         ->check(CLI::ExistingFile);
 
-    app_.add_option("-c,--csv-history", csv_historical_runs_file_path_,
-                    ".csv historical runs data file path. If it is not "
-                    "specified, no historical data would be saved!");
+    app_.add_option("-t,--tsv", bam_api_config_.tsv_filepath,
+                    ".tsv file which describes which of the (must be specified with this option) "
+                    ".bed amplicon bounds should be paired together creating amplicon. used in "
+                    "filtering or prioritizing pairs of sequences.")
+        ->check(CLI::ExistingFile);
 
     app_.add_option("-l,--min-length", bam_api_config_.min_seq_length,
                     "Minimal sequence length. Default is 90. Sequences "
@@ -95,25 +96,27 @@ int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 // TODO(mytkom): Add DEBUG chrono logging and other informational logs, add flag for filtered_out
 // reads
 void App::Solve() {
-    if (solver_->uses_quality_of_reads()) {
-        bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::GRADE;
-    } else {
-        bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::FILTER;
+    if (!bam_api_config_.bed_filepath.empty()) {
+        if (solver_->uses_quality_of_reads()) {
+            bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::GRADE;
+        } else {
+            bam_api_config_.amplicon_behaviour = bam_api::AmpliconBehaviour::FILTER;
+        }
     }
 
     bam_api::BamApi bam_api(input_file_path_, bam_api_config_);
 
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
-    LOG_WITH_LEVEL(logging::DEBUG)
-        << "APP: pairs_read: " << bam_api.get_paired_reads().get_reads_count() << " sequences";
-    LOG_WITH_LEVEL(logging::DEBUG) << "APP: solution have: " << solution->size() << " sequences";
+    LOG_WITH_LEVEL(logging::DEBUG) << "App: solution have: " << solution->size() << " sequences";
 
     std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
     LOG_WITH_LEVEL(logging::DEBUG)
-        << "APP: paired_solution have: " << paired_solution.size() << " sequences";
+        << "App: paired_solution have: " << paired_solution.size() << " sequences";
+
     bam_api.write_paired_reads(output_file_path_, paired_solution);
 
     std::filesystem::path filtered_out_filepath = output_file_path_;
     filtered_out_filepath.replace_filename("filtered_out_sequences.bam");
     bam_api.write_bam_api_filtered_out_reads(filtered_out_filepath);
 }
+
