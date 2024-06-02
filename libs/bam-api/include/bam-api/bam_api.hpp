@@ -11,6 +11,7 @@
 #include "bam-api/amplicon_set.hpp"
 #include "bam-api/paired_reads.hpp"
 #include "bam-api/aos_paired_reads.hpp"
+#include "bam-api/read.hpp"
 #include "bam-api/soa_paired_reads.hpp"
 
 namespace bam_api {
@@ -32,16 +33,16 @@ class BamApi {
     const SOAPairedReads& get_paired_reads_soa();
     const PairedReads& get_paired_reads() const;
     const std::vector<BAMReadId>& get_filtered_out_reads() const;
-    std::vector<BAMReadId> find_pairs(const std::vector<BAMReadId>& bam_ids) const;
+    std::vector<ReadIndex> find_pairs(const std::vector<ReadIndex>& ids) const;
 
-    // Returns number of reads written
+    // returns number of reads written
     uint32_t write_paired_reads(const std::filesystem::path& output_filepath,
-                                std::vector<BAMReadId>& active_bam_ids) const;
+                                std::vector<ReadIndex>& active_ids) const;
     uint32_t write_bam_api_filtered_out_reads(const std::filesystem::path& output_filepath);
 
     // testing purposes
     std::vector<uint32_t> find_input_cover();
-    std::vector<uint32_t> find_filtered_cover(const std::vector<BAMReadId>& active_bam_ids);
+    std::vector<uint32_t> find_filtered_cover(const std::vector<ReadIndex>& active_ids);
 
    private:
     SOAPairedReads soa_paired_reads_;
@@ -70,10 +71,6 @@ class BamApi {
     void set_min_mapq_filter(uint32_t min_mapq);
     void set_amplicon_filter(const std::filesystem::path& bed_filepath,
                              const std::filesystem::path& tsv_filepath = std::filesystem::path());
-
-    // Paired reads converters
-    AOSPairedReads to_aos(const SOAPairedReads& soa_paired_reads);
-    SOAPairedReads to_soa(const AOSPairedReads& soa_paired_reads);
 
     // Filtering helpers
     bool should_be_filtered_out(const Read& r1, const Read& r2);

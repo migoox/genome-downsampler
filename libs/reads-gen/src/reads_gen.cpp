@@ -43,8 +43,6 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
 
         result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
         result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
-        result.bam_id_to_read_index.push_back(i);
-        result.bam_id_to_read_index.push_back(i + 1);
     }
 
     return result;
@@ -75,8 +73,6 @@ bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
 
         result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
         result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
-        result.bam_id_to_read_index.push_back(i);
-        result.bam_id_to_read_index.push_back(i + 1);
     }
 
     return result;

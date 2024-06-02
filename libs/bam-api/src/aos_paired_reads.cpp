@@ -35,8 +35,6 @@ bam_api::AOSPairedReads& bam_api::AOSPairedReads::from(const SOAPairedReads& soa
     }
 
     this->ref_genome_length = soa.ref_genome_length;
-    this->read_pair_map = soa.read_pair_map;
-    this->bam_id_to_read_index = soa.bam_id_to_read_index;
 
     return *this;
 }

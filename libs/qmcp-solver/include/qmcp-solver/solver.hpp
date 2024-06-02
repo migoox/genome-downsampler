@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/paired_reads.hpp"
+#include "bam-api/read.hpp"
 
 namespace qmcp {
 
-typedef std::vector<bam_api::BAMReadId> Solution;
+typedef std::vector<bam_api::ReadIndex> Solution;
 
 class Solver {
    public:

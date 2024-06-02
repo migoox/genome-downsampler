@@ -378,7 +378,7 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
         Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
 
         if (cap == 0) {
-            output->push_back(input_sequence_.ids[i]);
+            output->push_back(i);
         }
     }
 

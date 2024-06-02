@@ -90,8 +90,7 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::obtain_sequence(
 
     for (bam_api::ReadIndex read_index = 0; read_index < sequence.reads.size(); ++read_index) {
         if (max_flow.Flow(read_index) > 0) {
-            bam_api::BAMReadId read_id = sequence.reads[read_index].bam_id;
-            reduced_reads->push_back(read_id);
+            reduced_reads->push_back(read_index);
         }
     }
 

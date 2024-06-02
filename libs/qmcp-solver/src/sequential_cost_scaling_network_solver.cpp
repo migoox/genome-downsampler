@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/paired_reads.hpp"
+#include "bam-api/read.hpp"
 #include "qmcp-solver/solver.hpp"
 
 std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
@@ -91,7 +91,7 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::obtain
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
     auto reduced_reads = std::make_unique<Solution>();
 
-    for (std::size_t read_id = 0; read_id < sequence.reads.size(); ++read_id) {
+    for (bam_api::ReadIndex read_id = 0; read_id < sequence.reads.size(); ++read_id) {
         if (min_cost_flow.Flow(read_id) > 0) {
             reduced_reads->push_back(read_id);
         }

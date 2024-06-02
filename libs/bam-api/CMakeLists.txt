@@ -1,7 +1,7 @@
 add_library(bam-api STATIC
   src/bam_api.cpp
   src/read.cpp
-  src/paired_reads.cpp src/aos_paired_reads.cpp src/soa_paired_reads.cpp
+  src/aos_paired_reads.cpp src/soa_paired_reads.cpp
   src/amplicon.cpp src/amplicon_set.cpp
   src/bam_api_config_builder.cpp
 )

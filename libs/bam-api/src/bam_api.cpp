@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
 bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
@@ -226,29 +227,30 @@ const std::vector<bam_api::BAMReadId>& bam_api::BamApi::get_filtered_out_reads()
     return filtered_out_reads_;
 }
 
-std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
-    const std::vector<BAMReadId>& bam_ids) const {
+std::vector<bam_api::ReadIndex> bam_api::BamApi::find_pairs(
+    const std::vector<ReadIndex>& ids) const {
     LOG_WITH_LEVEL(logging::INFO) << "Finding paired reads for solution...";
-    LOG_WITH_LEVEL(logging::DEBUG) << "Unpaired solution have " << bam_ids.size() << " reads";
+    LOG_WITH_LEVEL(logging::DEBUG) << "Unpaired solution have " << ids.size() << " reads";
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::vector<BAMReadId> paired_bam_ids;
-    paired_bam_ids.reserve(bam_ids.size());
-
     const PairedReads& paired_reads = get_paired_reads();
-    std::vector<bool> read_mapped(paired_reads.bam_id_to_read_index.size(), false);
 
-    for (const BAMReadId& bam_id : bam_ids) {
-        if (!read_mapped[bam_id]) {
-            paired_bam_ids.push_back(bam_id);
-            read_mapped[bam_id] = true;
+    std::vector<ReadIndex> paired_ids;
+    paired_ids.reserve(paired_reads.get_reads_count());
+
+    std::vector<bool> read_mapped(paired_reads.get_reads_count(), false);
+
+    for (const BAMReadId& id : ids) {
+        if (!read_mapped[id]) {
+            paired_ids.push_back(id);
+            read_mapped[id] = true;
         }
 
-        std::optional<BAMReadId> pair_bam_id = paired_reads.read_pair_map[bam_id];
-        if (pair_bam_id && !read_mapped[pair_bam_id.value()]) {
-            paired_bam_ids.push_back(pair_bam_id.value());
-            read_mapped[pair_bam_id.value()] = true;
+        ReadIndex pair_id = paired_reads.get_read_by_index(id).is_first_read ? id + 1 : id - 1;
+        if (!read_mapped[pair_id]) {
+            paired_ids.push_back(pair_id);
+            read_mapped[pair_id] = true;
         }
     }
 
@@ -256,9 +258,9 @@ std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
     std::chrono::duration<double> elapsed = end - start;
     LOG_WITH_LEVEL(logging::DEBUG) << "find_pairs took " << elapsed.count() << " seconds";
 
-    LOG_WITH_LEVEL(logging::DEBUG) << "Paired solution have " << paired_bam_ids.size() << " reads";
+    LOG_WITH_LEVEL(logging::DEBUG) << "Paired solution have " << paired_ids.size() << " reads";
 
-    return paired_bam_ids;
+    return paired_ids;
 }
 
 std::vector<uint32_t> bam_api::BamApi::find_input_cover() {
@@ -275,13 +277,13 @@ std::vector<uint32_t> bam_api::BamApi::find_input_cover() {
 }
 
 std::vector<uint32_t> bam_api::BamApi::find_filtered_cover(
-    const std::vector<bam_api::BAMReadId>& bam_ids) {
+    const std::vector<bam_api::ReadIndex>& ids) {
     const bam_api::PairedReads& paired_reads = get_paired_reads();
     std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
 
-    for (const auto bam_id : bam_ids) {
-        const auto& read = paired_reads.get_read_by_bam_id(bam_id);
-        for (bam_api::Index i = read->start_ind; i <= read->end_ind; ++i) {
+    for (const auto id : ids) {
+        const auto& read = paired_reads.get_read_by_index(id);
+        for (bam_api::Index i = read.start_ind; i <= read.end_ind; ++i) {
             result[i]++;
         }
     }
@@ -364,12 +366,15 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         std::exit(EXIT_FAILURE);
     }
 
+    std::vector<bool> is_accepted;
+
     // Reserve memory for reads if index is present
     hts_idx_t* idx = sam_index_load(infile, input_filepath.c_str());
     if (idx) {
         uint64_t mapped_seq_c, unmapped_seq_c;
         hts_idx_get_stat(idx, 0, &mapped_seq_c, &unmapped_seq_c);
         paired_reads.reserve(mapped_seq_c);
+        is_accepted.reserve(mapped_seq_c);
         hts_idx_destroy(idx);
     }
 
@@ -383,9 +388,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         Read current_read(id, bamdata);
         current_qname = bam_get_qname(bamdata);
 
-        // You cannot resize it before because bam index can be not available for input
-        paired_reads.read_pair_map.push_back(std::nullopt);
-        paired_reads.bam_id_to_read_index.push_back(std::nullopt);
+        is_accepted.push_back(false);
 
         auto read_one_iterator = read_map.find(current_qname);
         if (read_one_iterator != read_map.end()) {
@@ -405,15 +408,11 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
                 std::swap(r1, r2);
             }
 
-            ReadIndex first_read_index = paired_reads.get_reads_count();
             paired_reads.push_back(r1);
             paired_reads.push_back(r2);
 
-            paired_reads.bam_id_to_read_index[r1.bam_id] = first_read_index;
-            paired_reads.bam_id_to_read_index[r2.bam_id] = first_read_index + 1;
-
-            paired_reads.read_pair_map[r1.bam_id] = r2.bam_id;
-            paired_reads.read_pair_map[r2.bam_id] = r1.bam_id;
+            is_accepted[r1.bam_id] = true;
+            is_accepted[r2.bam_id] = true;
         } else {
             read_map.insert({current_qname, current_read});
         }
@@ -421,18 +420,16 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         id++;
     }
 
-    assert(paired_reads.bam_id_to_read_index.size() == paired_reads.read_pair_map.size());
-    assert(paired_reads.bam_id_to_read_index.size() == id);
+    assert(is_accepted.size() == id);
 
-    for (BAMReadId bam_id = 0; bam_id < paired_reads.bam_id_to_read_index.size(); ++bam_id) {
-        // no mapping between bam_id and read_index - this sequence was filtered out
-        if (!paired_reads.bam_id_to_read_index[bam_id]) {
+    for (BAMReadId bam_id = 0; bam_id < is_accepted.size(); ++bam_id) {
+        if (!is_accepted[bam_id]) {
             filtered_out_reads_.push_back(bam_id);
         }
     }
 
     assert((paired_reads.get_reads_count() + filtered_out_reads_.size()) ==
-           paired_reads.read_pair_map.size());
+           is_accepted.size());
 
     if (ret_r >= 0) {
         LOG_WITH_LEVEL(logging::ERROR)
@@ -450,16 +447,26 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     LOG_WITH_LEVEL(logging::DEBUG)
         << "BamApi: " << paired_reads.get_reads_count() << " reads have been imported";
     LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: " << filtered_out_reads_.size()
-                                   << " reads have filtered out during preprocessing";
+                                   << " reads have been filtered out during preprocessing";
 
     std::chrono::duration<double> elapsed = end - start;
     LOG_WITH_LEVEL(logging::DEBUG) << "read_bam took " << elapsed.count() << " seconds";
 }
 
 uint32_t bam_api::BamApi::write_paired_reads(const std::filesystem::path& output_filepath,
-                                             std::vector<BAMReadId>& active_bam_ids) const {
-    LOG_WITH_LEVEL(logging::INFO) << "Writing solution of size " << active_bam_ids.size()
+                                             std::vector<ReadIndex>& active_ids) const {
+    LOG_WITH_LEVEL(logging::INFO) << "Writing solution of size " << active_ids.size()
                                   << " reads " << output_filepath.filename() << "...";
+
+    const PairedReads& paired_reads = get_paired_reads();
+
+    std::vector<BAMReadId> active_bam_ids;
+    active_bam_ids.reserve(active_ids.size());
+
+    for(const auto& id : active_ids) {
+        active_bam_ids.push_back(paired_reads.get_read_by_index(id).bam_id);
+    }
+
     return write_bam(input_filepath_, output_filepath, active_bam_ids);
 }
 
