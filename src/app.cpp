@@ -90,7 +90,6 @@ void App::Parse(int argc, char** argv) {
 
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
-// TODO(mytkom): Add DEBUG chrono logging and other informational logs
 void App::Solve() {
     bam_api::BamApiConfigBuilder config_buider;
 

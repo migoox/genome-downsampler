@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -41,6 +42,8 @@ void bam_api::BamApi::set_min_mapq_filter(uint32_t min_mapq) { min_mapq_ = min_m
 
 void bam_api::BamApi::set_amplicon_filter(const std::filesystem::path& bed_filepath,
                                           const std::filesystem::path& tsv_filepath) {
+    auto start = std::chrono::high_resolution_clock::now();
+
     std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> primer_map;
     primer_map = process_bed_file(bed_filepath);
 
@@ -75,6 +78,10 @@ void bam_api::BamApi::set_amplicon_filter(const std::filesystem::path& bed_filep
             it++;
         }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "set_amplicon_filter took " << elapsed.count() << " seconds";
 }
 
 void bam_api::BamApi::set_amplicon_behaviour(AmpliconBehaviour amplicon_behaviour) {
@@ -121,8 +128,6 @@ std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi
         }
 
         if (!chrom.empty() && !start.empty() && !end.empty() && !name.empty()) {
-            LOG_WITH_LEVEL(logging::DEBUG) << "Chromosome: " << chrom << ", Start: " << start
-                                           << ", End: " << end << ", Name: " << name;
             ret.emplace(name, std::pair(start_idx, end_idx));
         } else {
             LOG_WITH_LEVEL(logging::ERROR) << "Invalid BED line: " << line;
@@ -130,6 +135,8 @@ std::map<std::string, std::pair<bam_api::Index, bam_api::Index>> bam_api::BamApi
     }
 
     file.close();
+
+    LOG_WITH_LEVEL(logging::DEBUG) << ret.size() << " primers have been read";
 
     return ret;
 }
@@ -156,8 +163,6 @@ std::vector<std::pair<std::string, std::string>> bam_api::BamApi::process_tsv_fi
         std::getline(ss, right, '\t');
 
         if (!left.empty() && !right.empty()) {
-            LOG_WITH_LEVEL(logging::DEBUG)
-                << "Left primer: " << left << ", Right primer: " << right;
             ret.push_back(std::pair(left, right));
         } else {
             LOG_WITH_LEVEL(logging::ERROR) << "Invalid TSV line: " << line;
@@ -165,6 +170,8 @@ std::vector<std::pair<std::string, std::string>> bam_api::BamApi::process_tsv_fi
     }
 
     file.close();
+
+    LOG_WITH_LEVEL(logging::DEBUG) << ret.size() << " pairs of primers have been read";
 
     return ret;
 }
@@ -224,6 +231,8 @@ std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
     LOG_WITH_LEVEL(logging::INFO) << "Finding paired reads for solution...";
     LOG_WITH_LEVEL(logging::DEBUG) << "Unpaired solution have " << bam_ids.size() << " reads";
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     std::vector<BAMReadId> paired_bam_ids;
     paired_bam_ids.reserve(bam_ids.size());
 
@@ -242,6 +251,10 @@ std::vector<bam_api::BAMReadId> bam_api::BamApi::find_pairs(
             read_mapped[pair_bam_id.value()] = true;
         }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "find_pairs took " << elapsed.count() << " seconds";
 
     LOG_WITH_LEVEL(logging::DEBUG) << "Paired solution have " << paired_bam_ids.size() << " reads";
 
@@ -318,7 +331,11 @@ void bam_api::BamApi::apply_amplicon_inclusion_grading(Read& r1, Read& r2,
 
 void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
                                PairedReads& paired_reads) {
-    LOG_WITH_LEVEL(logging::INFO) << "Reading " << input_filepath.filename() <<  " input file...";
+    LOG_WITH_LEVEL(logging::INFO) << "Reading " << input_filepath.filename() << " input file...";
+
+    LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: reading " << input_filepath;
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
@@ -426,17 +443,31 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
     sam_hdr_destroy(in_samhdr);
     sam_close(infile);
     bam_destroy1(bamdata);
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: " << id << " reads have been read";
+    LOG_WITH_LEVEL(logging::DEBUG)
+        << "BamApi: " << paired_reads.get_reads_count() << " reads have been imported";
+    LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: " << filtered_out_reads_.size()
+                                   << " reads have filtered out during preprocessing";
+
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "read_bam took " << elapsed.count() << " seconds";
 }
 
 uint32_t bam_api::BamApi::write_paired_reads(const std::filesystem::path& output_filepath,
                                              std::vector<BAMReadId>& active_bam_ids) const {
-    LOG_WITH_LEVEL(logging::INFO) << "Exporting solution of size " << active_bam_ids.size() << " reads...";
+    LOG_WITH_LEVEL(logging::INFO) << "Writing solution of size " << active_bam_ids.size()
+                                  << " reads " << output_filepath.filename() << "...";
     return write_bam(input_filepath_, output_filepath, active_bam_ids);
 }
 
 uint32_t bam_api::BamApi::write_bam_api_filtered_out_reads(
     const std::filesystem::path& output_filepath) {
-    LOG_WITH_LEVEL(logging::INFO) << "Exporting " << filtered_out_reads_.size() << " preprocessing filtered out reads...";
+    LOG_WITH_LEVEL(logging::INFO) << "Writing " << filtered_out_reads_.size()
+                                  << " preprocessing filtered out reads to "
+                                  << output_filepath.filename() << "...";
     return write_bam(input_filepath_, output_filepath, filtered_out_reads_);
 }
 
@@ -445,6 +476,8 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
                                     std::vector<BAMReadId>& bam_ids) {
     LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: writing " << bam_ids.size() << " reads to "
                                    << output_filepath << " on the basis of " << input_filepath;
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     sam_hdr_t* in_samhdr = NULL;
     samFile* infile = NULL;
@@ -524,8 +557,13 @@ uint32_t bam_api::BamApi::write_bam(const std::filesystem::path& input_filepath,
         bam_destroy1(bamdata);
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+
     LOG_WITH_LEVEL(logging::DEBUG) << "BamApi: " << reads_written << " reads have been written to "
                                    << output_filepath << " on the basis of " << input_filepath;
+
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "write_bam took " << elapsed.count() << " seconds";
 
     return reads_written;
 }
