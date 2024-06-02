@@ -58,11 +58,9 @@ App::App() {
                     "filtering or prioritizing pairs of sequences.")
         ->check(CLI::ExistingFile);
 
-    app_.add_option("-t,--tsv", bam_api_config_.tsv_filepath,
-                    ".tsv file which describes which of the (must be specified with this option) "
-                    ".bed amplicon bounds should be paired together creating amplicon. used in "
-                    "filtering or prioritizing pairs of sequences.")
-        ->check(CLI::ExistingFile);
+    app_.add_option("-p,--preprocessing-out", filtered_out_path_,
+                    ".bam output file for reads, which was filtered out during preprocessing. It "
+                    "can be useful for debugging.");
 
     app_.add_option("-l,--min-length", bam_api_config_.min_seq_length,
                     "Minimal sequence length. Default is 90. Sequences "
@@ -115,8 +113,7 @@ void App::Solve() {
 
     bam_api.write_paired_reads(output_file_path_, paired_solution);
 
-    std::filesystem::path filtered_out_filepath = output_file_path_;
-    filtered_out_filepath.replace_filename("filtered_out_sequences.bam");
-    bam_api.write_bam_api_filtered_out_reads(filtered_out_filepath);
+    if (!filtered_out_path_.empty()) {
+        bam_api.write_bam_api_filtered_out_reads(filtered_out_path_);
+    }
 }
-
