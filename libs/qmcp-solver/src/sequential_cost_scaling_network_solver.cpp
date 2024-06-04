@@ -1,5 +1,6 @@
 #include "../include/qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 
+#include <climits>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -9,7 +10,8 @@
 #include "bam-api/read.hpp"
 #include "qmcp-solver/solver.hpp"
 
-std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(
+    uint32_t max_coverage, bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMinCostFlow min_cost_flow;
@@ -21,37 +23,31 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(
     if (status != operations_research::MinCostFlow::OPTIMAL) {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: " << status;
     }
-    
+
     return obtain_sequence(input_sequence_, min_cost_flow);
 }
 
 void qmcp::SequentialCostScalingNetworkSolver::create_network_flow_graph(
     operations_research::SimpleMinCostFlow& min_cost_flow, const bam_api::AOSPairedReads& sequence,
     unsigned int M) {
-    const int capacity_upper_bound_multiplier = 100;
-    // it is safe to say that algorithm wont use more than c_u_b_m * M
-    // flow in one edge.
+    // const int capacity_upper_bound_multiplier = 100;
+    //  it is safe to say that algorithm wont use more than c_u_b_m * M
+    //  flow in one edge.
 
     // create normal edges
-    for (int i = 0; i < sequence.reads.size(); ++i) {
-        int weight =
-            (sequence.reads[i].start_ind - sequence.reads[i].end_ind) * sequence.reads[i].quality;
-        min_cost_flow.AddArcWithCapacityAndUnitCost(sequence.reads[i].start_ind - 1,
-                                                    sequence.reads[i].end_ind, 1, weight);
+    for (const bam_api::Read& read : sequence.reads) {
+        int weight = (read.start_ind - read.end_ind) * read.quality;
+        min_cost_flow.AddArcWithCapacityAndUnitCost(read.start_ind, read.start_ind + 1, 1, weight);
     }
 
     // create backwards edge
     for (int i = 0; i < sequence.ref_genome_length; ++i) {
-        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, M * capacity_upper_bound_multiplier,
-                                                    0);
+        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, INT_MAX, 0);
     }
-
-    min_cost_flow.AddArcWithCapacityAndUnitCost(0, sequence.ref_genome_length,
-                                                M * capacity_upper_bound_multiplier, 0);
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
-    for (int i = 0; i < sequence.ref_genome_length; ++i) {
+    for (int i = 0; i <= sequence.ref_genome_length; ++i) {
         min_cost_flow.SetNodeSupply(i, demand[i]);
     }
 }
@@ -60,8 +56,8 @@ std::vector<int> create_b_function(const bam_api::AOSPairedReads& sequence, unsi
     std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
     for (unsigned int i = 0; i < sequence.reads.size(); ++i) {
-        for (unsigned int j = sequence.reads[i].start_ind; j < sequence.reads[i].end_ind; ++j) {
-            ++b[j];
+        for (unsigned int j = sequence.reads[i].start_ind; j <= sequence.reads[i].end_ind; ++j) {
+            ++b[j + 1];
         }
     }
 
@@ -76,13 +72,12 @@ std::vector<int> qmcp::SequentialCostScalingNetworkSolver::create_demand_functio
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence, M);
 
-    int b_0 = b[0];
-
-    for (int i = 0; i < sequence.ref_genome_length - 1; ++i) {
+    int b_1 = b[1];
+    for (int i = 1; i < sequence.ref_genome_length; ++i) {
         b[i] = b[i] - b[i + 1];
     }
 
-    b[sequence.ref_genome_length] = -b_0;
+    b[0] = -b_1;
 
     return b;
 }
@@ -99,4 +94,3 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::obtain
 
     return reduced_reads;
 }
-
