@@ -24,6 +24,4 @@ void bam_api::BamApiConfigBuilder::add_hts_thread_count(uint32_t hts_thread_coun
     bam_api_config_.hts_thread_count = hts_thread_count;
 }
 
-const bam_api::BamApiConfig& bam_api::BamApiConfigBuilder::get_config() const {
-    return bam_api_config_;
-}
+bam_api::BamApiConfig bam_api::BamApiConfigBuilder::build() const { return bam_api_config_; }

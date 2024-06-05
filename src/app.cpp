@@ -111,7 +111,7 @@ void App::Solve() {
         }
     }
 
-    bam_api::BamApi bam_api(input_file_path_, config_buider.get_config());
+    bam_api::BamApi bam_api(input_file_path_, config_buider.build());
 
     auto start = std::chrono::high_resolution_clock::now();
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
