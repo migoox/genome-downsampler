@@ -1,10 +1,18 @@
 #include "app.hpp"
 
+#include <CLI/App.hpp>
+#include <CLI/Validators.hpp>
+#include <chrono>
+#include <filesystem>
+#include <memory>
+
+#include "bam-api/bam_api.hpp"
+#include "bam-api/bam_api_config.hpp"
+#include "bam-api/bam_api_config_builder.hpp"
 #include "logging/log.hpp"
+#include "qmcp-solver/solver.hpp"
 
 App::App() {
-    FillSolversMap();
-
     app_.add_option("-i,--input", input_file_path_, ".bam input file path. Required option.")
         ->required()
         ->check(CLI::ExistingFile);
@@ -18,9 +26,10 @@ App::App() {
             "-a,--algorithm",
             [this](const std::string& algorithm_name) {
                 if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
-                    solver_ = std::move(solvers_map_[algorithm_name]);
+                    solver_ = solvers_map_[algorithm_name];
                 } else {
-                    std::cerr << "Algorithm not found: " << algorithm_name << std::endl;
+                    LOG_WITH_LEVEL(logging::ERROR)
+                        << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
             "Algorithm to use.")
@@ -36,9 +45,22 @@ App::App() {
                     ".bam output file path. Default is \"output.bam\" in "
                     "input's directory.");
 
-    app_.add_option("-c,--csv-history", csv_historical_runs_file_path_,
-                    ".csv historical runs data file path. If it is not "
-                    "specified, no historical data would be saved!");
+    app_.add_option("-b,--bed", bed_path_,
+                    ".bed amplicon bounds specification. It would be used to filter out or lower "
+                    "the priority "
+                    "of pair of sequences from different amplicons. The behaviour depends on "
+                    "algorithm used.")
+        ->check(CLI::ExistingFile);
+
+    app_.add_option("-t,--tsv", tsv_path_,
+                    ".tsv file which describes which of the (must be specified with this option) "
+                    ".bed amplicon bounds should be paired together creating amplicon. used in "
+                    "filtering or prioritizing pairs of sequences.")
+        ->check(CLI::ExistingFile);
+
+    app_.add_option("-p,--preprocessing-out", filtered_out_path_,
+                    ".bam output file for reads, which were filtered out during preprocessing. It "
+                    "can be useful for debugging.");
 
     app_.add_option("-l,--min-length", min_seq_length_,
                     "Minimal sequence length. Default is 90. Sequences "
@@ -46,11 +68,14 @@ App::App() {
                     "integer would be filtered before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
-    app_.add_option("-q,--min-mapq", min_seq_mapq_,
+    app_.add_option("-q,--min-mapq", min_mapq_,
                     "Minimal MAPQ value of the sequence. Default is 30. "
                     "Sequences with smaller MAPQ than this integer would be "
-                    "filtered before algorithm execution.")
+                    "filtered out before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
+
+    app_.add_option("-@,--threads", hts_thread_count_, "Set thread count for htslib read/write.")
+        ->check(CLI::PositiveNumber);
 
     app_.add_flag("-v,--verbose", verbose_mode_,
                   "If specified app_ executes with additional logging.");
@@ -64,13 +89,40 @@ void App::Parse(int argc, char** argv) {
         output_file_path_.replace_filename("output.bam");
     }
 
-    SET_LOG_LEVEL(verbose_mode_ ? logging::kDebug : logging::kInfo);
+    SET_LOG_LEVEL(verbose_mode_ ? logging::DEBUG : logging::INFO);
 }
 
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
 void App::Solve() {
-    solver_->import_reads(input_file_path_, min_seq_length_, min_seq_mapq_);
-    solver_->solve(max_ref_coverage_);
-    solver_->export_reads(output_file_path_);
+    bam_api::BamApiConfigBuilder config_buider;
+
+    config_buider.add_hts_thread_count(hts_thread_count_);
+    config_buider.add_min_mapq(min_mapq_);
+    config_buider.add_min_seq_length(min_seq_length_);
+
+    if (!bed_path_.empty()) {
+        if (solver_->uses_quality_of_reads()) {
+            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::GRADE, bed_path_,
+                                                 tsv_path_);
+        } else {
+            config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::FILTER, bed_path_,
+                                                 tsv_path_);
+        }
+    }
+
+    bam_api::BamApi bam_api(input_file_path_, config_buider.build());
+
+    auto start = std::chrono::high_resolution_clock::now();
+    std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    LOG_WITH_LEVEL(logging::DEBUG) << "solve took " << elapsed.count() << " seconds";
+
+    std::vector<bam_api::BAMReadId> paired_solution = bam_api.find_pairs(*solution);
+    bam_api.write_paired_reads(output_file_path_, paired_solution);
+
+    if (!filtered_out_path_.empty()) {
+        bam_api.write_bam_api_filtered_out_reads(filtered_out_path_);
+    }
 }

@@ -1,9 +1,6 @@
 #include "../include/reads_gen.hpp"
 
-#include <iostream>
 #include <random>
-
-#include "bam-api/bam_paired_reads.hpp"
 
 bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
                                               bam_api::ReadIndex pairs_count,
@@ -44,10 +41,8 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, false));
-        result.bam_id_to_read_index.push_back(i);
-        result.bam_id_to_read_index.push_back(i + 1);
+        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
+        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
     }
 
     return result;
@@ -76,10 +71,8 @@ bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, false));
-        result.bam_id_to_read_index.push_back(i);
-        result.bam_id_to_read_index.push_back(i + 1);
+        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
+        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
     }
 
     return result;

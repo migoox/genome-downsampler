@@ -1,4 +1,5 @@
-#pragma once
+#ifndef APP_HPP
+#define APP_HPP
 
 #include <CLI/CLI.hpp>
 #include <cstdint>
@@ -15,7 +16,8 @@
 
 class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
-    static constexpr uint32_t kDefaultMinSeqQmap = 30;
+    static constexpr uint32_t kDefaultMinSeqMAPQ = 30;
+    static constexpr uint32_t kDefaultThreadCount = 2;
 
    public:
     App();
@@ -25,24 +27,23 @@ class App {
 
    private:
     CLI::App app_;
-    bool verbose_mode_ = false;
+    uint32_t hts_thread_count_ = kDefaultThreadCount;
+    uint32_t min_mapq_ = kDefaultMinSeqMAPQ;
     uint32_t min_seq_length_ = kDefaultMinSeqLength;
-    uint32_t min_seq_mapq_ = kDefaultMinSeqQmap;
+    bool verbose_mode_ = false;
     uint32_t max_ref_coverage_;
-    std::unique_ptr<qmcp::Solver> solver_;
+    std::shared_ptr<qmcp::Solver> solver_;
     std::filesystem::path input_file_path_;
     std::filesystem::path output_file_path_;
-    std::filesystem::path csv_historical_runs_file_path_;
-    std::map<std::string, std::unique_ptr<qmcp::Solver>> solvers_map_;
-
-    void FillSolversMap() {
-        // To add an algorithm emplace its unique_ptr to the map with
-        // identification name for CLI
-        solvers_map_.emplace("test", std::make_unique<qmcp::TestSolver>());
-        solvers_map_.emplace("sequential-cost-scaling",
-                             std::make_unique<qmcp::SequentialCostScalingNetworkSolver>());
-        solvers_map_.emplace("cuda-max-flow", std::make_unique<qmcp::CudaMaxFlowSolver>());
-        solvers_map_.emplace("sequential-max-flow",
-                             std::make_unique<qmcp::SequentialMaxFlowSolver>());
-    }
+    std::filesystem::path filtered_out_path_;
+    std::filesystem::path bed_path_;
+    std::filesystem::path tsv_path_;
+    std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
+        {"test", std::make_shared<qmcp::TestSolver>()},
+        {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
+        {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
+        {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
+    };
 };
+
+#endif

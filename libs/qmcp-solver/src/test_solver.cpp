@@ -1,35 +1,22 @@
 #include "qmcp-solver/test_solver.hpp"
 
-#include <iostream>
+#include <memory>
 
 #include "bam-api/bam_api.hpp"
-#include "logging/log.hpp"
+#include "bam-api/read.hpp"
+#include "bam-api/soa_paired_reads.hpp"
+#include "qmcp-solver/solver.hpp"
 
-void qmcp::TestSolver::import_reads(const std::filesystem::path& input, uint32_t min_seq_length,
-                                    uint32_t min_seq_mapq) {
-    input_ = input;
-    LOG_WITH_LEVEL(logging::kDebug) << "Import, min_len: " << min_seq_length
-                                    << ", min_mapq: " << min_seq_mapq << ", input: " << input;
+std::unique_ptr<qmcp::Solution> qmcp::TestSolver::solve(uint32_t max_coverage,
+                                                        bam_api::BamApi& bam_api) {
+    const bam_api::SOAPairedReads& paired_reads = bam_api.get_paired_reads_soa();
 
-    paired_reads_ = bam_api::BamApi::read_bam_soa(input, min_seq_length, min_seq_mapq);
+    std::unique_ptr<Solution> solution = std::make_unique<Solution>();
+    solution->reserve(paired_reads.get_reads_count());
 
-    LOG_WITH_LEVEL(logging::kInfo) << paired_reads_.ids.size() << " sequences has been imported!";
-}
+    for (bam_api::ReadIndex i = 0; i < paired_reads.get_reads_count(); ++i) {
+        solution->push_back(i);
+    }
 
-void qmcp::TestSolver::solve(uint32_t max_coverage) {
-    LOG_WITH_LEVEL(logging::kDebug) << "Solve (max_coverage set to " << max_coverage << ")";
-
-    solution_ = paired_reads_.ids;
-
-    LOG_WITH_LEVEL(logging::kInfo) << "Solution have " << solution_.size() << " sequences!";
-}
-
-void qmcp::TestSolver::export_reads(const std::filesystem::path& output) {
-    LOG_WITH_LEVEL(logging::kDebug) << "Output: " << output;
-
-    uint32_t reads_written = 0;
-    reads_written = bam_api::BamApi::write_bam(input_, output, solution_);
-
-    LOG_WITH_LEVEL(logging::kInfo)
-        << reads_written << " sequences has been written to file " << output;
+    return solution;
 }

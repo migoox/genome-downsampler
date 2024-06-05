@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     // test::random_with_hole_test();
     // test::random_zero_coverage_on_both_sides_test();
     // test::bam_file_test(
-    //   "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
+    //     "/home/mytkom/Documents/Cuda/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam");
 
     App app;
 

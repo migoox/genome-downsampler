@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "reads_gen.hpp"
 
@@ -19,48 +19,44 @@ bam_api::AOSPairedReads small_aos_reads_example() {
     bam_api::ReadIndex id = 0;
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, 4, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, 4, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, 4, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, 5, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, 4, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, false));
+    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
 
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, true));
+    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
     // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, false));
-
-    for (bam_api::ReadIndex i; i < result.get_reads_count(); ++i) {
-        result.bam_id_to_read_index.push_back(i);
-    }
+    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, false));
 
     // NOLINTNEXTLINE
     result.ref_genome_length = 11;
@@ -98,16 +94,15 @@ void small_example_test() {
     const uint32_t m = 4;
 
     auto input = test_helpers::small_aos_reads_example();
-    auto input_cover = bam_api::BamApi::find_cover(input);
+
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
 
     qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -128,16 +123,15 @@ void random_uniform_dist_test() {
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads_uniform(mt, pairs_count, genome_length, read_length);
-    auto input_cover = bam_api::BamApi::find_cover(input);
+
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
 
     qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -158,16 +152,15 @@ void random_with_func_dist_test(const std::function<double(double)>& dist_func) 
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads(mt, pairs_count, genome_length, read_length, dist_func);
-    auto input_cover = bam_api::BamApi::find_cover(input);
+
+    bam_api::BamApi bam_api(input);
+    auto input_cover = bam_api.find_input_cover();
 
     qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(false);
-    solver.set_reads(input);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
@@ -203,21 +196,23 @@ void random_zero_coverage_on_both_sides_test() {
 void bam_file_test(const std::filesystem::path& path) {
     // GIVEN
     const uint32_t m = 1000;
-    auto input = bam_api::BamApi::read_bam_aos(path, 100, 30);
-
-    auto input_cover = bam_api::BamApi::find_cover(input);
+    bam_api::BamApiConfig config{
+        .min_seq_length = 100,
+        .min_mapq = 30,
+    };
+    bam_api::BamApi bam_api(path, config);
 
     qmcp::SequentialMaxFlowSolver solver;
-    solver.find_pairs(true);
-    solver.set_reads(input);
 
     // WHEN
-    solver.solve(m);
-    auto output_indices = solver.get_output();
-    auto output_cover = bam_api::BamApi::find_cover_filtered(input, output_indices);
+    auto output_indices = solver.solve(m, bam_api);
+
+    auto input_cover = bam_api.find_input_cover();
+    auto output_cover = bam_api.find_filtered_cover(*output_indices);
 #ifdef TESTS_VERBOSE_DATA
     test_helpers::print_vectors(input_cover, output_cover);
 #endif
+
     bool valid = test_helpers::is_out_cover_valid(input_cover, output_cover, m);
 
     // THEN

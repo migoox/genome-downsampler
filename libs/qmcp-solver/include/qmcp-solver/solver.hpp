@@ -1,14 +1,23 @@
-#pragma once
+#ifndef SOLVER_HPP
+#define SOLVER_HPP
 
 #include <cstdint>
-#include <filesystem>
+#include <memory>
+#include <vector>
+
+#include "bam-api/bam_api.hpp"
+#include "bam-api/read.hpp"
+
 namespace qmcp {
+
+typedef std::vector<bam_api::ReadIndex> Solution;
+
 class Solver {
    public:
     virtual ~Solver() = default;
-    virtual void import_reads(const std::filesystem::path& input, uint32_t min_seq_length,
-                              uint32_t min_seq_mapq) = 0;
-    virtual void solve(uint32_t max_coverage) = 0;
-    virtual void export_reads(const std::filesystem::path& output) = 0;
+    virtual std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) = 0;
+    virtual bool uses_quality_of_reads() = 0;
 };
 }  // namespace qmcp
+
+#endif

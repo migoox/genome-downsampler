@@ -8,11 +8,13 @@
 #include <limits>
 #include <list>
 #include <optional>
+#include <memory>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/bam_paired_reads.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
+#include "qmcp-solver/solver.hpp"
 
 __global__ void push_relabel_kernel(
     uint32_t kernel_cycles, uint32_t nodes_count, qmcp::CudaMaxFlowSolver::Excess* excess_func,
@@ -66,30 +68,6 @@ __global__ void push_relabel_kernel(
     }
 }
 
-qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver() : is_data_loaded_(false) {}
-
-qmcp::CudaMaxFlowSolver::CudaMaxFlowSolver(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq)
-    : is_data_loaded_(false) {
-    import_reads(filepath, min_seq_length, min_seq_mapq);
-}
-
-void qmcp::CudaMaxFlowSolver::import_reads(const std::filesystem::path& filepath,
-                                           uint32_t min_seq_length, uint32_t min_seq_mapq) {
-    input_filepath_ = filepath;
-    input_sequence_ = bam_api::BamApi::read_bam_soa(filepath, min_seq_length, min_seq_mapq);
-
-    // Create max coverage function
-    max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
-    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
-        for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
-             ++i) {
-            ++max_coverage_[j + 1];
-        }
-    }
-
-    is_data_loaded_ = true;
-}
 void qmcp::CudaMaxFlowSolver::add_edge(std::vector<std::vector<Node>>& neighbors_dict,
                                        std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
                                        std::vector<std::vector<Capacity>>& residual_capacity_dict,
@@ -304,11 +282,6 @@ void qmcp::CudaMaxFlowSolver::clear_graph() {
     neighbors_end_ind_.clear();
     residual_capacity_.clear();
     max_coverage_.clear();
-    output_.clear();
-}
-
-void qmcp::CudaMaxFlowSolver::export_reads(const std::filesystem::path& filepath) {
-    bam_api::BamApi::write_bam(input_filepath_, filepath, output_);
 }
 
 void qmcp::CudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
@@ -317,10 +290,16 @@ void qmcp::CudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
-void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
-    if (!is_data_loaded_) {
-        std::cerr << "Couldn't run solver: data has not been loaded.\n";
-        std::exit(EXIT_FAILURE);
+std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover, bam_api::BamApi& bam_api) {
+    input_sequence_ = bam_api.get_paired_reads_soa();
+
+    // Create max coverage function
+    max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
+    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
+        for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
+             ++i) {
+            ++max_coverage_[j + 1];
+        }
     }
 
     create_graph(input_sequence_, required_cover);
@@ -391,23 +370,17 @@ void qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover) {
     cuda::free(dev_residual_capacity);
     cuda::free(dev_edge_dir);
 
+    std::unique_ptr<Solution> output = std::make_unique<Solution>();
+
     // Create output data
     for (bam_api::ReadIndex i = 0; i < read_ind_to_neighbor_ind_.size(); ++i) {
         Node u = input_sequence_.start_inds[i];
         Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
 
         if (cap == 0) {
-            output_.push_back(input_sequence_.ids[i]);
-
-            bam_api::Index pair_ind = input_sequence_.is_first_reads[i] ? (i + 1) : (i - 1);
-            Node pair_u = input_sequence_.start_inds[pair_ind];
-
-            // Check if the pair index also must be added
-            Capacity pair_cap = residual_capacity_[neighbors_start_ind_[pair_u] +
-                                                   read_ind_to_neighbor_ind_[pair_ind]];
-            if (pair_cap != 0) {
-                output_.push_back(input_sequence_.ids[pair_ind]);
-            }
+            output->push_back(i);
         }
     }
+
+    return output;
 }
