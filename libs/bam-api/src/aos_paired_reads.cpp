@@ -3,7 +3,7 @@
 
 // AOSPairedReads methods
 void bam_api::AOSPairedReads::push_back(Read&& read) {
-    reads.push_back(std::move(read));
+    reads.emplace_back(read);
 }
 
 void bam_api::AOSPairedReads::push_back(const Read& read) {

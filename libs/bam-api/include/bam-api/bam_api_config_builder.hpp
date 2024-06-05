@@ -13,7 +13,7 @@ class BamApiConfigBuilder {
     void add_amplicon_filtering(AmpliconBehaviour amplicon_behaviour,
                                 const std::filesystem::path& bed_filepath,
                                 const std::filesystem::path& tsv_filepath = std::filesystem::path());
-    const BamApiConfig& get_config() const;
+    BamApiConfig build() const;
 
    private:
     BamApiConfig bam_api_config_;
