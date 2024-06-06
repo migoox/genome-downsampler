@@ -19,6 +19,8 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(
     create_network_flow_graph(min_cost_flow, input_sequence_, max_coverage);
 
     int status = min_cost_flow.Solve();
+    LOG(INFO) << "flow == " << min_cost_flow.MaximumFlow()
+              << "optimal cost == " << min_cost_flow.OptimalCost();
 
     if (status != operations_research::MinCostFlow::OPTIMAL) {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: " << status;
@@ -34,19 +36,26 @@ void qmcp::SequentialCostScalingNetworkSolver::create_network_flow_graph(
     //  it is safe to say that algorithm wont use more than c_u_b_m * M
     //  flow in one edge.
 
+    //  find max quality
+    int max_quality = 0;
+    for (const bam_api::Read& read : sequence.reads) {
+        if (read.quality > max_quality) max_quality = read.quality;
+    }
+
     // create normal edges
     for (const bam_api::Read& read : sequence.reads) {
-        int weight = (read.start_ind - read.end_ind) * read.quality;
+        int weight = max_quality - read.quality;
         min_cost_flow.AddArcWithCapacityAndUnitCost(read.start_ind, read.start_ind + 1, 1, weight);
     }
 
     // create backwards edge
     for (int i = 0; i < sequence.ref_genome_length; ++i) {
-        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, INT_MAX, 0);
+        min_cost_flow.AddArcWithCapacityAndUnitCost(i + 1, i, INT_MAX, max_quality + 1);
     }
 
     // add supply and demand (negative supply = demand)
     std::vector<int> demand = create_demand_function(sequence, M);
+
     for (int i = 0; i <= sequence.ref_genome_length; ++i) {
         min_cost_flow.SetNodeSupply(i, demand[i]);
     }
