@@ -9,6 +9,8 @@
 #include <list>
 #include <memory>
 #include <optional>
+#include <tuple>
+#include <utility>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/paired_reads.hpp"
@@ -59,7 +61,9 @@ __global__ void push_relabel_kernel(
             int32_t delta =
                 min(static_cast<int32_t>(residual_capacity[neighbor_info_ind]), excess_func[node]);
 
-            atomicAdd(&residual_capacity[inversed_edge_offset[neighbor_info_ind]], delta);
+            atomicAdd(&residual_capacity[neighbors_start_ind[neighbors[neighbor_info_ind]] +
+                                         inversed_edge_offset[neighbor_info_ind]],
+                      delta);
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
 
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]], delta);
@@ -100,7 +104,8 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
 
             excess_func_[u] = excess_func_[u] - static_cast<Excess>(residual_capacity_[i]);
             excess_func_[v] = excess_func_[v] + static_cast<Excess>(residual_capacity_[i]);
-            residual_capacity_[inversed_edge_offset_[i]] += residual_capacity_[i];
+            residual_capacity_[neighbors_start_ind_[v] + inversed_edge_offset_[i]] +=
+                residual_capacity_[i];
             residual_capacity_[i] = 0;
         }
     }
@@ -108,37 +113,42 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
     Node sink = nodes_count - 1;
 
     // Perform BFS backwards from the sink to do the global relabel
-    std::list<Node> nodes;
-    std::vector<Node> not_relabeled_nodes;
-    std::vector<bool> is_visited(nodes_count, false);
-    int32_t bfs_level = 0;
+    typedef uint32_t BFSLevel;
 
-    nodes.push_back(sink);
+    std::list<std::pair<Node, BFSLevel>> nodes;
+    std::vector<Node> not_relabeled_nodes;
+    std::vector<bool> is_visited(nodes_count, false);  // TODO(migoox): move it to the class
+
+    nodes.push_back(std::make_pair(sink, 0));
     while (!nodes.empty()) {
-        Node curr_node = nodes.front();
+        Node curr_node = nodes.front().first;
+        uint32_t curr_level = nodes.front().second;
+
         nodes.pop_front();
 
-        if (bfs_level == label_func_[curr_node] && !is_markded_[curr_node]) {
+        if (curr_level == label_func_[curr_node] && !is_marked_[curr_node]) {
+            // no relabel operation
             not_relabeled_nodes.push_back(curr_node);
         }
-        label_func_[curr_node] = bfs_level++;
+
+        label_func_[curr_node] = curr_level;
         is_visited[curr_node] = true;
 
         // Add new vertices
         for (NeighborInfoIndex i = neighbors_start_ind_[curr_node];
-             i < neighbors_end_ind_[curr_node]; ++i) {
+             i <= neighbors_end_ind_[curr_node]; ++i) {
             Node neighbor = neighbors_[i];
             if (is_visited[neighbor] || edge_dir_[i] == EdgeDirection::Forward) {
                 continue;
             }
 
-            nodes.push_back(neighbor);
+            nodes.push_back(std::make_pair(neighbor, curr_level + 1));
         }
     }
 
     // Update the excess total
     for (Node node : not_relabeled_nodes) {
-        is_markded_[node] = true;
+        is_marked_[node] = true;
         excess_total = excess_total - excess_func_[node];
     }
 }
@@ -174,14 +184,14 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     std::vector<std::vector<NeighborInfoIndex>> inversed_edge_offset_dict(n + 3);
 
     // Save the neighbor index for future export
-    read_ind_to_neighbor_ind_.resize(sequence.end_inds.size());
+    read_ind_to_neighbor_offset_.resize(sequence.end_inds.size());
 
     // Add edges that are corresponding to the reads
     for (bam_api::ReadIndex i = 0; i < sequence.end_inds.size(); ++i) {
         Node u = sequence.start_inds[i];
         Node v = sequence.end_inds[i] + 1;
 
-        read_ind_to_neighbor_ind_[i] = neighbors_dict[u].size();
+        read_ind_to_neighbor_offset_[i] = neighbors_dict[u].size();
 
         // u --> v
         add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_offset_dict,
@@ -247,7 +257,7 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     label_func_[source] = n + 3;
     create_preflow();
 
-    is_markded_.resize(n + 3, false);
+    is_marked_.resize(n + 3, false);
 }
 
 void qmcp::CudaMaxFlowSolver::create_preflow() {
@@ -359,8 +369,6 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
 
         // Call global-relabel on CPU
         global_relabel(total_excess);
-
-        std::cout << total_excess << std::endl;
     }
 
     cuda::free(dev_label_func);
@@ -375,9 +383,10 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
     std::unique_ptr<Solution> output = std::make_unique<Solution>();
 
     // Create output data
-    for (bam_api::ReadIndex i = 0; i < read_ind_to_neighbor_ind_.size(); ++i) {
+    for (bam_api::ReadIndex i = 0; i < read_ind_to_neighbor_offset_.size(); ++i) {
         Node u = input_sequence_.start_inds[i];
-        Capacity cap = residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_ind_[i]];
+        Capacity cap =
+            residual_capacity_[neighbors_start_ind_[u] + read_ind_to_neighbor_offset_[i]];
 
         if (cap == 0) {
             output->push_back(i);
