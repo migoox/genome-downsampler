@@ -7,8 +7,8 @@
 #include <iostream>
 #include <limits>
 #include <list>
-#include <optional>
 #include <memory>
+#include <optional>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/paired_reads.hpp"
@@ -290,14 +290,15 @@ void qmcp::CudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
-std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover,
+                                                               bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_soa();
 
     // Create max coverage function
     max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
     for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
         for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
-             ++i) {
+             ++j) {
             ++max_coverage_[j + 1];
         }
     }
@@ -339,8 +340,8 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
     Excess total_excess = 0;
     while (excess_func_[source] + excess_func_[sink] < total_excess) {
         // Copy the label function to the device memory
-        cuda::memcpy<Label>(dev_label_func, label_func_.data(),
-                            label_func_.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
+        cuda::memcpy<Label>(dev_label_func, label_func_.data(), label_func_.size(),
+                            cudaMemcpyHostToDevice);
 
         // Call push-relabel GPU kernel
         push_relabel_kernel<<<num_blocks, block_size_>>>(
@@ -355,10 +356,12 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
         cuda::memcpy<Excess>(excess_func_.data(), dev_excess_func, excess_func_.size(),
                              cudaMemcpyDeviceToHost);
         cuda::memcpy<Label>(label_func_.data(), dev_label_func, label_func_.size(),
-                            cudaMemcpyHostToDevice);
+                            cudaMemcpyDeviceToHost);
 
         // Call global-relabel on CPU
         global_relabel(total_excess);
+
+        std::cout << total_excess << std::endl;
     }
 
     cuda::free(dev_label_func);
