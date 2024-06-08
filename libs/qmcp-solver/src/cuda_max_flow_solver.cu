@@ -23,7 +23,7 @@ __global__ void push_relabel_kernel(
     const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* neighbors_start_ind,
     const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* neighbors_end_ind,
     const qmcp::CudaMaxFlowSolver::Node* neighbors,
-    const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* inversed_edge_ind) {
+    const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* inversed_edge_offset) {
     qmcp::CudaMaxFlowSolver::Node node = blockDim.x * blockIdx.x + threadIdx.x;
     if (node > nodes_count) {
         return;
@@ -59,7 +59,7 @@ __global__ void push_relabel_kernel(
             int32_t delta =
                 min(static_cast<int32_t>(residual_capacity[neighbor_info_ind]), excess_func[node]);
 
-            atomicAdd(&residual_capacity[inversed_edge_ind[neighbor_info_ind]], delta);
+            atomicAdd(&residual_capacity[inversed_edge_offset[neighbor_info_ind]], delta);
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
 
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]], delta);
@@ -68,23 +68,24 @@ __global__ void push_relabel_kernel(
     }
 }
 
-void qmcp::CudaMaxFlowSolver::add_edge(std::vector<std::vector<Node>>& neighbors_dict,
-                                       std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
-                                       std::vector<std::vector<Capacity>>& residual_capacity_dict,
-                                       std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict,
-                                       Node start, Node end, Capacity capacity) {
+void qmcp::CudaMaxFlowSolver::add_edge(
+    std::vector<std::vector<Node>>& neighbors_dict,
+    std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
+    std::vector<std::vector<Capacity>>& residual_capacity_dict,
+    std::vector<std::vector<uint32_t>>& inversed_edge_offset_dict, Node start, Node end,
+    Capacity capacity) {
     size_t start_info_size = neighbors_dict[start].size();
     size_t end_info_size = neighbors_dict[end].size();
 
     neighbors_dict[start].push_back(end);
     edge_dir_dict[start].push_back(EdgeDirection::Forward);
     residual_capacity_dict[start].push_back(capacity);
-    inversed_edge_ind_dict[start].push_back(end_info_size);
+    inversed_edge_offset_dict[start].push_back(end_info_size);
 
     neighbors_dict[end].push_back(start);
     edge_dir_dict[end].push_back(EdgeDirection::Backward);
     residual_capacity_dict[end].push_back(0);
-    inversed_edge_ind_dict[end].push_back(start_info_size);
+    inversed_edge_offset_dict[end].push_back(start_info_size);
 }
 
 void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
@@ -99,7 +100,7 @@ void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
 
             excess_func_[u] = excess_func_[u] - static_cast<Excess>(residual_capacity_[i]);
             excess_func_[v] = excess_func_[v] + static_cast<Excess>(residual_capacity_[i]);
-            residual_capacity_[inversed_edge_ind_[i]] += residual_capacity_[i];
+            residual_capacity_[inversed_edge_offset_[i]] += residual_capacity_[i];
             residual_capacity_[i] = 0;
         }
     }
@@ -170,7 +171,7 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     std::vector<std::vector<Node>> neighbors_dict(n + 3);
     std::vector<std::vector<EdgeDirection>> edge_dir_dict(n + 3);
     std::vector<std::vector<Capacity>> residual_capacity_dict(n + 3);
-    std::vector<std::vector<NeighborInfoIndex>> inversed_edge_ind_dict(n + 3);
+    std::vector<std::vector<NeighborInfoIndex>> inversed_edge_offset_dict(n + 3);
 
     // Save the neighbor index for future export
     read_ind_to_neighbor_ind_.resize(sequence.end_inds.size());
@@ -183,14 +184,14 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
         read_ind_to_neighbor_ind_[i] = neighbors_dict[u].size();
 
         // u --> v
-        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_ind_dict, u,
-                 v, 1);
+        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_offset_dict,
+                 u, v, 1);
     }
 
     // Add returning edges
     for (Node i = 0; i < n; ++i) {
         // i + 1 --> i
-        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_ind_dict,
+        add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_offset_dict,
                  i + 1, i, std::numeric_limits<Capacity>::max());
     }
 
@@ -206,25 +207,25 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     for (Node i = 0; i <= n; ++i) {
         if (demand_func[i] > 0) {
             // i --> sink
-            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_ind_dict,
-                     i, sink, demand_func[i]);
+            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                     inversed_edge_offset_dict, i, sink, demand_func[i]);
         } else if (demand_func[i] < 0) {
             // source --> i
-            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict, inversed_edge_ind_dict,
-                     source, i, -demand_func[i]);
+            add_edge(neighbors_dict, edge_dir_dict, residual_capacity_dict,
+                     inversed_edge_offset_dict, source, i, -demand_func[i]);
         }
     }
 
     // Flatten the dictionaries and save them
     // Assumption: there are no isolated nodes
-    neighbors_end_ind_.resize(n + 3, 0);
     neighbors_start_ind_.resize(n + 3, 0);
+    neighbors_end_ind_.resize(n + 3, 0);
 
     uint32_t curr_ind = 0;
 
     for (bam_api::Index i = 0; i <= n + 2; ++i) {
-        neighbors_start_ind_.push_back(curr_ind);
-        neighbors_end_ind_.push_back(curr_ind + neighbors_dict[i].size());
+        neighbors_start_ind_[i] = curr_ind;
+        neighbors_end_ind_[i] = curr_ind + neighbors_dict[i].size() - 1;
 
         neighbors_.insert(neighbors_.end(), neighbors_dict[i].begin(), neighbors_dict[i].end());
 
@@ -233,10 +234,11 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
 
         edge_dir_.insert(edge_dir_.end(), edge_dir_dict[i].begin(), edge_dir_dict[i].end());
 
-        inversed_edge_ind_.insert(inversed_edge_ind_.end(), inversed_edge_ind_dict[i].begin(),
-                                  inversed_edge_ind_dict[i].end());
+        inversed_edge_offset_.insert(inversed_edge_offset_.end(),
+                                     inversed_edge_offset_dict[i].begin(),
+                                     inversed_edge_offset_dict[i].end());
 
-        curr_ind += neighbors_dict[i].size() + 1;
+        curr_ind += neighbors_dict[i].size();
     }
 
     // Prepare excess and label functions
@@ -263,7 +265,8 @@ void qmcp::CudaMaxFlowSolver::create_preflow() {
         Capacity curr_edge_capacity = residual_capacity_[i];
 
         // Get the inversed edge location
-        uint32_t inversed_i = neighbors_start_ind_[curr_neighbor] + inversed_edge_ind_[i];
+        NeighborInfoIndex inversed_i =
+            neighbors_start_ind_[curr_neighbor] + inversed_edge_offset_[i];
 
         // Saturate the edge
         residual_capacity_[inversed_i] = curr_edge_capacity;
@@ -313,13 +316,13 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
     auto* dev_neighbors_end_ind = cuda::malloc<NeighborInfoIndex>(neighbors_end_ind_.size());
     auto* dev_neighbors = cuda::malloc<Node>(neighbors_.size());
     auto* dev_residual_capacity = cuda::malloc<Capacity>(residual_capacity_.size());
-    auto* dev_inversed_edge_ind = cuda::malloc<NeighborInfoIndex>(inversed_edge_ind_.size());
+    auto* dev_inversed_edge_offset = cuda::malloc<NeighborInfoIndex>(inversed_edge_offset_.size());
     auto* dev_edge_dir = cuda::malloc<EdgeDirection>(edge_dir_.size());
 
     // Copy the constant arrays to device
     cuda::memcpy_host_dev<EdgeDirection>(dev_edge_dir, edge_dir_.data(), edge_dir_.size());
-    cuda::memcpy_host_dev<NeighborInfoIndex>(dev_inversed_edge_ind, inversed_edge_ind_.data(),
-                                             inversed_edge_ind_.size());
+    cuda::memcpy_host_dev<NeighborInfoIndex>(dev_inversed_edge_offset, inversed_edge_offset_.data(),
+                                             inversed_edge_offset_.size());
     cuda::memcpy_host_dev<NeighborInfoIndex>(dev_neighbors_start_ind, neighbors_start_ind_.data(),
                                              neighbors_start_ind_.size());
     cuda::memcpy_host_dev<NeighborInfoIndex>(dev_neighbors_end_ind, neighbors_end_ind_.data(),
@@ -345,7 +348,7 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
         push_relabel_kernel<<<num_blocks, block_size_>>>(
             kernel_cycles_, excess_func_.size(), dev_excess_func, dev_label_func,
             dev_residual_capacity, dev_neighbors_start_ind, dev_neighbors_end_ind, dev_neighbors,
-            dev_inversed_edge_ind);
+            dev_inversed_edge_offset);
 
         // Copy the residual capacity, label and excess functions from device to
         // the host memory
@@ -363,7 +366,7 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
     cuda::free(dev_label_func);
     cuda::free(dev_excess_func);
     cuda::free(dev_neighbors_start_ind);
-    cuda::free(dev_inversed_edge_ind);
+    cuda::free(dev_inversed_edge_offset);
     cuda::free(dev_neighbors_end_ind);
     cuda::free(dev_neighbors);
     cuda::free(dev_residual_capacity);
