@@ -21,15 +21,27 @@ namespace qmcp {
 namespace cuda {
 
 template <class T>
-T* malloc(size_t count) {
+inline T* malloc(size_t count) {
     T* ptr = nullptr;
     CHECK_CUDA_ERROR(cudaMalloc(reinterpret_cast<void**>(&ptr), count * sizeof(T)));
     return ptr;
 }
 
 template <class T>
-void memcpy(T* dst, T* src, size_t count, cudaMemcpyKind kind) {
+inline void memcpy(T* dst, T* src, size_t count, cudaMemcpyKind kind) {
     CHECK_CUDA_ERROR(cudaMemcpy(dst, src, count * sizeof(T), kind));
+}
+
+// Copy from host to device
+template <class T>
+inline void memcpy_host_dev(T* dst, T* src, size_t count) {
+    memcpy<T>(dst, src, count, cudaMemcpyHostToDevice);
+}
+
+// Copy from device to host
+template <class T>
+inline void memcpy_dev_host(T* dst, T* src, size_t count) {
+    memcpy<T>(dst, src, count, cudaMemcpyDeviceToHost);
 }
 
 inline void free(void* dev_ptr) { CHECK_CUDA_ERROR(cudaFree(dev_ptr)); }
