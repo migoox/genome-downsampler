@@ -197,9 +197,10 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     // Create demand func basing on the required cover
     std::vector<int32_t> demand_func(n + 1, 0);
     for (bam_api::Index i = 0; i < n; ++i) {
-        demand_func[i] = static_cast<int32_t>(std::min(max_coverage_[i + 1], required_cover)) -
-                         static_cast<int32_t>(std::min(max_coverage_[i], required_cover));
+        demand_func[i] = static_cast<int32_t>(std::min(max_coverage_[i], required_cover)) -
+                         static_cast<int32_t>(std::min(max_coverage_[i + 1], required_cover));
     }
+    demand_func[n] = static_cast<int32_t>(std::min(max_coverage_[n], required_cover));
 
     // Add edges for sink and source in order to simulate a circulation
     for (Node i = 0; i <= n; ++i) {
