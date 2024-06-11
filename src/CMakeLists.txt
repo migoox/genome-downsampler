@@ -6,4 +6,5 @@ target_link_libraries(
             bam-api
             qmcp-solver
             reads-gen
-            logging)
+            logging
+            bicgstab)
