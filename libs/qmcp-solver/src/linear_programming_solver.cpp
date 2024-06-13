@@ -2,6 +2,54 @@
 
 #include <vector>
 
+void qmcp::LinearProgrammingSolver::make_matrix(int32_t* n_out, int32_t** row_offsets_out,
+                                                int32_t** columns_out, double** values_out) {
+    uint64_t n = input_sequence_.ref_genome_length;
+    *n_out = n;
+    uint64_t nnz = 0;
+    for (uint32_t i = 0; i < input_sequence_.ids.size(); ++i) {
+        nnz += input_sequence_.end_inds[i] - input_sequence_.start_inds[i] + 1;
+    }
+
+    int* row_offsets = *row_offsets_out = (int*)malloc((n + 1) * sizeof(int));
+    int* columns = *columns_out = (int*)malloc(nnz * sizeof(int));
+    double* values = *values_out = (double*)malloc(nnz * sizeof(double));
+
+    uint32_t value_ind = 0;
+    for (uint32_t ref_ind_it = 0; ref_ind_it < input_sequence_.ref_genome_length; ++ref_ind_it) {
+        row_offsets[ref_ind_it] = value_ind;
+        for (uint32_t read_it = 0; read_it < input_sequence_.ids.size(); ++read_it) {
+            if (input_sequence_.start_inds[read_it] <= ref_ind_it &&
+                input_sequence_.end_inds[read_it] >= ref_ind_it) {
+                values[value_ind] = 1;
+                columns[value_ind] = read_it;
+                value_ind++;
+            }
+        }
+    }
+
+    row_offsets[n] = value_ind;
+
+    // LOG_WITH_LEVEL(logging::kDebug) << "nnz: " << nnz << ", last offset: " << value_ind;
+}
+
+std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
+    std::vector<double> x(input_sequence_.ref_genome_length, 0);
+
+    for (uint32_t i = 0; i < input_sequence_.ids.size(); ++i) {
+        for (uint32_t j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i]; ++j) {
+            ++x[j];
+        }
+    }
+
+    // cap nucleotides with more reads than M to M
+    for (uint32_t i = 0; i < input_sequence_.ref_genome_length; ++i) {
+        if (x[i] > M) x[i] = M;
+    }
+
+    return x;
+}
+
 std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t max_coverage,
                                                                      bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_soa();

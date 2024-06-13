@@ -13,6 +13,8 @@ class LinearProgrammingSolver : public Solver {
     bool uses_quality_of_reads() override { return true; }
 
    private:
+    void make_matrix(int* n_out, int** row_offsets_out, int** columns_out, double** values_out);
+    std::vector<double> create_b_vector(uint32_t M);
     bam_api::SOAPairedReads input_sequence_;
 };
 }  // namespace qmcp
