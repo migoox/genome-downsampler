@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "logging/log.hpp"
+
 void qmcp::LinearProgrammingSolver::make_matrix(int32_t* n_out, int32_t** row_offsets_out,
                                                 int32_t** columns_out, double** values_out) {
     uint64_t n = input_sequence_.ref_genome_length;
@@ -30,7 +32,7 @@ void qmcp::LinearProgrammingSolver::make_matrix(int32_t* n_out, int32_t** row_of
 
     row_offsets[n] = value_ind;
 
-    // LOG_WITH_LEVEL(logging::kDebug) << "nnz: " << nnz << ", last offset: " << value_ind;
+    LOG_WITH_LEVEL(logging::LogLevel::DEBUG) << "nnz: " << nnz << ", last offset: " << value_ind;
 }
 
 std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
@@ -238,8 +240,11 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     // return solution
     auto reduced_reads = std::make_unique<Solution>();
 
-    for (auto read_id : input_sequence_.ids) {
-        reduced_reads->push_back(read_id);
+    for (bam_api::ReadIndex i = 0; i < input_sequence_.get_reads_count(); ++i) {
+        if (h_X[i] > 0) {
+            LOG_WITH_LEVEL(logging::DEBUG) << "h_X[" << i << "]: " << h_X[i];
+            reduced_reads->push_back(input_sequence_.ids[i]);
+        }
     }
     return reduced_reads;
 }

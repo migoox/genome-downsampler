@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "bicgstab/bicgstab.hpp"
+#include "logging/log.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
