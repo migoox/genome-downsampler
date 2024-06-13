@@ -9,6 +9,7 @@
 #include <string>
 
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
+#include "qmcp-solver/linear_programming_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
@@ -43,7 +44,7 @@ class App {
         {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
         {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
         {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
-    };
+        {"bicgstab", std::make_shared<qmcp::LinearProgrammingSolver>()}};
 };
 
 #endif

@@ -9,7 +9,8 @@
 #include "bam-api/read.hpp"
 #include "qmcp-solver/solver.hpp"
 
-std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(
+    uint32_t max_coverage, bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMinCostFlow min_cost_flow;
@@ -21,7 +22,7 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::solve(
     if (status != operations_research::MinCostFlow::OPTIMAL) {
         LOG(INFO) << "Solving the min cost flow problem failed. Solver status: " << status;
     }
-    
+
     return obtain_sequence(input_sequence_, min_cost_flow);
 }
 
@@ -99,4 +100,3 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialCostScalingNetworkSolver::obtain
 
     return reduced_reads;
 }
-

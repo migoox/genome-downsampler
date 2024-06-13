@@ -60,7 +60,7 @@
         if (status != cudaSuccess) {                                             \
             printf("CUDA API failed at line %d with error: %s (%d)\n", __LINE__, \
                    cudaGetErrorString(status), status);                          \
-            return EXIT_FAILURE;                                                 \
+            exit(EXIT_FAILURE);                                                  \
         }                                                                        \
     }
 
@@ -70,7 +70,7 @@
         if (status != CUSPARSE_STATUS_SUCCESS) {                                     \
             printf("cuSPARSE API failed at line %d with error: %s (%d)\n", __LINE__, \
                    cusparseGetErrorString(status), status);                          \
-            return EXIT_FAILURE;                                                     \
+            exit(EXIT_FAILURE);                                                      \
         }                                                                            \
     }
 
@@ -79,7 +79,7 @@
         cublasStatus_t status = (func);                                                \
         if (status != CUBLAS_STATUS_SUCCESS) {                                         \
             printf("CUBLAS API failed at line %d with error: %d\n", __LINE__, status); \
-            return EXIT_FAILURE;                                                       \
+            exit(EXIT_FAILURE);                                                        \
         }                                                                              \
     }
 

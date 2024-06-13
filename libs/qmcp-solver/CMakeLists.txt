@@ -13,4 +13,5 @@ target_link_libraries(
     PRIVATE Boost::boost
             ortools
             bam-api
-            logging)
+            logging
+            bicgstab)
