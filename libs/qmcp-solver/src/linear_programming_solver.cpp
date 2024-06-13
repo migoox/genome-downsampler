@@ -63,12 +63,10 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     int* h_A_rows = NULL;
     int* h_A_columns = NULL;
     double* h_A_values = NULL;
-    make_test_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
+    make_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
     int num_offsets = m + 1;
     int nnz = h_A_rows[m];
-    double* h_X = (double*)malloc(m * sizeof(double));
-
-    for (int i = 0; i < m; i++) h_X[i] = 1.0;
+    std::vector<double> h_X = create_b_vector(max_coverage);
     //--------------------------------------------------------------------------
     // ### Device memory management ###
     int *d_A_rows, *d_A_columns;
@@ -98,7 +96,7 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     CHECK_CUDA(cudaMemcpy(d_A_columns, h_A_columns, nnz * sizeof(int), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_A_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_M_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X, m * sizeof(double), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X.data(), m * sizeof(double), cudaMemcpyHostToDevice))
     //--------------------------------------------------------------------------
     // ### cuSPARSE Handle and descriptors initialization ###
     // create the test matrix on the host
@@ -219,7 +217,6 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     free(h_A_rows);
     free(h_A_columns);
     free(h_A_values);
-    free(h_X);
 
     CHECK_CUDA(cudaFree(d_X.ptr))
     CHECK_CUDA(cudaFree(d_B.ptr))
