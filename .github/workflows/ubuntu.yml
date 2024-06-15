@@ -23,7 +23,7 @@ jobs:
     env:
       build_dir: "build"
       config: "Release"
-      algorithms-to-test: sequential-max-flow
+      algorithms_to_test: sequential-max-flow
 
     steps:
     - uses: actions/checkout@v3
@@ -84,5 +84,5 @@ jobs:
 
     - name: Run tests
       working-directory: ${{ env.build_dir }}
-      run: ./src/cuda-dna-downsampler test -a ${{ env.config }}
+      run: ./src/cuda-dna-downsampler test -a ${{ env.algorithms_to_test }}
 
