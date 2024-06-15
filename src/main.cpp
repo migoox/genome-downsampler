@@ -6,12 +6,12 @@ int main(int argc, char** argv) {
     App app;
 
     try {
-        app.Parse(argc, argv);
+        app.parse(argc, argv);
     } catch (const CLI::ParseError& e) {
-        return app.Exit(e);
+        return app.exit(e);
     }
 
-    app.Solve();
+    app.execute();
 
     return EXIT_SUCCESS;
 }

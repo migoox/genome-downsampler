@@ -13,16 +13,48 @@
 #include "qmcp-solver/solver.hpp"
 
 App::App() {
-    std::vector<std::string> all_algorithms = GetAllAlgorithms();
-    std::vector<std::string> all_solver_testers = GetAllSolverTesters();
-    app_.fallthrough();
+    algorithms_names_ = get_algorithms_names();
+    solver_ = solvers_map_[algorithms_names_[0]];
+    add_main_command_options();
 
-    app_.add_option("input_filepath", input_file_path_, ".bam input file path. Required option.")
+#ifdef TESTING_ENABLED
+    solver_testers_names_ = get_solver_testers_names();
+    test_subcmd_ = app_.add_subcommand("test", "Run unit tests.");
+    add_test_subcommand_options();
+    app_.require_subcommand(0, 1);
+#endif
+}
+
+void App::App::add_main_command_options() {
+    app_.add_option("INPUT_FILEPATH", input_file_path_, ".bam input file path. Required option.")
         ->check(CLI::ExistingFile);
 
-    app_.add_option("max_coverage", max_ref_coverage_,
+    app_.add_option("MAX_COVERAGE", max_ref_coverage_,
                     "Maximum coverage per reference genome's base pair index.")
         ->check(CLI::PositiveNumber);
+
+    app_.add_option("-o,--output", output_file_path_,
+                    ".bam output file path. Default is \"output.bam\" in "
+                    "input's directory.");
+    // Logic to make positional arguments required when subcommand is not used
+    app_.callback([&]() {
+        if (app_.get_subcommand() == nullptr) {
+            // If subcommand is not invoked, ensure both input and max-coverage are provided
+            if (max_ref_coverage_ == 0) {
+                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0",
+                                      1);
+            }
+
+            if (input_file_path_.empty()) {
+                throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
+            }
+
+            if (output_file_path_.empty()) {
+                output_file_path_ = input_file_path_;
+                output_file_path_.replace_filename("output.bam");
+            }
+        }
+    });
 
     app_.add_option_function<std::string>(
             "-a,--algorithm",
@@ -34,12 +66,8 @@ App::App() {
                         << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
-            "Algorithm to use.")
-        ->check(CLI::IsMember(all_algorithms));
-
-    app_.add_option("-o,--output", output_file_path_,
-                    ".bam output file path. Default is \"output.bam\" in "
-                    "input's directory.");
+            "Algorithm to use. Default is " + algorithms_names_[0])
+        ->check(CLI::IsMember(algorithms_names_));
 
     app_.add_option("-b,--bed", bed_path_,
                     ".bed amplicon bounds specification. It would be used to filter out or lower "
@@ -74,53 +102,62 @@ App::App() {
         ->check(CLI::PositiveNumber);
 
     app_.add_flag("-v,--verbose", verbose_mode_,
-                  "If specified app_ executes with additional logging.");
-
-    // Add test subcommand
-    test_subcmd_ = app_.add_subcommand("test", "Run unit tests.");
-
-    test_subcmd_->add_option("-a,--algorithms", algorithms_, "Algorithms to test.")
-        ->transform(CLI::IsMember(all_algorithms));
-
-    test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
-        ->transform(CLI::IsMember(all_solver_testers));
-
-
-    // Logic to make positional arguments required when subcommand is not used
-    app_.callback([&]() {
-        if (app_.get_subcommand() == nullptr) {
-            // If subcommand is not invoked, ensure both input and max-coverage are provided
-            if (max_ref_coverage_ == 0) {
-                throw CLI::ParseError("max_coverage must be specified and integer bigger than 0", 1);
-            }
-
-            if (input_file_path_.empty()) {
-                throw CLI::ParseError("input_filepath must be specified", 1);
-            }
-        }
-    });
-
-    app_.require_subcommand(0, 1);
+                  "If specified app executes with additional logging.");
 }
 
-void App::Parse(int argc, char** argv) {
-    app_.parse(argc, argv);
+#ifdef TESTING_ENABLED
+void App::App::add_test_subcommand_options() {
+    test_subcmd_->add_option("-a,--algorithms", algorithms_to_test_, "Algorithms to test.")
+        ->transform(CLI::IsMember(algorithms_names_));
 
-    if (!test_subcmd_ && output_file_path_.empty()) {
-        output_file_path_ = input_file_path_;
-        output_file_path_.replace_filename("output.bam");
+    test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
+        ->transform(CLI::IsMember(solver_testers_names_));
+}
+
+void App::run_tests() {
+    std::vector<std::string> solvers_to_test =
+        algorithms_to_test_.empty() ? algorithms_names_ : algorithms_to_test_;
+    std::vector<std::string> tests_to_run =
+        solver_testers_.empty() ? solver_testers_names_ : solver_testers_;
+
+    for (const auto& test : tests_to_run) {
+        LOG_WITH_LEVEL(logging::INFO) << "Running test " << test;
+        for (const auto& solver : solvers_to_test) {
+            LOG_WITH_LEVEL(logging::INFO) << "\ton algorithm " << solver;
+
+            // Run tester
+            solver_testers_map_[test]->test(*solvers_map_[solver]);
+        }
     }
+}
+
+std::vector<std::string> App::get_solver_testers_names() const {
+    std::vector<std::string> all_tests;
+    all_tests.reserve(solver_testers_map_.size());
+
+    for (const auto& mapping : solver_testers_map_) {
+        all_tests.push_back(mapping.first);
+    }
+    return all_tests;
+}
+
+#endif
+
+void App::parse(int argc, char** argv) {
+    app_.parse(argc, argv);
 
     SET_LOG_LEVEL(verbose_mode_ ? logging::DEBUG : logging::INFO);
 }
 
-int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
+int App::exit(const CLI::ParseError& e) { return app_.exit(e); }
 
-void App::Solve() {
+void App::execute() {
+#ifdef TESTING_ENABLED
     if (*test_subcmd_) {
-        RunTests();
+        run_tests();
         return;
     }
+#endif
 
     bam_api::BamApiConfigBuilder config_buider;
 
@@ -154,24 +191,7 @@ void App::Solve() {
     }
 }
 
-void App::RunTests() {
-    std::vector<std::string> solvers_to_test =
-        algorithms_.empty() ? GetAllAlgorithms() : algorithms_;
-    std::vector<std::string> tests_to_run =
-        solver_testers_.empty() ? GetAllSolverTesters() : solver_testers_;
-
-    for (const auto& test : tests_to_run) {
-        LOG_WITH_LEVEL(logging::INFO) << "Running test " << test;
-        for (const auto& solver : solvers_to_test) {
-            LOG_WITH_LEVEL(logging::INFO) << "\ton algorithm " << solver;
-
-            // Run tester
-            solver_testers_map_[test]->test(*solvers_map_[solver]);
-        }
-    }
-}
-
-std::vector<std::string> App::GetAllAlgorithms() const {
+std::vector<std::string> App::get_algorithms_names() const {
     std::vector<std::string> all_algorithms;
     all_algorithms.reserve(solvers_map_.size());
 
@@ -179,14 +199,4 @@ std::vector<std::string> App::GetAllAlgorithms() const {
         all_algorithms.push_back(mapping.first);
     }
     return all_algorithms;
-}
-
-std::vector<std::string> App::GetAllSolverTesters() const {
-    std::vector<std::string> all_tests;
-    all_tests.reserve(solver_testers_map_.size());
-
-    for (const auto& mapping : solver_testers_map_) {
-        all_tests.push_back(mapping.first);
-    }
-    return all_tests;
 }

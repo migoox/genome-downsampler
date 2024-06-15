@@ -1,4 +1,10 @@
-add_subdirectory(tests)
+option(WITH_TESTS "enables unit tests compilation" OFF)
+
+if(WITH_TESTS)
+  add_definitions(-DTESTING_ENABLED)
+  add_subdirectory(tests)
+endif()
+
 set(SOURCES
     ${SOURCES}
     main.cpp
