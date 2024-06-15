@@ -2,6 +2,7 @@
 #define TESTS_SOLVER_TESTER
 
 #include <filesystem>
+
 #include "qmcp-solver/solver.hpp"
 
 namespace test {
