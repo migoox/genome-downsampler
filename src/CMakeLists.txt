@@ -1,4 +1,11 @@
-add_executable(cuda-dna-downsampler main.cpp app.cpp)
+add_subdirectory(tests)
+set(SOURCES
+    ${SOURCES}
+    main.cpp
+    app.cpp
+)
+
+add_executable(cuda-dna-downsampler ${SOURCES})
 
 target_link_libraries(
     cuda-dna-downsampler

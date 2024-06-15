@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 
+#include "tests/solver_tester.hpp"
+#include "tests/coverage_tester.hpp"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
@@ -43,6 +45,9 @@ class App {
         {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
         {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
         {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
+    };
+    std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
+        {"coverage", std::make_shared<test::CoverageTester>()},
     };
 };
 

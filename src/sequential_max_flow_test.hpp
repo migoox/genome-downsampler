@@ -14,55 +14,6 @@
 namespace test {
 namespace test_helpers {
 
-bam_api::AOSPairedReads small_aos_reads_example() {
-    bam_api::AOSPairedReads result;
-    bam_api::ReadIndex id = 0;
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 9, 0, 4, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 2, 4, 0, 3, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 3, 0, 3, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 10, 0, 4, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 3, 6, 0, 4, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 4, 0, 5, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 7, 9, 0, 3, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 9, 10, 0, 2, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 1, 4, 0, 4, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 6, 8, 0, 3, false));
-
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 0, 2, 0, 3, true));
-    // NOLINTNEXTLINE
-    result.reads.emplace_back(bam_api::Read(id++, 4, 6, 0, 3, false));
-
-    // NOLINTNEXTLINE
-    result.ref_genome_length = 11;
-
-    return result;
-}
 
 void print_vectors(const std::vector<uint32_t>& vec1, const std::vector<uint32_t>& vec2) {
     for (int i = 0; i < vec1.size(); ++i) {
