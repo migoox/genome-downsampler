@@ -27,8 +27,8 @@ class App {
    public:
     App();
     void parse(int argc, char** argv);
-    int exit(const CLI::ParseError& e);
     void execute();
+    int exit(const CLI::ParseError& e);
 
    private:
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
@@ -51,6 +51,9 @@ class App {
     std::filesystem::path bed_path_;
     std::filesystem::path tsv_path_;
 
+    void add_main_command_options();
+    std::vector<std::string> get_algorithms_names() const;
+
 #ifdef TESTING_ENABLED
     std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
         {"coverage", std::make_shared<test::CoverageTester>()},
@@ -58,13 +61,12 @@ class App {
     std::vector<std::string> solver_testers_names_;
     std::vector<std::string> algorithms_to_test_;
     std::vector<std::string> solver_testers_;
+    std::filesystem::path test_outputs_dir_;
+
     void add_test_subcommand_options();
     void run_tests();
     std::vector<std::string> get_solver_testers_names() const;
 #endif
-
-    void add_main_command_options();
-    std::vector<std::string> get_algorithms_names() const;
 };
 
 #endif

@@ -3,8 +3,10 @@
 #include <CLI/App.hpp>
 #include <CLI/Validators.hpp>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <string>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_api_config.hpp"
@@ -36,6 +38,7 @@ void App::App::add_main_command_options() {
     app_.add_option("-o,--output", output_file_path_,
                     ".bam output file path. Default is \"output.bam\" in "
                     "input's directory.");
+
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
         if (app_.get_subcommand() == nullptr) {
@@ -112,6 +115,13 @@ void App::App::add_test_subcommand_options() {
 
     test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
         ->transform(CLI::IsMember(solver_testers_names_));
+
+    test_subcmd_
+        ->add_option(
+            "-o,--outputs-dir", test_outputs_dir_,
+            "Directory for tests outputs. Each SolverTester should have some optional output data "
+            "to save for debugging purposes. This option enables it and specifies its directory")
+        ->check(CLI::ExistingDirectory);
 }
 
 void App::run_tests() {
@@ -119,14 +129,38 @@ void App::run_tests() {
         algorithms_to_test_.empty() ? algorithms_names_ : algorithms_to_test_;
     std::vector<std::string> tests_to_run =
         solver_testers_.empty() ? solver_testers_names_ : solver_testers_;
+    bool with_output = !test_outputs_dir_.empty();
+    std::filesystem::path tester_outputs_directory_path;
+    std::filesystem::path alg_tester_outputs_directory_path;
 
-    for (const auto& test : tests_to_run) {
+    if (with_output && !std::filesystem::exists(test_outputs_dir_)) {
+        LOG_WITH_LEVEL(logging::ERROR) << "Directory: " << test_outputs_dir_ << " does not exist!";
+        std::exit(EXIT_FAILURE);
+    }
+
+    for (const std::string& test : tests_to_run) {
+        if (with_output) {
+            tester_outputs_directory_path = test_outputs_dir_ / test;
+            if (!std::filesystem::exists(tester_outputs_directory_path)) {
+                std::filesystem::create_directory(tester_outputs_directory_path);
+            }
+        }
         LOG_WITH_LEVEL(logging::INFO) << "Running test " << test;
-        for (const auto& solver : solvers_to_test) {
+        for (const std::string& solver : solvers_to_test) {
             LOG_WITH_LEVEL(logging::INFO) << "\ton algorithm " << solver;
 
+            if (with_output) {
+                alg_tester_outputs_directory_path = tester_outputs_directory_path / solver;
+                if (!std::filesystem::exists(alg_tester_outputs_directory_path)) {
+                    std::filesystem::create_directory(alg_tester_outputs_directory_path);
+                }
+            }
+
             // Run tester
-            solver_testers_map_[test]->test(*solvers_map_[solver]);
+            solver_testers_map_[test]->test(*solvers_map_[solver],
+                                            alg_tester_outputs_directory_path);
+
+            LOG_WITH_LEVEL(logging::INFO) << "\t\t PASSED";
         }
     }
 }
