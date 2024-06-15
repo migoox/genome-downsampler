@@ -17,10 +17,10 @@ App::App() {
     std::vector<std::string> all_solver_testers = GetAllSolverTesters();
     app_.fallthrough();
 
-    app_.add_option("INPUT_FILE", input_file_path_, ".bam input file path. Required option.")
+    app_.add_option("input_file", input_file_path_, ".bam input file path. Required option.")
         ->check(CLI::ExistingFile);
 
-    app_.add_option("MAX_COVERAGE", max_ref_coverage_,
+    app_.add_option("max_coverage", max_ref_coverage_,
                     "Maximum coverage per reference genome's base pair index.")
         ->check(CLI::PositiveNumber);
 
@@ -85,16 +85,17 @@ App::App() {
     test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
         ->transform(CLI::IsMember(all_solver_testers));
 
+
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
         if (app_.get_subcommand() == nullptr) {
             // If subcommand is not invoked, ensure both input and max-coverage are provided
             if (max_ref_coverage_ == 0) {
-                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0", 1);
+                throw CLI::ParseError("max_coverage must be specified and integer bigger than 0", 1);
             }
 
             if (input_file_path_.empty()) {
-                throw CLI::ParseError("INPUT_FILE must be specified", 1);
+                throw CLI::ParseError("input_file must be specified", 1);
             }
         }
     });
