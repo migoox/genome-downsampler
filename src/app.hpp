@@ -8,13 +8,13 @@
 #include <memory>
 #include <string>
 
-#include "tests/solver_tester.hpp"
-#include "tests/coverage_tester.hpp"
 #include "qmcp-solver/cuda_max_flow_solver.hpp"
 #include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
 #include "qmcp-solver/sequential_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "qmcp-solver/test_solver.hpp"
+#include "tests/coverage_tester.hpp"
+#include "tests/solver_tester.hpp"
 
 class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
@@ -29,6 +29,7 @@ class App {
 
    private:
     CLI::App app_;
+    CLI::App* test_subcmd_;
     uint32_t hts_thread_count_ = kDefaultThreadCount;
     uint32_t min_mapq_ = kDefaultMinSeqMAPQ;
     uint32_t min_seq_length_ = kDefaultMinSeqLength;
@@ -41,7 +42,6 @@ class App {
     std::filesystem::path bed_path_;
     std::filesystem::path tsv_path_;
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
-        {"test", std::make_shared<qmcp::TestSolver>()},
         {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
         {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
         {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
@@ -49,6 +49,12 @@ class App {
     std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
         {"coverage", std::make_shared<test::CoverageTester>()},
     };
+
+    std::vector<std::string> algorithms_;
+    std::vector<std::string> solver_testers_;
+    void RunTests();
+    std::vector<std::string> GetAllAlgorithms() const;
+    std::vector<std::string> GetAllSolverTesters() const;
 };
 
 #endif

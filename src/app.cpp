@@ -13,15 +13,17 @@
 #include "qmcp-solver/solver.hpp"
 
 App::App() {
-    app_.add_option("-i,--input", input_file_path_, ".bam input file path. Required option.")
-        ->required()
+    std::vector<std::string> all_algorithms = GetAllAlgorithms();
+    std::vector<std::string> all_solver_testers = GetAllSolverTesters();
+    app_.fallthrough();
+
+    app_.add_option("INPUT_FILE", input_file_path_, ".bam input file path. Required option.")
         ->check(CLI::ExistingFile);
 
-    std::vector<std::string> possible_algorithms;
-    possible_algorithms.reserve(solvers_map_.size());
-    for (const auto& mapping : solvers_map_) {
-        possible_algorithms.push_back(mapping.first);
-    }
+    app_.add_option("MAX_COVERAGE", max_ref_coverage_,
+                    "Maximum coverage per reference genome's base pair index.")
+        ->check(CLI::PositiveNumber);
+
     app_.add_option_function<std::string>(
             "-a,--algorithm",
             [this](const std::string& algorithm_name) {
@@ -33,13 +35,7 @@ App::App() {
                 }
             },
             "Algorithm to use.")
-        ->required()
-        ->check(CLI::IsMember(possible_algorithms));
-
-    app_.add_option("-M,--max-coverage", max_ref_coverage_,
-                    "Maximum coverage per reference genome's base pair index.")
-        ->required()
-        ->check(CLI::NonNegativeNumber);
+        ->check(CLI::IsMember(all_algorithms));
 
     app_.add_option("-o,--output", output_file_path_,
                     ".bam output file path. Default is \"output.bam\" in "
@@ -79,12 +75,37 @@ App::App() {
 
     app_.add_flag("-v,--verbose", verbose_mode_,
                   "If specified app_ executes with additional logging.");
+
+    // Add test subcommand
+    test_subcmd_ = app_.add_subcommand("test", "Run unit tests.");
+
+    test_subcmd_->add_option("-a,--algorithms", algorithms_, "Algorithms to test.")
+        ->transform(CLI::IsMember(all_algorithms));
+
+    test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
+        ->transform(CLI::IsMember(all_solver_testers));
+
+    // Logic to make positional arguments required when subcommand is not used
+    app_.callback([&]() {
+        if (app_.get_subcommand() == nullptr) {
+            // If subcommand is not invoked, ensure both input and max-coverage are provided
+            if (max_ref_coverage_ == 0) {
+                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0", 1);
+            }
+
+            if (input_file_path_.empty()) {
+                throw CLI::ParseError("INPUT_FILE must be specified", 1);
+            }
+        }
+    });
+
+    app_.require_subcommand(0, 1);
 }
 
 void App::Parse(int argc, char** argv) {
     app_.parse(argc, argv);
 
-    if (output_file_path_.empty()) {
+    if (!test_subcmd_ && output_file_path_.empty()) {
         output_file_path_ = input_file_path_;
         output_file_path_.replace_filename("output.bam");
     }
@@ -95,6 +116,11 @@ void App::Parse(int argc, char** argv) {
 int App::Exit(const CLI::ParseError& e) { return app_.exit(e); }
 
 void App::Solve() {
+    if (*test_subcmd_) {
+        RunTests();
+        return;
+    }
+
     bam_api::BamApiConfigBuilder config_buider;
 
     config_buider.add_hts_thread_count(hts_thread_count_);
@@ -125,4 +151,41 @@ void App::Solve() {
     if (!filtered_out_path_.empty()) {
         bam_api.write_bam_api_filtered_out_reads(filtered_out_path_);
     }
+}
+
+void App::RunTests() {
+    std::vector<std::string> solvers_to_test =
+        algorithms_.empty() ? GetAllAlgorithms() : algorithms_;
+    std::vector<std::string> tests_to_run =
+        solver_testers_.empty() ? GetAllSolverTesters() : solver_testers_;
+
+    for (const auto& test : tests_to_run) {
+        LOG_WITH_LEVEL(logging::INFO) << "Running test " << test;
+        for (const auto& solver : solvers_to_test) {
+            LOG_WITH_LEVEL(logging::INFO) << "\ton algorithm " << solver;
+
+            // Run tester
+            solver_testers_map_[test]->test(*solvers_map_[solver]);
+        }
+    }
+}
+
+std::vector<std::string> App::GetAllAlgorithms() const {
+    std::vector<std::string> all_algorithms;
+    all_algorithms.reserve(solvers_map_.size());
+
+    for (const auto& mapping : solvers_map_) {
+        all_algorithms.push_back(mapping.first);
+    }
+    return all_algorithms;
+}
+
+std::vector<std::string> App::GetAllSolverTesters() const {
+    std::vector<std::string> all_tests;
+    all_tests.reserve(solver_testers_map_.size());
+
+    for (const auto& mapping : solver_testers_map_) {
+        all_tests.push_back(mapping.first);
+    }
+    return all_tests;
 }
