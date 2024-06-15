@@ -16,7 +16,7 @@
 
 App::App() {
     algorithms_names_ = get_algorithms_names();
-    solver_ = solvers_map_[algorithms_names_[0]];
+    solver_ = solvers_map_["sequential-max-flow"];
     add_main_command_options();
 
 #ifdef TESTING_ENABLED
@@ -69,7 +69,7 @@ void App::App::add_main_command_options() {
                         << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
-            "Algorithm to use. Default is " + algorithms_names_[0])
+            "Algorithm to use. Default is \"sequential-max-flow\"")
         ->check(CLI::IsMember(algorithms_names_));
 
     app_.add_option("-b,--bed", bed_path_,
