@@ -17,7 +17,7 @@ App::App() {
     std::vector<std::string> all_solver_testers = GetAllSolverTesters();
     app_.fallthrough();
 
-    app_.add_option("input_file", input_file_path_, ".bam input file path. Required option.")
+    app_.add_option("input_filepath", input_file_path_, ".bam input file path. Required option.")
         ->check(CLI::ExistingFile);
 
     app_.add_option("max_coverage", max_ref_coverage_,
@@ -95,7 +95,7 @@ App::App() {
             }
 
             if (input_file_path_.empty()) {
-                throw CLI::ParseError("input_file must be specified", 1);
+                throw CLI::ParseError("input_filepath must be specified", 1);
             }
         }
     });
