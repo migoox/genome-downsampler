@@ -75,7 +75,6 @@ jobs:
       run: ./scripts/run-clang-tidy.sh
 
     - name: Reconfigure CMake with tests
-      id: configure
       run: cmake . -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }} -DWITH_TESTS=ON
 
     - name: Rebuild
