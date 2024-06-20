@@ -16,13 +16,13 @@ struct SOAPairedReads;
 struct AOSPairedReads : PairedReads {
     std::vector<Read> reads;
 
-    void push_back(Read&& read) override;
-    void push_back(const Read& read) override;
+    inline void push_back(Read&& read) override { reads.emplace_back(read); }
+    inline void push_back(const Read& read) override { reads.push_back(read); }
+    inline void reserve(size_t size) override { reads.reserve(size); }
     ReadQuality get_quality(ReadIndex index) const override;
     void set_quality(ReadIndex index, ReadQuality quality) override;
     Read get_read_by_index(ReadIndex index) const override;
     ReadIndex get_reads_count() const override;
-    inline void reserve(size_t size) override;
     void clear();
     AOSPairedReads& from(const SOAPairedReads& soa);
 };
