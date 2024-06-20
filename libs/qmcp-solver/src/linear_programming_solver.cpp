@@ -1,55 +1,74 @@
 #include "../include/qmcp-solver/linear_programming_solver.hpp"
 
+#include <cmath>
+#include <cstdint>
 #include <vector>
 
+#include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
-void qmcp::LinearProgrammingSolver::make_matrix(int32_t* n_out, int32_t** row_offsets_out,
+void qmcp::LinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row_offsets_out,
                                                 int32_t** columns_out, double** values_out) {
-    uint64_t n = input_sequence_.ref_genome_length;
-    *n_out = n;
-    uint64_t nnz = 0;
+    bam_api::ReadIndex readCount = input_sequence_.get_reads_count();
+    uint64_t rows = input_sequence_.ref_genome_length + readCount;
+    *rows_out = rows;
+    uint64_t nnz = readCount;  // we have I matrix of size readCount x readCount
     for (uint32_t i = 0; i < input_sequence_.ids.size(); ++i) {
         nnz += input_sequence_.end_inds[i] - input_sequence_.start_inds[i] + 1;
     }
 
-    int* row_offsets = *row_offsets_out = (int*)malloc((n + 1) * sizeof(int));
+    int* row_offsets = *row_offsets_out = (int*)malloc((rows + 1) * sizeof(int));
     int* columns = *columns_out = (int*)malloc(nnz * sizeof(int));
     double* values = *values_out = (double*)malloc(nnz * sizeof(double));
 
     uint32_t value_ind = 0;
+
+    // create Identity matrix
+    for (uint32_t identity_row = 0; identity_row < readCount; ++identity_row) {
+        row_offsets[identity_row] = value_ind;
+        values[value_ind] = 1;
+        columns[value_ind] = identity_row;
+        value_ind++;
+    }
+
+    // create original matrix A
     for (uint32_t ref_ind_it = 0; ref_ind_it < input_sequence_.ref_genome_length; ++ref_ind_it) {
-        row_offsets[ref_ind_it] = value_ind;
+        row_offsets[ref_ind_it + readCount] = value_ind;
         for (uint32_t read_it = 0; read_it < input_sequence_.ids.size(); ++read_it) {
             if (input_sequence_.start_inds[read_it] <= ref_ind_it &&
                 input_sequence_.end_inds[read_it] >= ref_ind_it) {
-                values[value_ind] = 1;
+                values[value_ind] = -1;
                 columns[value_ind] = read_it;
                 value_ind++;
             }
         }
     }
 
-    row_offsets[n] = value_ind;
-
+    row_offsets[rows] = value_ind;
     LOG_WITH_LEVEL(logging::LogLevel::DEBUG) << "nnz: " << nnz << ", last offset: " << value_ind;
 }
 
 std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
-    std::vector<double> x(input_sequence_.ref_genome_length, 0);
+    bam_api::ReadIndex readCount = input_sequence_.get_reads_count();
 
-    for (uint32_t i = 0; i < input_sequence_.ids.size(); ++i) {
+    std::vector<double> b(input_sequence_.ref_genome_length + readCount, 0);
+
+    for (uint32_t i = 0; i < readCount; i++) {
+        b[i] = -1;
+    }
+
+    for (uint32_t i = 0; i < readCount; ++i) {
         for (uint32_t j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i]; ++j) {
-            ++x[j];
+            ++b[j + readCount];
         }
     }
 
     // cap nucleotides with more reads than M to M
     for (uint32_t i = 0; i < input_sequence_.ref_genome_length; ++i) {
-        if (x[i] > M) x[i] = M;
+        if (b[i + readCount] > M) b[i + readCount] = M;
     }
 
-    return x;
+    return b;
 }
 
 std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t max_coverage,
@@ -179,9 +198,10 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     CHECK_CUSPARSE(cusparseDcsrilu02_analysis(cusparseHandle, m, nnz, matLU, d_M_values, d_A_rows,
                                               d_A_columns, infoM, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
                                               d_bufferLU))
-    int structural_zero;
+    int structural_zero = 0;
     CHECK_CUSPARSE(cusparseXcsrilu02_zeroPivot(cusparseHandle, infoM, &structural_zero))
-    // M = L * U
+
+    //  M = L * U
     CHECK_CUSPARSE(cusparseDcsrilu02(cusparseHandle, m, nnz, matLU, d_M_values, d_A_rows,
                                      d_A_columns, infoM, CUSPARSE_SOLVE_POLICY_USE_LEVEL,
                                      d_bufferLU))

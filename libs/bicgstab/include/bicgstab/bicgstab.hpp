@@ -64,14 +64,14 @@
         }                                                                        \
     }
 
-#define CHECK_CUSPARSE(func)                                                         \
-    {                                                                                \
-        cusparseStatus_t status = (func);                                            \
-        if (status != CUSPARSE_STATUS_SUCCESS) {                                     \
-            printf("cuSPARSE API failed at line %d with error: %s (%d)\n", __LINE__, \
-                   cusparseGetErrorString(status), status);                          \
-            exit(EXIT_FAILURE);                                                      \
-        }                                                                            \
+#define CHECK_CUSPARSE(func)                                                               \
+    {                                                                                      \
+        cusparseStatus_t status = (func);                                                  \
+        if (status != CUSPARSE_STATUS_SUCCESS) {                                           \
+            printf("cuSPARSE API failed at line %d with error: %s, [%s] (%d)\n", __LINE__, \
+                   cusparseGetErrorName(status), cusparseGetErrorString(status), status);  \
+            exit(EXIT_FAILURE);                                                            \
+        }                                                                                  \
     }
 
 #define CHECK_CUBLAS(func)                                                             \
