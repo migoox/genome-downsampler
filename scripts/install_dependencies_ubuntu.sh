@@ -21,22 +21,19 @@ fi
 
 $USE_SUDO apt update 
 
-# Install Boost library
-$USE_SUDO apt install libboost-all-dev
-
 # Install htslib dependencies (https://github.com/samtools/htslib/blob/develop/INSTALL)
 $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
 # Install htslib
 # By default, 'make install' installs HTSlib libraries under /usr/local/lib,
 # HTSlib header files under /usr/local/include
-(
-    git clone --recurse-submodules https://github.com/samtools/htslib.git
-    cd htslib
-    make
-    $USE_SUDO make install
-)
-
+# (
+#     git clone --recurse-submodules https://github.com/samtools/htslib.git
+#     cd htslib
+#     make
+#     $USE_SUDO make install
+# )
+$USE_SUDO apt install samtools
 
 # Install ortools
 ORTOOLS_VERSION=or-tools_amd64_ubuntu-22.04_cpp_v9.9.3963
