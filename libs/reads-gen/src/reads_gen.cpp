@@ -5,7 +5,8 @@
 bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
                                               bam_api::ReadIndex pairs_count,
                                               bam_api::Index genome_length, uint32_t read_length,
-                                              const std::function<double(double)>& dist_func) {
+                                              const std::function<double(double)>& dist_func,
+                                              int32_t max_quality) {
     uint32_t starts_count = genome_length - read_length + 1;
     std::vector<double> dist_data(starts_count, 0);
     double sum = 0;
@@ -23,6 +24,7 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
     }
 
     std::discrete_distribution<> dist(dist_data.begin(), dist_data.end());
+    std::uniform_int_distribution<> quality_dist(0, max_quality);
 
     bam_api::AOSPairedReads result;
     result.ref_genome_length = genome_length;
@@ -41,8 +43,10 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
+        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1,
+                                             quality_dist(generator), read_length, true));
+        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1,
+                                             quality_dist(generator), read_length, false));
     }
 
     return result;
@@ -51,11 +55,12 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
 bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
                                                       bam_api::ReadIndex pairs_count,
                                                       bam_api::Index genome_length,
-                                                      uint32_t read_length) {
+                                                      uint32_t read_length, int32_t max_quality) {
     std::uniform_int_distribution<> dist_first(
         0, static_cast<int32_t>(genome_length - 2 * read_length));
     std::uniform_int_distribution<> dist_second(0,
                                                 static_cast<int32_t>(genome_length - read_length));
+    std::uniform_int_distribution<> quality_dist(0, max_quality);
 
     bam_api::AOSPairedReads result;
     result.ref_genome_length = genome_length;
@@ -71,8 +76,10 @@ bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1, 0, read_length, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1, 0, read_length, false));
+        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1,
+                                             quality_dist(generator), read_length, true));
+        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1,
+                                             quality_dist(generator), read_length, false));
     }
 
     return result;
