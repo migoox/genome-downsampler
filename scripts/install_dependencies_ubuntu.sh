@@ -24,7 +24,7 @@ $USE_SUDO apt update
 # Install htslib dependencies (https://github.com/samtools/htslib/blob/develop/INSTALL)
 $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
-# Install htslib
+# Install htslib only
 # By default, 'make install' installs HTSlib libraries under /usr/local/lib,
 # HTSlib header files under /usr/local/include
 # (
@@ -33,9 +33,11 @@ $USE_SUDO apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev libl
 #     make
 #     $USE_SUDO make install
 # )
+
+# Install samtools and htslib using the package manager
 $USE_SUDO apt install samtools
 
-# Install ortools
+# Install ortools under /usr/local/
 ORTOOLS_VERSION=or-tools_amd64_ubuntu-22.04_cpp_v9.9.3963
 ORTOOLS_DIR_NAME=or-tools_x86_64_Ubuntu-22.04_cpp_v9.9.3963
 (
