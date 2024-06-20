@@ -1,4 +1,18 @@
-# cuda-dna-downsampling
+# Genome Downsampler
+
+## Table of Contents
+- [Command Line Interface (CLI) Flags](#command-line-interface-cli-flags)
+    - [Required Flags](#required-flags)
+    - [Optional Flags](#optional-flags)
+    - [Usage Examples](#usage-examples)
+- [Installation guide](#installation-guide)
+    - [Dependencies](#dependencies)
+      - [Common](#common)
+      - [HTSlib](#htslib)
+      - [OR-Tools](#or-tools)
+    - [Install using precompiled binaries](#install-using-precompiled-binaries)
+    - [Compile from source](#compile-from-source)
+
 
 ## Command Line Interface (CLI) Flags
 
