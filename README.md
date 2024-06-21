@@ -11,7 +11,7 @@
       - [HTSlib](#htslib)
       - [OR-Tools](#or-tools)
     - [Install using precompiled binaries](#install-using-precompiled-binaries)
-    - [Compile from source](#compile-from-source)
+    - [Building from source](#building-from-source)
 
 
 ## Command Line Interface (CLI) Flags
@@ -169,7 +169,7 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 
 ### Install using precompiled binaries
 TODO
-### Compile from source 
+### Building from source 
 In order to compile the source:
 1. install the dependencies,
 2. clone the repository, 
