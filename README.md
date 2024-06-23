@@ -83,8 +83,7 @@ This section details the available CLI options for configuring the `cuda-dna-dow
 
 ## Installation guide
 ### Dependencies
-This software supports only GNU/Linux systems, if you are a Windows user, we recommend you to use WSL.
-In order to compile the repository you need to have [**HTSlib**](https://github.com/samtools/htslib) and [**OR-Tools**](https://github.com/google/or-tools) libraries installed on your machine.
+This software only supports GNU/Linux systems, if you are a Windows user, we recommend using WSL. In order to run (or compile), the [**HTSlib**](https://github.com/samtools/htslib) and [**OR-Tools**](https://github.com/google/or-tools) are required to be installed on the your machine.
 
 #### Common
 Install the following common dependencies by running:
@@ -142,7 +141,7 @@ sudo pacman -S samtools
 ```
 
 #### OR-Tools
-Many package managers does not provide OR-Tools library. In order to install it on your machine, download the appropriate binaries from [here](https://developers.google.com/optimization/install/cpp/binary_linux) and extract the files. 
+Many package managers does not provide OR-Tools library. To install it on your machine, download the appropriate binaries from [here](https://developers.google.com/optimization/install/cpp/binary_linux) and extract the files. 
 
 Now, supposing that `ORTOOLS_DIR_NAME` represents the path to the extracted directory, use the following commands:
 
@@ -156,7 +155,6 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 ### Install using precompiled binaries
 TODO
 ### Building from source 
-In order to build from source:
 1. install the dependencies,
 2. clone the repository, 
 3. navigate to the repository directory and run `mkdir build && cd build && cmake .. && cmake --build .`,
