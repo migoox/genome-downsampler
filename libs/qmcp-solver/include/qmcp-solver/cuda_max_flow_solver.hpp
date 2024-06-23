@@ -30,6 +30,7 @@ class CudaMaxFlowSolver : public Solver {
 
     static constexpr uint32_t kDefaultBlockSize = 512;
     static constexpr uint32_t kDefaultKernelCycles = 5000;
+    static constexpr uint32_t kUseGlobalRelabelMin = 300;
 
    private:
     void clear_graph();
@@ -43,7 +44,7 @@ class CudaMaxFlowSolver : public Solver {
                          std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
                          Node end, Capacity capacity);
 
-    void global_relabel(Excess& excess_total);
+    void global_relabel();
 
     // This function is responsible for first step of push-relabel algorithm
     Excess create_preflow();
@@ -54,6 +55,9 @@ class CudaMaxFlowSolver : public Solver {
     std::filesystem::path input_filepath_;
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
+
+    // Global-relabel BFS data
+    std::vector<bool> is_visited_;
 
     // === Graph data ===
     std::vector<Excess> excess_func_;
