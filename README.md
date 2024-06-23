@@ -173,7 +173,8 @@ TODO
 In order to compile the source:
 1. install the dependencies,
 2. clone the repository, 
-3. navigate to the repository directory and run `cmake .`.
+3. navigate to the repository directory and run `mkdir build && cd build && cmake .. && cmake --build .`,
+4. the binary file location `<repository-dir>/build/src/cuda-dna-downsampler`.
 
 
 
