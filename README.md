@@ -156,11 +156,11 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 ### Install using precompiled binaries
 TODO
 ### Building from source 
-In order to compile the source:
+In order to build from source:
 1. install the dependencies,
 2. clone the repository, 
 3. navigate to the repository directory and run `mkdir build && cd build && cmake .. && cmake --build .`,
-4. the binary file location `<repository-dir>/build/src/cuda-dna-downsampler`.
+4. the binary file location: `<repository-dir>/build/src/cuda-dna-downsampler`.
 
 
 
