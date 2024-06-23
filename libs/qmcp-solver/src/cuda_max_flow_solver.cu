@@ -53,18 +53,11 @@ __global__ void push_relabel_kernel(
             qmcp::CudaMaxFlowSolver::Node curr_neighbor = neighbors[i];
             qmcp::CudaMaxFlowSolver::Label neighbor_label = label_func[curr_neighbor];
 
-            // if (label_func[node] > label_func[curr_neighbor] + 1) {
-            //     printf(">>>INVALID RESIDUAL EDGE!!!<<<\n");
-            // }
-
+            // is_forward heuristic prefers the edges that are forward
             if (min_label > neighbor_label) {
                 min_label = neighbor_label;
                 neighbor_info_ind = i;
-                if (curr_neighbor > node) {
-                    is_forward = true;
-                } else {
-                    is_forward = false;
-                }
+                is_forward = curr_neighbor > node;
             } else if (min_label == neighbor_label && !is_forward && curr_neighbor > node) {
                 is_forward = true;
                 neighbor_info_ind = i;
