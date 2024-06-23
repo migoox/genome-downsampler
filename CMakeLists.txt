@@ -54,40 +54,17 @@ endif()
 # Set additional Find<Package>.cmake files direction
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
 
-
 # Display CMAKE_PREFIX_PATH entries
 message("CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 
-# Use '.a' files (static libraries)
-set(Boost_USE_STATIC_LIBS ON)
-
-# If find_package(Boost) can't find BoostConfig.cmake, it will try
-# to look for the FindBoost.cmake. FindBoost.cmake has some
-# variables that may help during the Boost search, user can define
-# env variables in order to set them.
-if(DEFINED ENV{Boost_INCLUDE_DIR})
-    set(Boost_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
-elseif(UNIX)
-    set(Boost_INCLUDE_DIR /usr/include/ /usr/local/include/)
-endif()
-
-if(DEFINED ENV{Boost_LIBRARYDIR})
-    set(Boost_LIBRARYDIR $ENV{Boost_LIBRARYDIR})
-elseif(UNIX)
-    set(Boost_LIBRARYDIR /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
-endif()
-
-# Add Boost Library
-find_package(Boost 1.74 REQUIRED)
-
 if(DEFINED ENV{ZLIB_INCLUDE_DIR})
-    set(ZLIB_INCLUDE_DIR $ENV{Boost_INCLUDE_DIR})
+    set(ZLIB_INCLUDE_DIR $ENV{zlib_INCLUDE_DIR})
 elseif(UNIX)
     set(ZLIB_INCLUDE_DIR /usr/include/ /usr/local/include/)
 endif()
 
 if(DEFINED ENV{ZLIB_LIBRARYDIR})
-    set(ZLIB_LIBRARY $ENV{Boost_LIBRARYDIR})
+    set(ZLIB_LIBRARY $ENV{zlib_LIBRARYDIR})
 elseif(UNIX)
     set(ZLIB_LIBRARY /usr/lib/ /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
 endif()

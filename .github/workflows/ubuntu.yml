@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  Boost_INCLUDE_DIR: /usr/include
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
