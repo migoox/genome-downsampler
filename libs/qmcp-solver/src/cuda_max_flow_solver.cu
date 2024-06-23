@@ -37,7 +37,6 @@ __global__ void push_relabel_kernel(
         if (excess_func[node] <= 0 || label_func[node] >= nodes_count) {
             continue;
         }
-        // printf("NODE: u=%d\n", node);
 
         // Find neighbor with minimum label
         qmcp::CudaMaxFlowSolver::Label min_label = UINT32_MAX;
@@ -53,6 +52,10 @@ __global__ void push_relabel_kernel(
 
             qmcp::CudaMaxFlowSolver::Node curr_neighbor = neighbors[i];
             qmcp::CudaMaxFlowSolver::Label neighbor_label = label_func[curr_neighbor];
+
+            // if (label_func[node] > label_func[curr_neighbor] + 1) {
+            //     printf(">>>INVALID RESIDUAL EDGE!!!<<<\n");
+            // }
 
             if (min_label > neighbor_label) {
                 min_label = neighbor_label;
@@ -72,41 +75,19 @@ __global__ void push_relabel_kernel(
         if (min_label >= label_func[node]) {
             // Preform relabel operation
             label_func[node] = min_label + 1;
-            // printf("OPERATION: relabel node u=%d\n", node);
         } else {
-            // printf("OPERATION: push from u=%d to v=%d\n", node, neighbors[neighbor_info_ind]);
             // Perform push operation
             uint32_t delta = static_cast<uint32_t>(excess_func[node]);  // excess_func[node] > 0
             if (delta > residual_capacity[neighbor_info_ind]) {
                 delta = residual_capacity[neighbor_info_ind];
             }
 
-            // printf("c(u, v)=%u\t", residual_capacity[neighbor_info_ind]);
-            // printf("e(u)=%d\t", excess_func[node]);
-            // printf("delta=%d\n", delta);
-
-            // printf("c(v, u)=%u\t",
-            //        residual_capacity[neighbors_start_ind[neighbors[neighbor_info_ind]] +
-            //                          inversed_edge_offset[neighbor_info_ind]]);
-
-            // printf("c(u, v)=%u\t", residual_capacity[neighbor_info_ind]);
-
             atomicAdd(&residual_capacity[neighbors_start_ind[neighbors[neighbor_info_ind]] +
                                          inversed_edge_offset[neighbor_info_ind]],
                       delta);
-
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
-
-            // printf("c(v, u)=%u\t",
-            //        residual_capacity[neighbors_start_ind[neighbors[neighbor_info_ind]] +
-            //                          inversed_edge_offset[neighbor_info_ind]]);
-
-            // printf("c(u, v)=%u\t", residual_capacity[neighbor_info_ind]);
-
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]], static_cast<int32_t>(delta));
-            // printf("before asub=%d\t", excess_func[node]);
             atomicSub(&excess_func[node], static_cast<int32_t>(delta));
-            // printf("after asub=%d\t", excess_func[node], static_cast<int32_t>(delta));
         }
     }
 }
@@ -133,67 +114,75 @@ void qmcp::CudaMaxFlowSolver::add_edge(
 
 void qmcp::CudaMaxFlowSolver::global_relabel(Excess& excess_total) {
     uint32_t nodes_count = label_func_.size();
-    for (Node u = 0; u < nodes_count; ++u) {
+    // Step 1: Violation-Cancelation, fix all of the invalid residual edges
+    for (Node u = 0; u < nodes_count - 2; ++u) {
         for (NeighborInfoIndex i = neighbors_start_ind_[u]; i <= neighbors_end_ind_[u]; ++i) {
-            if (edge_dir_[i] == EdgeDirection::Backward) {
-                continue;
-            }
-
             Node v = neighbors_[i];
-            if (label_func_[u] <= label_func_[v] + 1) {
+            if (label_func_[u] <= label_func_[v] + 1 || residual_capacity_[i] == 0) {
+                // skip valid residual arcs
                 continue;
             }
 
-            excess_func_[u] -= static_cast<Excess>(residual_capacity_[i]);
-            excess_func_[v] += static_cast<Excess>(residual_capacity_[i]);
-            residual_capacity_[neighbors_start_ind_[v] + inversed_edge_offset_[i]] +=
-                residual_capacity_[i];
-            residual_capacity_[i] = 0;
+            uint32_t delta = static_cast<uint32_t>(excess_func_[u]);  // excess_func[node] > 0
+            if (delta > residual_capacity_[i]) {
+                delta = residual_capacity_[i];
+            }
+
+            excess_func_[u] -= delta;
+            excess_func_[v] += delta;
+            residual_capacity_[neighbors_start_ind_[v] + inversed_edge_offset_[i]] += delta;
+            residual_capacity_[i] -= delta;
         }
     }
 
     Node sink = nodes_count - 1;
+    Node source = nodes_count - 2;
 
-    // Perform BFS backwards from the sink to do the global relabel
-    std::list<Node> nodes;
-    std::vector<bool> is_visited(nodes_count, false);  // TODO(migoox): move it to the class
+    // Step 2: Perform BFS backwards from the sink and assign each node with the BFS tree level
+    typedef uint32_t BFSLevel;
+    std::list<std::pair<Node, BFSLevel>> nodes;
+    std::vector<bool> is_visited(nodes_count, false);    // TODO(migoox): move it to the class
+    std::vector<bool> is_relabeled(nodes_count, false);  // TODO(migoox): move it to the class
+    bool is_all_vertices_relabeled = true;
 
+    nodes.push_back(std::make_pair(sink, 0));
     is_visited[sink] = true;
-    nodes.push_back(sink);
     while (!nodes.empty()) {
-        Node curr_node = nodes.front();
+        Node curr_node = nodes.front().first;
+        BFSLevel curr_level = nodes.front().second;
         nodes.pop_front();
 
-        // Add new vertices
+        // if (curr_node != source) {
+        is_relabeled[curr_node] = !(label_func_[curr_node] == curr_level);
+        is_all_vertices_relabeled = is_all_vertices_relabeled && is_relabeled[curr_node];
+        label_func_[curr_node] = curr_level;
+        // }
+
         for (NeighborInfoIndex i = neighbors_start_ind_[curr_node];
              i <= neighbors_end_ind_[curr_node]; ++i) {
             Node neighbor = neighbors_[i];
-            if (is_visited[neighbor] || residual_capacity_[i] == 0) {
+            // Capacity of neighbor->curr_node edge
+            Capacity edge_cap =
+                residual_capacity_[neighbors_start_ind_[neighbor] + inversed_edge_offset_[i]];
+
+            if (is_visited[neighbor] || edge_cap == 0) {
                 continue;
             }
 
             is_visited[neighbor] = true;
-            label_func_[neighbor] = label_func_[curr_node] + 1;
-            nodes.push_back(neighbor);
+            nodes.push_back(std::make_pair(neighbor, curr_level + 1));
         }
     }
 
-    bool all_relabeled = true;
-    for (Node u = 0; u < nodes_count; ++u) {
-        if (!is_visited[u]) {
-            all_relabeled = false;
-            break;
-        }
-    }
-
-    if (!all_relabeled) {
-        for (Node u = 0; u < nodes_count; ++u) {
-            if (!is_visited[u] && !is_marked_[u]) {
-                is_marked_[u] = true;
-                excess_total = excess_total - excess_func_[u];
-            }
-        }
-    }
+    // // Step 3: Update total excess
+    // if (!is_all_vertices_relabeled) {
+    //     for (Node u = 0; u < nodes_count; ++u) {
+    //         if (!is_relabeled[u] && !is_marked_[u]) {
+    //             is_marked_[u] = true;
+    //             excess_total = excess_total - excess_func_[u];
+    //         }
+    //     }
+    // }
 }
 
 void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequence,
@@ -298,37 +287,40 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     excess_func_.resize(n + 3, 0);
     label_func_.resize(n + 3, 0);
     label_func_[source] = n + 3;
-    create_preflow();
 
     is_marked_.resize(n + 3, false);
 }
 
-void qmcp::CudaMaxFlowSolver::create_preflow() {
+qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
     // Get graph node count
     uint32_t n = label_func_.size();
     Node source = n - 2;
+    Excess excess_total = 0;
 
     // Create preflow: saturate all edges coming out of the source
     for (uint32_t i = neighbors_start_ind_[source]; i <= neighbors_end_ind_[source]; ++i) {
         // We are in the source so every edge has forward direction
         // and checking the edge_dir is not requred
 
-        // Get current neighbor
         Node curr_neighbor = neighbors_[i];
         Capacity curr_edge_capacity = residual_capacity_[i];
 
-        // Get the inversed edge location
+        // Get the inversed edge index
         NeighborInfoIndex inversed_i =
             neighbors_start_ind_[curr_neighbor] + inversed_edge_offset_[i];
 
-        // Saturate the edge
+        // Saturate the inversed edge
         residual_capacity_[inversed_i] = curr_edge_capacity;
         residual_capacity_[i] = 0;
 
         // Update the excess function
         excess_func_[curr_neighbor] = static_cast<Excess>(curr_edge_capacity);
         excess_func_[source] -= static_cast<Excess>(curr_edge_capacity);
+
+        excess_total += curr_edge_capacity;
     }
+
+    return excess_total;
 }
 
 void qmcp::CudaMaxFlowSolver::clear_graph() {
@@ -362,6 +354,13 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
 
     create_graph(input_sequence_, required_cover);
 
+    uint32_t num_blocks = (excess_func_.size() + block_size_ - 1) / block_size_;
+
+    Node sink = excess_func_.size() - 1;
+    Node source = excess_func_.size() - 2;
+
+    Excess total_excess = create_preflow();
+
     // Malloc the CUDA memory
     auto* dev_label_func = cuda::malloc<Label>(label_func_.size());
     auto* dev_excess_func = cuda::malloc<Excess>(excess_func_.size());
@@ -387,16 +386,11 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
                                     residual_capacity_.size());
     cuda::memcpy_host_dev<Excess>(dev_excess_func, excess_func_.data(), excess_func_.size());
 
-    uint32_t num_blocks = (excess_func_.size() + block_size_ - 1) / block_size_;
-
-    Node sink = excess_func_.size() - 1;
-    Node source = excess_func_.size() - 2;
-
-    Excess total_excess = 0;
-    bool end = false;
-    // while (excess_func_[source] + excess_func_[sink] < total_excess) {
-    while (!end) {
+    while (0 < total_excess) {
         // Copy the label function to the device memory
+        cuda::memcpy_host_dev<Capacity>(dev_residual_capacity, residual_capacity_.data(),
+                                        residual_capacity_.size());
+        cuda::memcpy_host_dev<Excess>(dev_excess_func, excess_func_.data(), excess_func_.size());
         cuda::memcpy_host_dev<Label>(dev_label_func, label_func_.data(), label_func_.size());
 
         // Call push-relabel GPU kernel
@@ -412,14 +406,32 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
         cuda::memcpy_dev_host<Excess>(excess_func_.data(), dev_excess_func, excess_func_.size());
         cuda::memcpy_dev_host<Label>(label_func_.data(), dev_label_func, label_func_.size());
 
-        // Call global-relabel on CPU
-        // global_relabel(total_excess);
-        end = true;
+        // Find total excess (temporary)
+        total_excess = 0;
         for (Node u = 0; u < excess_func_.size() - 2; ++u) {
             if (excess_func_[u] > 0) {
-                end = false;
+                total_excess += excess_func_[u];
             }
         }
+
+        if (total_excess <= 0) {
+            break;
+        }
+
+        // Call global-relabel on CPU
+        global_relabel(total_excess);
+
+        // Find total excess (temporary)
+        total_excess = 0;
+        for (Node u = 0; u < excess_func_.size() - 2; ++u) {
+            if (excess_func_[u] > 0) {
+                total_excess += excess_func_[u];
+            }
+        }
+
+        // printf("%d %d <? %d\n", excess_func_[sink], excess_func_[source], total_excess);
+        printf("%d =?= %d, ET=%d\n", -excess_func_[source], excess_func_[sink] + total_excess,
+               total_excess);
     }
 
     cuda::free(dev_label_func);

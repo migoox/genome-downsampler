@@ -22,7 +22,6 @@ class CudaMaxFlowSolver : public Solver {
 
     enum class EdgeDirection : uint8_t { Forward, Backward };
 
-
     std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::BamApi& bam_api) override;
     bool uses_quality_of_reads() override { return false; }
 
@@ -30,7 +29,7 @@ class CudaMaxFlowSolver : public Solver {
     void set_kernel_cycles(uint32_t kernel_cycles);
 
     static constexpr uint32_t kDefaultBlockSize = 512;
-    static constexpr uint32_t kDefaultKernelCycles = 500;
+    static constexpr uint32_t kDefaultKernelCycles = 5000;
 
    private:
     void clear_graph();
@@ -47,7 +46,7 @@ class CudaMaxFlowSolver : public Solver {
     void global_relabel(Excess& excess_total);
 
     // This function is responsible for first step of push-relabel algorithm
-    void create_preflow();
+    Excess create_preflow();
 
     uint32_t block_size_ = kDefaultBlockSize;
     uint32_t kernel_cycles_ = kDefaultKernelCycles;
@@ -59,7 +58,7 @@ class CudaMaxFlowSolver : public Solver {
     // === Graph data ===
     std::vector<Excess> excess_func_;
     std::vector<Label> label_func_;
-    std::vector<bool> is_markded_;
+    std::vector<bool> is_marked_;
 
     // Maps node to start/end index in neighbors info arrays
     std::vector<NeighborInfoIndex> neighbors_start_ind_;
@@ -71,7 +70,7 @@ class CudaMaxFlowSolver : public Solver {
     // - read (1,4) -> 0
     // - read (1,5) -> 2
     // It's required for creating output from residual network
-    std::vector<uint32_t> read_ind_to_neighbor_ind_;
+    std::vector<uint32_t> read_ind_to_neighbor_offset_;
 
     // Neighbors info array is an array that stores packed information about the
     // neighbors of all vertices:
@@ -80,7 +79,7 @@ class CudaMaxFlowSolver : public Solver {
     std::vector<Node> neighbors_;
 
     // Maps NeighborInfoIndex into neighbor's neighbor NeighborInfoIndex
-    std::vector<NeighborInfoIndex> inversed_edge_ind_;
+    std::vector<NeighborInfoIndex> inversed_edge_offset_;
 
     // Maps NeighborInfoIndex into residual capacity
     std::vector<Capacity> residual_capacity_;
