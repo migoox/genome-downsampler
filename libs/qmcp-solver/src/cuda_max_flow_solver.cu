@@ -1,17 +1,4 @@
-#include <stdint.h>
-#include <stdio.h>
-
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <filesystem>
-#include <iostream>
-#include <limits>
 #include <list>
-#include <memory>
-#include <optional>
-#include <tuple>
-#include <utility>
 
 #include "bam-api/bam_api.hpp"
 #include "bam-api/paired_reads.hpp"
@@ -79,8 +66,9 @@ __global__ void push_relabel_kernel(
                                          inversed_edge_offset[neighbor_info_ind]],
                       delta);
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
-            atomicAdd(&excess_func[neighbors[neighbor_info_ind]], static_cast<int32_t>(delta));
-            atomicSub(&excess_func[node], static_cast<int32_t>(delta));
+            atomicAdd(&excess_func[neighbors[neighbor_info_ind]],
+                      static_cast<qmcp::CudaMaxFlowSolver::Excess>(delta));
+            atomicSub(&excess_func[node], static_cast<qmcp::CudaMaxFlowSolver::Excess>(delta));
         }
     }
 }
@@ -121,8 +109,8 @@ void qmcp::CudaMaxFlowSolver::global_relabel() {
                 delta = residual_capacity_[i];
             }
 
-            excess_func_[u] -= delta;
-            excess_func_[v] += delta;
+            excess_func_[u] -= static_cast<Excess>(delta);
+            excess_func_[v] += static_cast<Excess>(delta);
             residual_capacity_[neighbors_start_ind_[v] + inversed_edge_offset_[i]] += delta;
             residual_capacity_[i] -= delta;
         }
@@ -271,7 +259,7 @@ qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
     // Get graph node count
     uint32_t n = label_func_.size();
     Node source = n - 2;
-    Node total_excess = 0;
+    Excess total_excess = 0;
 
     // Create preflow: saturate all edges coming out of the source
     for (uint32_t i = neighbors_start_ind_[source]; i <= neighbors_end_ind_[source]; ++i) {
@@ -293,7 +281,7 @@ qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
         excess_func_[curr_neighbor] = static_cast<Excess>(curr_edge_capacity);
         excess_func_[source] -= static_cast<Excess>(curr_edge_capacity);
 
-        total_excess += curr_edge_capacity;
+        total_excess += static_cast<Excess>(curr_edge_capacity);
     }
 
     return total_excess;
@@ -395,7 +383,8 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
             dev_residual_capacity, dev_neighbors_start_ind, dev_neighbors_end_ind, dev_neighbors,
             dev_inversed_edge_offset);
 
-        Excess sink_excess, source_excess;
+        Excess sink_excess = 0;
+        Excess source_excess = 0;
         cuda::memcpy_dev_host<Excess>(&sink_excess, dev_excess_func + excess_func_.size() - 1, 1);
         cuda::memcpy_dev_host<Excess>(&source_excess, dev_excess_func + excess_func_.size() - 2, 1);
 

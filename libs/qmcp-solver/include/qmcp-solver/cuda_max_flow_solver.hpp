@@ -2,7 +2,6 @@
 #define QMCP_CUDA_MAX_FLOW_SOLVER_HPP
 
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -41,7 +40,7 @@ class CudaMaxFlowSolver : public Solver {
     static void add_edge(std::vector<std::vector<Node>>& neighbors_dict,
                          std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
                          std::vector<std::vector<Capacity>>& residual_capacity_dict,
-                         std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
+                         std::vector<std::vector<uint32_t>>& inversed_edge_offset_dict, Node start,
                          Node end, Capacity capacity);
 
     void global_relabel();
