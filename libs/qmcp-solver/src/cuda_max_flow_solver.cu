@@ -46,14 +46,14 @@ __global__ void push_relabel_kernel(
         for (qmcp::CudaMaxFlowSolver::NeighborInfoIndex i = neighbors_start_ind[node];
              i <= neighbors_end_ind[node]; ++i) {
             if (residual_capacity[i] == 0) {
-                // skip edges that are not part of the residual graph
+                // Skip edges that are not part of the residual graph
                 continue;
             }
 
             qmcp::CudaMaxFlowSolver::Node curr_neighbor = neighbors[i];
             qmcp::CudaMaxFlowSolver::Label neighbor_label = label_func[curr_neighbor];
 
-            // is_forward heuristic prefers the edges that are forward
+            // The is_forward heuristic prefers the edges that are forward
             if (min_label > neighbor_label) {
                 min_label = neighbor_label;
                 neighbor_info_ind = i;
@@ -112,7 +112,7 @@ void qmcp::CudaMaxFlowSolver::global_relabel() {
         for (NeighborInfoIndex i = neighbors_start_ind_[u]; i <= neighbors_end_ind_[u]; ++i) {
             Node v = neighbors_[i];
             if (label_func_[u] <= label_func_[v] + 1 || residual_capacity_[i] == 0) {
-                // skip valid residual arcs
+                // Skip valid residual arcs
                 continue;
             }
 
@@ -385,7 +385,6 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
                                         residual_capacity_.size());
         cuda::memcpy_host_dev<Excess>(dev_excess_func, excess_func_.data(), excess_func_.size());
         cuda::memcpy_host_dev<Label>(dev_label_func, label_func_.data(), label_func_.size());
-        printf("%d\n", excess_left);
     }
 
     // 2. Do raw push-relabel without any heuristics
@@ -401,8 +400,8 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
         cuda::memcpy_dev_host<Excess>(&source_excess, dev_excess_func + excess_func_.size() - 2, 1);
 
         excess_left = -source_excess - sink_excess;
-        printf("%d\n", excess_left);
     }
+
     cuda::memcpy_dev_host<Capacity>(residual_capacity_.data(), dev_residual_capacity,
                                     residual_capacity_.size());
     cuda::memcpy_dev_host<Excess>(excess_func_.data(), dev_excess_func, excess_func_.size());
