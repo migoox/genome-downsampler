@@ -251,8 +251,6 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     excess_func_.resize(n + 3, 0);
     label_func_.resize(n + 3, 0);
     label_func_[source] = n + 3;
-
-    is_marked_.resize(n + 3, false);
 }
 
 qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
@@ -288,11 +286,19 @@ qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
 }
 
 void qmcp::CudaMaxFlowSolver::clear_graph() {
+    // From https://en.cppreference.com/w/cpp/container/vector/clear,
+    // the capacity is unchanged, so it is beneficial to do clears
+    // instead of creating new vectors every time, since we
+    // may minimize the number of allocations between multiple calls
+    // of the same instance of the solver.
     excess_func_.clear();
     label_func_.clear();
     neighbors_.clear();
     neighbors_start_ind_.clear();
     neighbors_end_ind_.clear();
+    read_ind_to_neighbor_offset_.clear();
+    inversed_edge_offset_.clear();
+    edge_dir_.clear();
     residual_capacity_.clear();
     max_coverage_.clear();
 }

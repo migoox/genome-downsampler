@@ -59,9 +59,10 @@ class CudaMaxFlowSolver : public Solver {
     std::vector<bool> is_visited_;
 
     // === Graph data ===
+    // WARNING: the graph data must be cleared between 2 calls of
+    // this solver (clear_graph function)
     std::vector<Excess> excess_func_;
     std::vector<Label> label_func_;
-    std::vector<bool> is_marked_;
 
     // Maps node to start/end index in neighbors info arrays
     std::vector<NeighborInfoIndex> neighbors_start_ind_;
@@ -73,7 +74,7 @@ class CudaMaxFlowSolver : public Solver {
     // - read (1,4) -> 0
     // - read (1,5) -> 2
     // It's required for creating output from residual network
-    std::vector<uint32_t> read_ind_to_neighbor_offset_;
+    std::vector<NeighborInfoIndex> read_ind_to_neighbor_offset_;
 
     // Neighbors info array is an array that stores packed information about the
     // neighbors of all vertices:
