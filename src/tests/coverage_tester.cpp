@@ -102,7 +102,8 @@ bool CoverageTester::is_out_cover_valid(std::vector<uint32_t>& in_cover,
                                         const std::vector<uint32_t>& out_cover, uint32_t m) {
     std::vector<uint32_t> capped_input_cover(in_cover);
     cap_cover(capped_input_cover, m);
-    return std::equal(capped_input_cover.begin(), capped_input_cover.end(), out_cover.begin(), std::less_equal<>());
+    return std::equal(capped_input_cover.begin(), capped_input_cover.end(), out_cover.begin(),
+                      std::less_equal<>());
 }
 
 CoverageTestResult CoverageTester::small_example_test(qmcp::Solver& solver) {
