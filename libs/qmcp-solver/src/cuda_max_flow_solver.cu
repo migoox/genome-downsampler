@@ -180,10 +180,10 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     std::vector<std::vector<NeighborInfoIndex>> inversed_edge_offset_dict(n + 3);
 
     // Save the neighbor index for future export
-    read_ind_to_neighbor_offset_.resize(sequence.end_inds.size());
+    read_ind_to_neighbor_offset_.resize(sequence.get_reads_count());
 
     // Add edges that are corresponding to the reads
-    for (bam_api::ReadIndex i = 0; i < sequence.end_inds.size(); ++i) {
+    for (bam_api::ReadIndex i = 0; i < sequence.get_reads_count(); ++i) {
         Node u = sequence.start_inds[i];
         Node v = sequence.end_inds[i] + 1;
 
@@ -309,7 +309,7 @@ std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required
 
     // Create max coverage function
     max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);
-    for (bam_api::ReadIndex i = 0; i < input_sequence_.end_inds.size(); ++i) {
+    for (bam_api::ReadIndex i = 0; i < input_sequence_.get_reads_count(); ++i) {
         for (bam_api::Index j = input_sequence_.start_inds[i]; j <= input_sequence_.end_inds[i];
              ++j) {
             ++max_coverage_[j + 1];
