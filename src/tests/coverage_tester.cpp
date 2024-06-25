@@ -82,6 +82,8 @@ bam_api::AOSPairedReads CoverageTester::get_small_aos_example() {
         {id++, 4, 6, 0, 3, false},
     };
 
+    assert(id == 16);
+
     result.ref_genome_length = 11;
     for (auto& read : reads) {
         result.push_back(read);
@@ -98,8 +100,9 @@ void CoverageTester::cap_cover(std::vector<uint32_t>& cover, uint32_t cap) {
 
 bool CoverageTester::is_out_cover_valid(std::vector<uint32_t>& in_cover,
                                         const std::vector<uint32_t>& out_cover, uint32_t m) {
-    cap_cover(in_cover, m);
-    return std::equal(in_cover.begin(), in_cover.end(), out_cover.begin(), std::less_equal<>());
+    std::vector<uint32_t> capped_input_cover(in_cover);
+    cap_cover(capped_input_cover, m);
+    return std::equal(capped_input_cover.begin(), capped_input_cover.end(), out_cover.begin(), std::less_equal<>());
 }
 
 CoverageTestResult CoverageTester::small_example_test(qmcp::Solver& solver) {

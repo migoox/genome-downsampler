@@ -1,14 +1,13 @@
-#include "../include/qmcp-solver/sequential_max_flow_solver.hpp"
+#include "../include/qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
 #include "bam-api/bam_api.hpp"
-#include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/solver.hpp"
 
-std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCpuMaxFlowSolver::solve(uint32_t max_coverage, bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMaxFlow max_flow;
@@ -25,7 +24,7 @@ std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::solve(uint32_t ma
     return obtain_sequence(input_sequence_, max_flow);
 }
 
-void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
+void qmcp::QuasiMcpCpuMaxFlowSolver::create_network_flow_graph(
     operations_research::SimpleMaxFlow& max_flow, const bam_api::AOSPairedReads& sequence,
     unsigned int M) {
     // create normal edges
@@ -53,7 +52,7 @@ void qmcp::SequentialMaxFlowSolver::create_network_flow_graph(
     }
 }
 
-std::vector<int> qmcp::SequentialMaxFlowSolver::create_b_function(
+std::vector<int> qmcp::QuasiMcpCpuMaxFlowSolver::create_b_function(
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
@@ -70,7 +69,7 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_b_function(
     return b;
 }
 
-std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
+std::vector<int> qmcp::QuasiMcpCpuMaxFlowSolver::create_demand_function(
     const bam_api::AOSPairedReads& sequence, unsigned int M) {
     std::vector<int> b = create_b_function(sequence, M);
 
@@ -84,7 +83,7 @@ std::vector<int> qmcp::SequentialMaxFlowSolver::create_demand_function(
     return b;
 }
 
-std::unique_ptr<qmcp::Solution> qmcp::SequentialMaxFlowSolver::obtain_sequence(
+std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCpuMaxFlowSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence, const operations_research::SimpleMaxFlow& max_flow) {
     auto reduced_reads = std::make_unique<Solution>();
 

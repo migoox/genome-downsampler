@@ -3,18 +3,18 @@
 #include "bam-api/bam_api.hpp"
 #include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
-#include "qmcp-solver/cuda_max_flow_solver.hpp"
+#include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
 
 __global__ void push_relabel_kernel(
-    uint32_t kernel_cycles, uint32_t nodes_count, qmcp::CudaMaxFlowSolver::Excess* excess_func,
-    qmcp::CudaMaxFlowSolver::Label* label_func,
-    qmcp::CudaMaxFlowSolver::Capacity* residual_capacity,
-    const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* neighbors_start_ind,
-    const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* neighbors_end_ind,
-    const qmcp::CudaMaxFlowSolver::Node* neighbors,
-    const qmcp::CudaMaxFlowSolver::NeighborInfoIndex* inversed_edge_offset) {
-    qmcp::CudaMaxFlowSolver::Node node = blockDim.x * blockIdx.x + threadIdx.x;
+    uint32_t kernel_cycles, uint32_t nodes_count, qmcp::QuasiMcpCudaMaxFlowSolver::Excess* excess_func,
+    qmcp::QuasiMcpCudaMaxFlowSolver::Label* label_func,
+    qmcp::QuasiMcpCudaMaxFlowSolver::Capacity* residual_capacity,
+    const qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex* neighbors_start_ind,
+    const qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex* neighbors_end_ind,
+    const qmcp::QuasiMcpCudaMaxFlowSolver::Node* neighbors,
+    const qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex* inversed_edge_offset) {
+    qmcp::QuasiMcpCudaMaxFlowSolver::Node node = blockDim.x * blockIdx.x + threadIdx.x;
     if (node >= nodes_count - 2) {
         return;
     }
@@ -26,19 +26,19 @@ __global__ void push_relabel_kernel(
         }
 
         // Find neighbor with minimum label
-        qmcp::CudaMaxFlowSolver::Label min_label = UINT32_MAX;
-        qmcp::CudaMaxFlowSolver::NeighborInfoIndex neighbor_info_ind = UINT32_MAX;
+        qmcp::QuasiMcpCudaMaxFlowSolver::Label min_label = UINT32_MAX;
+        qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex neighbor_info_ind = UINT32_MAX;
         bool is_forward = false;
 
-        for (qmcp::CudaMaxFlowSolver::NeighborInfoIndex i = neighbors_start_ind[node];
+        for (qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex i = neighbors_start_ind[node];
              i <= neighbors_end_ind[node]; ++i) {
             if (residual_capacity[i] == 0) {
                 // Skip edges that are not part of the residual graph
                 continue;
             }
 
-            qmcp::CudaMaxFlowSolver::Node curr_neighbor = neighbors[i];
-            qmcp::CudaMaxFlowSolver::Label neighbor_label = label_func[curr_neighbor];
+            qmcp::QuasiMcpCudaMaxFlowSolver::Node curr_neighbor = neighbors[i];
+            qmcp::QuasiMcpCudaMaxFlowSolver::Label neighbor_label = label_func[curr_neighbor];
 
             // The is_forward heuristic prefers the edges that are forward
             if (min_label > neighbor_label) {
@@ -67,13 +67,13 @@ __global__ void push_relabel_kernel(
                       delta);
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]],
-                      static_cast<qmcp::CudaMaxFlowSolver::Excess>(delta));
-            atomicSub(&excess_func[node], static_cast<qmcp::CudaMaxFlowSolver::Excess>(delta));
+                      static_cast<qmcp::QuasiMcpCudaMaxFlowSolver::Excess>(delta));
+            atomicSub(&excess_func[node], static_cast<qmcp::QuasiMcpCudaMaxFlowSolver::Excess>(delta));
         }
     }
 }
 
-void qmcp::CudaMaxFlowSolver::add_edge(
+void qmcp::QuasiMcpCudaMaxFlowSolver::add_edge(
     std::vector<std::vector<Node>>& neighbors_dict,
     std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
     std::vector<std::vector<Capacity>>& residual_capacity_dict,
@@ -93,7 +93,7 @@ void qmcp::CudaMaxFlowSolver::add_edge(
     inversed_edge_offset_dict[end].push_back(start_info_size);
 }
 
-void qmcp::CudaMaxFlowSolver::global_relabel() {
+void qmcp::QuasiMcpCudaMaxFlowSolver::global_relabel() {
     uint32_t nodes_count = label_func_.size();
     // Step 1: Violation-Cancelation, fix all of the invalid residual edges
     for (Node u = 0; u < nodes_count - 2; ++u) {
@@ -149,7 +149,7 @@ void qmcp::CudaMaxFlowSolver::global_relabel() {
     }
 }
 
-void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequence,
+void qmcp::QuasiMcpCudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequence,
                                            uint32_t required_cover) {
     // Clear the graph data
     clear_graph();
@@ -253,7 +253,7 @@ void qmcp::CudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequen
     label_func_[source] = n + 3;
 }
 
-qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
+qmcp::QuasiMcpCudaMaxFlowSolver::Excess qmcp::QuasiMcpCudaMaxFlowSolver::create_preflow() {
     // Get graph node count
     uint32_t n = label_func_.size();
     Node source = n - 2;
@@ -285,7 +285,7 @@ qmcp::CudaMaxFlowSolver::Excess qmcp::CudaMaxFlowSolver::create_preflow() {
     return total_excess;
 }
 
-void qmcp::CudaMaxFlowSolver::clear_graph() {
+void qmcp::QuasiMcpCudaMaxFlowSolver::clear_graph() {
     // From https://en.cppreference.com/w/cpp/container/vector/clear,
     // the capacity is unchanged, so it is beneficial to do clears
     // instead of creating new vectors every time, since we
@@ -303,13 +303,13 @@ void qmcp::CudaMaxFlowSolver::clear_graph() {
     max_coverage_.clear();
 }
 
-void qmcp::CudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
+void qmcp::QuasiMcpCudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
 
-void qmcp::CudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
+void qmcp::QuasiMcpCudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
-std::unique_ptr<qmcp::Solution> qmcp::CudaMaxFlowSolver::solve(uint32_t required_cover,
+std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCudaMaxFlowSolver::solve(uint32_t required_cover,
                                                                bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_soa();
 
