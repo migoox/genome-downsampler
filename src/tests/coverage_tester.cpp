@@ -11,6 +11,15 @@
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "reads_gen.hpp"
+#include "scoped_timer.hpp"
+
+#define RUN_TEST_FUNCTION(SOLVER, OUTPUT, FUNCTION)                                            \
+    LOG_WITH_LEVEL(logging::INFO) << "Running " << #FUNCTION << "...";                         \
+    {                                                                                          \
+        ScopedTimer timer;                                                                     \
+        run_test_and_write_output(SOLVER, OUTPUT, std::string(#FUNCTION) + ".cov", &FUNCTION); \
+    }                                                                                          \
+    LOG_WITH_LEVEL(logging::INFO) << "PASSED!";
 
 namespace fs = std::filesystem;
 
@@ -26,16 +35,11 @@ void CoverageTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_) {
         return;
     }
 
-    run_test_and_write_output(solver, outputs_dir_path_, "small_example_outputs.txt",
-                              &CoverageTester::small_example_test);
-    run_test_and_write_output(solver, outputs_dir_path_, "random_uniform_dist.txt",
-                              &CoverageTester::random_uniform_dist_test);
-    run_test_and_write_output(solver, outputs_dir_path_, "random_low_coverage_on_both_sides.txt",
-                              &CoverageTester::random_low_coverage_on_both_sides_test);
-    run_test_and_write_output(solver, outputs_dir_path_, "random_with_hole.txt",
-                              &CoverageTester::random_with_hole_test);
-    run_test_and_write_output(solver, outputs_dir_path_, "random_zero_coverage_on_both_sides.txt",
-                              &CoverageTester::random_zero_coverage_on_both_sides_test);
+    RUN_TEST_FUNCTION(solver, outputs_dir_path_, small_example_test);
+    RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_uniform_dist_test);
+    RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_low_coverage_on_both_sides_test);
+    RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_with_hole_test);
+    RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_zero_coverage_on_both_sides_test);
 }
 
 void CoverageTester::run_test_and_write_output(qmcp::Solver& solver, fs::path& outputs_dir_path_,

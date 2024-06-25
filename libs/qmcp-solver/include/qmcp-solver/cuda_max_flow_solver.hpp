@@ -2,7 +2,6 @@
 #define QMCP_CUDA_MAX_FLOW_SOLVER_HPP
 
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -22,7 +21,6 @@ class CudaMaxFlowSolver : public Solver {
 
     enum class EdgeDirection : uint8_t { Forward, Backward };
 
-
     std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::BamApi& bam_api) override;
     bool uses_quality_of_reads() override { return false; }
 
@@ -30,7 +28,8 @@ class CudaMaxFlowSolver : public Solver {
     void set_kernel_cycles(uint32_t kernel_cycles);
 
     static constexpr uint32_t kDefaultBlockSize = 512;
-    static constexpr uint32_t kDefaultKernelCycles = 500;
+    static constexpr uint32_t kDefaultKernelCycles = 5000;
+    static constexpr uint32_t kUseGlobalRelabelMin = 300;
 
    private:
     void clear_graph();
@@ -41,13 +40,13 @@ class CudaMaxFlowSolver : public Solver {
     static void add_edge(std::vector<std::vector<Node>>& neighbors_dict,
                          std::vector<std::vector<EdgeDirection>>& edge_dir_dict,
                          std::vector<std::vector<Capacity>>& residual_capacity_dict,
-                         std::vector<std::vector<uint32_t>>& inversed_edge_ind_dict, Node start,
+                         std::vector<std::vector<uint32_t>>& inversed_edge_offset_dict, Node start,
                          Node end, Capacity capacity);
 
-    void global_relabel(Excess& excess_total);
+    void global_relabel();
 
     // This function is responsible for first step of push-relabel algorithm
-    void create_preflow();
+    Excess create_preflow();
 
     uint32_t block_size_ = kDefaultBlockSize;
     uint32_t kernel_cycles_ = kDefaultKernelCycles;
@@ -56,10 +55,14 @@ class CudaMaxFlowSolver : public Solver {
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
 
+    // Global-relabel BFS data
+    std::vector<bool> is_visited_;
+
     // === Graph data ===
+    // WARNING: the graph data must be cleared between 2 calls of
+    // this solver (clear_graph function)
     std::vector<Excess> excess_func_;
     std::vector<Label> label_func_;
-    std::vector<bool> is_markded_;
 
     // Maps node to start/end index in neighbors info arrays
     std::vector<NeighborInfoIndex> neighbors_start_ind_;
@@ -71,7 +74,7 @@ class CudaMaxFlowSolver : public Solver {
     // - read (1,4) -> 0
     // - read (1,5) -> 2
     // It's required for creating output from residual network
-    std::vector<uint32_t> read_ind_to_neighbor_ind_;
+    std::vector<NeighborInfoIndex> read_ind_to_neighbor_offset_;
 
     // Neighbors info array is an array that stores packed information about the
     // neighbors of all vertices:
@@ -80,7 +83,7 @@ class CudaMaxFlowSolver : public Solver {
     std::vector<Node> neighbors_;
 
     // Maps NeighborInfoIndex into neighbor's neighbor NeighborInfoIndex
-    std::vector<NeighborInfoIndex> inversed_edge_ind_;
+    std::vector<NeighborInfoIndex> inversed_edge_offset_;
 
     // Maps NeighborInfoIndex into residual capacity
     std::vector<Capacity> residual_capacity_;
