@@ -19,7 +19,7 @@
         ScopedTimer timer;                                                                     \
         run_test_and_write_output(SOLVER, OUTPUT, std::string(#FUNCTION) + ".cov", &FUNCTION); \
     }                                                                                          \
-    LOG_WITH_LEVEL(logging::INFO) << "PASSED!\n";
+    LOG_WITH_LEVEL(logging::INFO) << "PASSED!";
 
 namespace fs = std::filesystem;
 
