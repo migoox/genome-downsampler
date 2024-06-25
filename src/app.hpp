@@ -8,9 +8,9 @@
 #include <memory>
 #include <string>
 
-#include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/mcp_cpu_circulation_solver.hpp"
 #include "qmcp-solver/qmcp_cpu_circulation_solver.hpp"
+#include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "qmcp-solver/test_solver.hpp"
