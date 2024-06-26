@@ -1,5 +1,5 @@
-#ifndef QMCP_SEQUENTIAL_MAX_FLOW_SOLVER_HPP
-#define QMCP_SEQUENTIAL_MAX_FLOW_SOLVER_HPP
+#ifndef QMCP_QUASI_MCP_CPU_MAX_FLOW_SOLVER_HPP
+#define QMCP_QUASI_MCP_CPU_MAX_FLOW_SOLVER_HPP
 #include <ortools/graph/max_flow.h>
 
 #include <memory>

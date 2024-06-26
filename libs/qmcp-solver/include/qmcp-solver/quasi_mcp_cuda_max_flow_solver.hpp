@@ -1,5 +1,5 @@
-#ifndef QMCP_CUDA_MAX_FLOW_SOLVER_HPP
-#define QMCP_CUDA_MAX_FLOW_SOLVER_HPP
+#ifndef QMCP_QUASI_MCP_CUDA_MAX_FLOW_SOLVER_HPP
+#define QMCP_QUASI_MCP_CUDA_MAX_FLOW_SOLVER_HPP
 
 #include <cstdint>
 #include <memory>
