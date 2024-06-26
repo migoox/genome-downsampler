@@ -20,7 +20,7 @@ jobs:
     env:
       build_dir: "build"
       config: "Release"
-      algorithms_to_test: sequential-max-flow
+      algorithms_to_test: quasi-mcp-cpu mcp-cpu
 
     steps:
     - uses: actions/checkout@v3

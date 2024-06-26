@@ -8,9 +8,10 @@
 #include <memory>
 #include <string>
 
-#include "qmcp-solver/cuda_max_flow_solver.hpp"
-#include "qmcp-solver/sequential_cost_scaling_network_solver.hpp"
-#include "qmcp-solver/sequential_max_flow_solver.hpp"
+#include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
+#include "qmcp-solver/qmcp_cpu_cost_scaling_solver.hpp"
+#include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
+#include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "qmcp-solver/test_solver.hpp"
 
@@ -32,9 +33,10 @@ class App {
 
    private:
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
-        {"sequential-max-flow", std::make_shared<qmcp::SequentialMaxFlowSolver>()},
-        {"sequential-cost-scaling", std::make_shared<qmcp::SequentialCostScalingNetworkSolver>()},
-        {"cuda-max-flow", std::make_shared<qmcp::CudaMaxFlowSolver>()},
+        {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
+        {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
+        {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
+        {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()},
     };
     std::vector<std::string> algorithms_names_;
     CLI::App app_;

@@ -35,7 +35,7 @@ This section details the available CLI options for configuring the `cuda-dna-dow
   - Path to the output .bam file. Default is "output.bam" in the input file's directory.
 
 - `-a`, `--algorithm` `TEXT` : **Algorithm**
-  - Algorithm to use for downsampling. Options are: `cuda-max-flow`, `sequential-cost-scaling`, `sequential-max-flow`. Default is `sequential-max-flow`.
+  - Algorithm to use for downsampling. Options are: `cpu-quasi-mcp`, `cuda-quasi-mcp`, `cpu-qmcp`, . Default is `cpu-quasi-mcp`.
 
 - `-b`, `--bed` `TEXT:FILE` : **BED file with amplicon bounds**
   - Path to .bed file specifying amplicon bounds for filtering or prioritization based on the selected algorithm.
@@ -108,7 +108,7 @@ Arch Linux:
 sudo pacman -S autoconf automake make gcc perl zlib bzip2 xz curl openssl
 ```
 
-#### HTSlib 
+#### HTSlib
 If you prefer to install only HTSlib, you can use the following script. For the full installation guide, visit [here](https://github.com/samtools/htslib/blob/develop/INSTALL):
 ```bash
 wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2

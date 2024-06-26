@@ -11,7 +11,7 @@
 
 namespace qmcp {
 
-class CudaMaxFlowSolver : public Solver {
+class QuasiMcpCudaMaxFlowSolver : public Solver {
    public:
     typedef uint32_t Node;
     typedef uint32_t Capacity;

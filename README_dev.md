@@ -64,6 +64,12 @@ For compilation we are going to use:
 - **cmake >= 3.21**,
 - **cmake-format (optional)** allows cmake files formatting.
 
+#### Compilation with tests
+To compile with `test` subcommand available, you must add `WITH_TESTS=ON` flag of CMake. In CLI it can be done with:
+```sh
+cmake -DWITH_TESTS=ON ..
+```
+from build directory (assuming that you are building in subdirectory in main directory of repository).
 
 ### Linter
 - **clang-format >= 14.0**: responsible for code formatting
