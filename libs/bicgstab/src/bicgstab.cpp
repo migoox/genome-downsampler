@@ -164,12 +164,12 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
     double nrm_R;
     CHECK_CUBLAS(cublasDnrm2(cublasHandle, m, d_R0.ptr, 1, &nrm_R))
     double threshold = tolerance * nrm_R;
-    printf("  Initial Residual: Norm %e' threshold %e\n", nrm_R, threshold);
+    /// printf("  Initial Residual: Norm %e' threshold %e\n", nrm_R, threshold);
     //--------------------------------------------------------------------------
     // ### 2 ### repeat until convergence based on max iterations and
     //           and relative residual
     for (int i = 1; i <= maxIterations; i++) {
-        printf("  Iteration = %d; Error Norm = %e\n", i, nrm_R);
+        /// printf("  Iteration = %d; Error Norm = %e\n", i, nrm_R);
         //----------------------------------------------------------------------
         // ### 4, 7 ### P_i = R_i
         CHECK_CUDA(cudaMemcpy(d_P.ptr, d_R.ptr, m * sizeof(double), cudaMemcpyDeviceToDevice))
@@ -213,10 +213,10 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
         double denominator;
         CHECK_CUBLAS(cublasDdot(cublasHandle, m, d_R0.ptr, 1, d_V.ptr, 1, &denominator))
         alpha = delta / denominator;
-        PRINT_INFO(delta)
-        PRINT_INFO(alpha)
+        // PRINT_INFO(delta)
+        // PRINT_INFO(alpha)
         //----------------------------------------------------------------------
-        // ### 11 ###  X_i = X_i-1 + alpha * P_aux
+        //  ### 11 ###  X_i = X_i-1 + alpha * P_aux
         CHECK_CUBLAS(cublasDaxpy(cublasHandle, m, &alpha, d_P_aux.ptr, 1, d_X.ptr, 1))
         //----------------------------------------------------------------------
         // ### 12 ###  S = R_i-1 - alpha * (A * P_aux)
@@ -229,7 +229,7 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
         // ### 13 ###  check ||S|| < threshold
         double nrm_S;
         CHECK_CUBLAS(cublasDnrm2(cublasHandle, m, d_S.ptr, 1, &nrm_S))
-        PRINT_INFO(nrm_S)
+        // PRINT_INFO(nrm_S)
         if (nrm_S < threshold) break;
         //----------------------------------------------------------------------
         // ### 14 ### S_aux = M_U^-1 M_L^-1 S
@@ -256,11 +256,11 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
         CHECK_CUBLAS(cublasDdot(cublasHandle, m, d_T.ptr, 1, d_T.ptr, 1, &omega_den))
         //    (d) omega = omega_num / omega_den
         omega = omega_num / omega_den;
-        PRINT_INFO(omega)
-        // ---------------------------------------------------------------------
-        // ### 16 ### omega = X_i = X_i-1 + alpha * P_aux + omega * S_aux
-        //    (a) X_i has been updated with h = X_i-1 + alpha * P_aux
-        //        X_i = omega * S_aux + X_i
+        // PRINT_INFO(omega)
+        //  ---------------------------------------------------------------------
+        //  ### 16 ### omega = X_i = X_i-1 + alpha * P_aux + omega * S_aux
+        //     (a) X_i has been updated with h = X_i-1 + alpha * P_aux
+        //         X_i = omega * S_aux + X_i
         CHECK_CUBLAS(cublasDaxpy(cublasHandle, m, &omega, d_S_aux.ptr, 1, d_X.ptr, 1))
         // ---------------------------------------------------------------------
         // ### 17 ###  R_i+1 = S - omega * (A * S_aux)
@@ -272,11 +272,11 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
         // ---------------------------------------------------------------------
         // ### 18 ###  check ||R_i|| < threshold
         CHECK_CUBLAS(cublasDnrm2(cublasHandle, m, d_R.ptr, 1, &nrm_R))
-        PRINT_INFO(nrm_R)
+        // PRINT_INFO(nrm_R)
         if (nrm_R < threshold) break;
     }
     //--------------------------------------------------------------------------
-    printf("Check Solution\n");  // ||R = b - A * X||
+    /// printf("Check Solution\n");  // ||R = b - A * X||
     //    (a) copy b in R
     CHECK_CUDA(cudaMemcpy(d_R.ptr, d_B.ptr, m * sizeof(double), cudaMemcpyDeviceToDevice))
     // R = -A * X + R
@@ -285,7 +285,7 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
                                 d_bufferMV))
     // check ||R||
     CHECK_CUBLAS(cublasDnrm2(cublasHandle, m, d_R.ptr, 1, &nrm_R))
-    printf("Final error norm = %e\n", nrm_R);
+    //// printf("Final error norm = %e\n", nrm_R);
     //--------------------------------------------------------------------------
     CHECK_CUSPARSE(cusparseSpSV_destroyDescr(spsvDescrL))
     CHECK_CUSPARSE(cusparseSpSV_destroyDescr(spsvDescrU))

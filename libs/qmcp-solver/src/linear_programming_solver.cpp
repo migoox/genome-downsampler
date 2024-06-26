@@ -2,29 +2,61 @@
 
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
 #include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
+void print_matrix(int rows, int* row_offsets, int* columns, double* values) {
+    int32_t max_col = 0;
+    for (int32_t i = 0; i < rows; ++i) {
+        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
+            if (columns[j] > max_col) {
+                max_col = columns[j];
+            }
+        }
+    }
+    int32_t cols = max_col + 1;
+
+    // Print the matrix
+    std::vector<std::vector<double>> matrix(rows, std::vector<double>(cols, 0.0));
+
+    for (int32_t i = 0; i < rows; ++i) {
+        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
+            matrix[i][columns[j]] = values[j];
+        }
+    }
+
+    for (const auto& row : matrix) {
+        for (double value : row) {
+            std::cout << std::setw(5) << value << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 void qmcp::LinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row_offsets_out,
                                                 int32_t** columns_out, double** values_out) {
-    bam_api::ReadIndex readCount = input_sequence_.get_reads_count();
-    uint64_t rows = input_sequence_.ref_genome_length + readCount;
+    bam_api::ReadIndex read_count = input_sequence_.get_reads_count();
+    uint64_t rows = input_sequence_.ref_genome_length + read_count;
     *rows_out = rows;
-    uint64_t nnz = readCount;  // we have I matrix of size readCount x readCount
-    for (uint32_t i = 0; i < input_sequence_.ids.size(); ++i) {
+    uint64_t nnz =
+        read_count +  // we have I matrix of size readCount x readCount
+        input_sequence_
+            .ref_genome_length;  // and additional |G| columns with 1's starting from |R| index
+    for (uint32_t i = 0; i < read_count; ++i) {
         nnz += input_sequence_.end_inds[i] - input_sequence_.start_inds[i] + 1;
     }
 
-    int* row_offsets = *row_offsets_out = (int*)malloc((rows + 1) * sizeof(int));
+    int* row_offsets = *row_offsets_out = static_cast<int*>(malloc((rows + 1) * sizeof(int)));
     int* columns = *columns_out = (int*)malloc(nnz * sizeof(int));
     double* values = *values_out = (double*)malloc(nnz * sizeof(double));
 
     uint32_t value_ind = 0;
 
     // create Identity matrix
-    for (uint32_t identity_row = 0; identity_row < readCount; ++identity_row) {
+    for (uint32_t identity_row = 0; identity_row < read_count; ++identity_row) {
         row_offsets[identity_row] = value_ind;
         values[value_ind] = 1;
         columns[value_ind] = identity_row;
@@ -33,16 +65,31 @@ void qmcp::LinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row
 
     // create original matrix A
     for (uint32_t ref_ind_it = 0; ref_ind_it < input_sequence_.ref_genome_length; ++ref_ind_it) {
-        row_offsets[ref_ind_it + readCount] = value_ind;
+        row_offsets[read_count + ref_ind_it] = value_ind;
         for (uint32_t read_it = 0; read_it < input_sequence_.ids.size(); ++read_it) {
             if (input_sequence_.start_inds[read_it] <= ref_ind_it &&
                 input_sequence_.end_inds[read_it] >= ref_ind_it) {
                 values[value_ind] = -1;
                 columns[value_ind] = read_it;
+                // std::cout << "TERAZ KOLUMNA bedzie "
                 value_ind++;
             }
         }
+        // add |G| columns
+        values[value_ind] = INT32_MAX;
+        columns[value_ind] = ref_ind_it + read_count;
+        value_ind++;
     }
+
+    /*
+    // add  |G| columns
+    for (uint32_t ref_ind_it = 0; ref_ind_it < input_sequence_.ref_genome_length; ++ref_ind_it) {
+        row_offsets[read_count + ref_ind_it] = value_ind;
+        values[value_ind] = INT32_MAX;
+        columns[value_ind] = ref_ind_it + read_count;
+        value_ind++;
+    }
+    */
 
     row_offsets[rows] = value_ind;
     LOG_WITH_LEVEL(logging::LogLevel::DEBUG) << "nnz: " << nnz << ", last offset: " << value_ind;
@@ -85,9 +132,11 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     int* h_A_columns = NULL;
     double* h_A_values = NULL;
     make_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
+    // print_matrix(m, h_A_rows, h_A_columns, h_A_values);
     int num_offsets = m + 1;
     int nnz = h_A_rows[m];
-    std::vector<double> h_X = create_b_vector(max_coverage);
+    std::vector<double> h_X = std::vector<double>(m, 1);
+    std::vector<double> h_B = create_b_vector(max_coverage);
     //--------------------------------------------------------------------------
     // ### Device memory management ###
     int *d_A_rows, *d_A_columns;
@@ -118,6 +167,7 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     CHECK_CUDA(cudaMemcpy(d_A_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_M_values, h_A_values, nnz * sizeof(double), cudaMemcpyHostToDevice))
     CHECK_CUDA(cudaMemcpy(d_X.ptr, h_X.data(), m * sizeof(double), cudaMemcpyHostToDevice))
+    CHECK_CUDA(cudaMemcpy(d_B.ptr, h_B.data(), m * sizeof(double), cudaMemcpyHostToDevice))
     //--------------------------------------------------------------------------
     // ### cuSPARSE Handle and descriptors initialization ###
     // create the test matrix on the host
@@ -214,7 +264,7 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     CHECK_CUDA(cudaFree(d_bufferLU))
     //--------------------------------------------------------------------------
     // ### Run BiCGStab computation ###
-    printf("BiCGStab loop:\n");
+    // printf("BiCGStab loop:\n");
     gpu_BiCGStab(cublasHandle, cusparseHandle, m, matA, matM_lower, matM_upper, d_B, d_X, d_R0, d_R,
                  d_P, d_P_aux, d_S, d_S_aux, d_V, d_T, d_tmp, d_bufferMV, maxIterations, tolerance);
     //--------------------------------------------------------------------------

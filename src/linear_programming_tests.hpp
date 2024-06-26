@@ -119,7 +119,7 @@ void small_example_test() {
 void random_uniform_dist_test() {
     // GIVEN
     const uint32_t seed = 12345;
-    const uint32_t pairs_count = 10'000;
+    const uint32_t pairs_count = 100'000;
     const uint32_t genome_length = 3'000;
     const uint32_t read_length = 150;
     const uint32_t m = 1000;
@@ -148,7 +148,7 @@ void random_uniform_dist_test() {
 void random_with_func_dist_test(const std::function<double(double)>& dist_func) {
     // GIVEN
     const uint32_t seed = 12345;
-    const uint32_t pairs_count = 1'000'000;
+    const uint32_t pairs_count = 100'000;
     const uint32_t genome_length = 30'000;
     const uint32_t read_length = 150;
     const uint32_t m = 8000;
