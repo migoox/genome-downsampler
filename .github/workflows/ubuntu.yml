@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  Boost_INCLUDE_DIR: /usr/include
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -23,6 +20,7 @@ jobs:
     env:
       build_dir: "build"
       config: "Release"
+      algorithms_to_test: quasi-mcp-cpu mcp-cpu
 
     steps:
     - uses: actions/checkout@v3
@@ -32,8 +30,8 @@ jobs:
         cuda: ${{ matrix.cuda }}
       run: ./scripts/install_cuda_ubuntu.sh
       shell: bash
-    
-    - name: Install dependencies 
+
+    - name: Install dependencies
       run: ./scripts/install_dependencies_ubuntu.sh
       shell: bash
 
@@ -72,3 +70,15 @@ jobs:
 
     - name: Clang-tidy check
       run: ./scripts/run-clang-tidy.sh
+
+    - name: Reconfigure CMake with tests
+      run: cmake . -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }} -DWITH_TESTS=ON
+
+    - name: Rebuild
+      working-directory: ${{ env.build_dir }}
+      run: cmake --build . --target all --verbose -j `nproc`
+
+    - name: Run tests
+      working-directory: ${{ env.build_dir }}
+      run: ./src/cuda-dna-downsampler test -a ${{ env.algorithms_to_test }}
+

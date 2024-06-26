@@ -23,13 +23,37 @@ struct SOAPairedReads : PairedReads {
     std::vector<uint32_t> seq_lengths;
     std::vector<bool> is_first_reads;
 
-    inline void push_back(Read&& read) override;
-    inline void push_back(const Read& read) override;
+    inline void push_back(Read&& read) override {
+        ids.emplace_back(read.bam_id);
+        start_inds.emplace_back(read.start_ind);
+        end_inds.emplace_back(read.end_ind);
+        qualities.emplace_back(read.quality);
+        seq_lengths.emplace_back(read.seq_length);
+        is_first_reads.emplace_back(read.is_first_read);
+    }
+
+    inline void push_back(const Read& read) override {
+        ids.push_back(read.bam_id);
+        start_inds.push_back(read.start_ind);
+        end_inds.push_back(read.end_ind);
+        qualities.push_back(read.quality);
+        seq_lengths.push_back(read.seq_length);
+        is_first_reads.push_back(read.is_first_read);
+    }
+
+    inline void reserve(size_t size) override {
+        ids.reserve(size);
+        start_inds.reserve(size);
+        end_inds.reserve(size);
+        qualities.reserve(size);
+        seq_lengths.reserve(size);
+        is_first_reads.reserve(size);
+    }
+
     Read get_read_by_index(ReadIndex index) const override;
     ReadQuality get_quality(ReadIndex index) const override;
     void set_quality(ReadIndex index, ReadQuality quality) override;
     ReadIndex get_reads_count() const override;
-    inline void reserve(size_t size) override;
     void clear();
     SOAPairedReads& from(const AOSPairedReads& aos);
 };

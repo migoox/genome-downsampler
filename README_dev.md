@@ -37,6 +37,13 @@ Foo
              └── ...
 ```
 
+### Branch naming convention
+`(feature|bug)/{issue_number}(-{feature_name})?`
+
+ex.
+feature/4-add-min-cost-max-flow-library
+bug/7
+
 https://github.com/Jamagas/CMake
 
 ## Project Setup
@@ -57,6 +64,12 @@ For compilation we are going to use:
 - **cmake >= 3.21**,
 - **cmake-format (optional)** allows cmake files formatting.
 
+#### Compilation with tests
+To compile with `test` subcommand available, you must add `WITH_TESTS=ON` flag of CMake. In CLI it can be done with:
+```sh
+cmake -DWITH_TESTS=ON ..
+```
+from build directory (assuming that you are building in subdirectory in main directory of repository).
 
 ### Linter
 - **clang-format >= 14.0**: responsible for code formatting
@@ -113,7 +126,6 @@ VSCode configuration:
 
 ### Project dependencies
 We are depending on 3 libraries:
-- [**boost >= 1.74**](https://www.boost.org/): this library provides a huge amount of features that are not part of the STL (e.g. regexes) -- including graph module and some STL alernatives (e.g. boost::optional),
 - [**samtools/htslib >= 1.19**](https://github.com/samtools/htslib): C library for accessing common file formats, such as SAM, CRAM and VCF, used for high-throughput sequencing data,
 - [**CLI >= 2.4**](https://github.com/CLIUtils/CLI11): command line parser for C++11.
 
