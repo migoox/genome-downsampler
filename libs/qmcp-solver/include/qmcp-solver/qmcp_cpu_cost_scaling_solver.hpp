@@ -1,5 +1,5 @@
-#ifndef QMCP_MCP_CPU_CIRCULATION_SOLVER_HPP
-#define QMCP_MCP_CPU_CIRCULATION_SOLVER_HPP
+#ifndef QMCP_SEQUENTIAL_COST_SCALING_NETWORK_SOLVER_HPP
+#define QMCP_SEQUENTIAL_COST_SCALING_NETWORK_SOLVER_HPP
 
 #include <ortools/graph/min_cost_flow.h>
 
@@ -11,7 +11,7 @@
 #include "solver.hpp"
 
 namespace qmcp {
-class McpCpuCirculationSolver : public Solver {
+class QmcpCpuCostScalingSolver : public Solver {
    public:
     std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
     bool uses_quality_of_reads() override { return true; }

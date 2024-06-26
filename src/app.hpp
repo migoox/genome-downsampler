@@ -8,8 +8,8 @@
 #include <memory>
 #include <string>
 
-#include "qmcp-solver/mcp_cpu_circulation_solver.hpp"
-#include "qmcp-solver/qmcp_cpu_circulation_solver.hpp"
+#include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
+#include "qmcp-solver/qmcp_cpu_cost_scaling_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
@@ -34,8 +34,8 @@ class App {
    private:
     std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_{
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
-        {"mcp-cpu", std::make_shared<qmcp::McpCpuCirculationSolver>()},
-        {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCirculationSolver>()},
+        {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
+        {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()},
     };
     std::vector<std::string> algorithms_names_;

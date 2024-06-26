@@ -1,4 +1,4 @@
-#include "../include/qmcp-solver/qmcp_cpu_circulation_solver.hpp"
+#include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
 
 #include <cstdint>
 #include <iostream>
@@ -10,8 +10,8 @@
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 
-std::unique_ptr<qmcp::Solution> qmcp::QmcpCpuCirculationSolver::solve(
-    uint32_t max_coverage, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::McpCpuCostScalingSolver::solve(uint32_t max_coverage,
+                                                                     bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMinCostFlow min_cost_flow;
@@ -30,7 +30,7 @@ std::unique_ptr<qmcp::Solution> qmcp::QmcpCpuCirculationSolver::solve(
     return obtain_sequence(input_sequence_, min_cost_flow);
 }
 
-void qmcp::QmcpCpuCirculationSolver::create_network_flow_graph(
+void qmcp::McpCpuCostScalingSolver::create_network_flow_graph(
     operations_research::SimpleMinCostFlow& min_cost_flow, const bam_api::AOSPairedReads& sequence,
     uint32_t M) {
     const int capacity_upper_bound_multiplier = 100;
@@ -41,11 +41,10 @@ void qmcp::QmcpCpuCirculationSolver::create_network_flow_graph(
         if (read.quality > max_quality) max_quality = read.quality;
     }
 
-    // 2. Create normal edges with calculated cost
+    // 2. Create normal edges with cost 1, because we want minimum number of reads for max flow
     for (const bam_api::Read& read : sequence.reads) {
-        int cost = static_cast<int>(max_quality - read.quality + 1);
         min_cost_flow.AddArcWithCapacityAndUnitCost(static_cast<int>(read.start_ind),
-                                                    static_cast<int>(read.end_ind + 1), 1, cost);
+                                                    static_cast<int>(read.end_ind + 1), 1, 1);
     }
 
     // 3. Create backwards edges with cost 0
@@ -67,7 +66,7 @@ void qmcp::QmcpCpuCirculationSolver::create_network_flow_graph(
     }
 }
 
-std::vector<int> qmcp::QmcpCpuCirculationSolver::create_b_function(
+std::vector<int> qmcp::McpCpuCostScalingSolver::create_b_function(
     const bam_api::AOSPairedReads& sequence, uint32_t M) {
     std::vector<int> b(sequence.ref_genome_length + 1, 0);
 
@@ -85,7 +84,7 @@ std::vector<int> qmcp::QmcpCpuCirculationSolver::create_b_function(
     return b;
 }
 
-std::vector<int> qmcp::QmcpCpuCirculationSolver::create_demand_function(
+std::vector<int> qmcp::McpCpuCostScalingSolver::create_demand_function(
     const bam_api::AOSPairedReads& sequence, uint32_t M) {
     std::vector<int> b = create_b_function(sequence, M);
 
@@ -99,7 +98,7 @@ std::vector<int> qmcp::QmcpCpuCirculationSolver::create_demand_function(
 
     return b;
 }
-std::unique_ptr<qmcp::Solution> qmcp::QmcpCpuCirculationSolver::obtain_sequence(
+std::unique_ptr<qmcp::Solution> qmcp::McpCpuCostScalingSolver::obtain_sequence(
     const bam_api::AOSPairedReads& sequence,
     const operations_research::SimpleMinCostFlow& min_cost_flow) {
     auto reduced_reads = std::make_unique<Solution>();

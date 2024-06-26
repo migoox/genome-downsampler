@@ -1,8 +1,8 @@
 add_library(
     qmcp-solver STATIC
     src/quasi_mcp_cpu_max_flow_solver.cpp
-    src/qmcp_cpu_circulation_solver.cpp
-    src/mcp_cpu_circulation_solver.cpp
+    src/qmcp_cpu_cost_scaling_solver.cpp
+    src/mcp_cpu_cost_scaling_solver.cpp
     src/test_solver.cpp
     src/quasi_mcp_cuda_max_flow_solver.cu)
 
