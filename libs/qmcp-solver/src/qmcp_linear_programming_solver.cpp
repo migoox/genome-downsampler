@@ -1,4 +1,4 @@
-#include "../include/qmcp-solver/linear_programming_solver.hpp"
+#include "../include/qmcp-solver/qmcp_linear_programming_solver.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -36,8 +36,8 @@ void print_matrix(int rows, int* row_offsets, int* columns, double* values) {
     }
 }
 
-void qmcp::LinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row_offsets_out,
-                                                int32_t** columns_out, double** values_out) {
+void qmcp::QmcpLinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row_offsets_out,
+                                                    int32_t** columns_out, double** values_out) {
     bam_api::ReadIndex read_count = input_sequence_.get_reads_count();
     uint64_t rows = input_sequence_.ref_genome_length + read_count;
     *rows_out = rows;
@@ -84,7 +84,7 @@ void qmcp::LinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row
     LOG_WITH_LEVEL(logging::LogLevel::DEBUG) << "nnz: " << nnz << ", last offset: " << value_ind;
 }
 
-std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
+std::vector<double> qmcp::QmcpLinearProgrammingSolver::create_b_vector(uint32_t M) {
     bam_api::ReadIndex readCount = input_sequence_.get_reads_count();
 
     std::vector<double> b(input_sequence_.ref_genome_length + readCount, 0);
@@ -107,11 +107,11 @@ std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
     return b;
 }
 
-std::vector<double> qmcp::LinearProgrammingSolver::process_bicgstab(int m, int* h_A_rows,
-                                                                    int* h_A_columns,
-                                                                    double* h_A_values,
-                                                                    std::vector<double> h_B,
-                                                                    std::vector<double> h_X) {
+std::vector<double> qmcp::QmcpLinearProgrammingSolver::process_bicgstab(int m, int* h_A_rows,
+                                                                        int* h_A_columns,
+                                                                        double* h_A_values,
+                                                                        std::vector<double> h_B,
+                                                                        std::vector<double> h_X) {
     // code from main.cpp
     const int maxIterations = 100;
     const double tolerance = 0.0000000001;
@@ -292,8 +292,8 @@ std::vector<double> qmcp::LinearProgrammingSolver::process_bicgstab(int m, int* 
     return h_X;
 }
 
-std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t max_coverage,
-                                                                     bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::QmcpLinearProgrammingSolver::solve(uint32_t max_coverage,
+                                                                         bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_soa();
 
     int m = -1;

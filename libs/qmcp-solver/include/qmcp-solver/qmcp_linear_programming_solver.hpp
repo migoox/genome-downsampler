@@ -1,5 +1,5 @@
-#ifndef QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
-#define QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
+#ifndef QMCP_QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
+#define QMCP_QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
 
 #include <memory>
 #include <vector>
@@ -10,10 +10,10 @@
 #include "solver.hpp"
 
 namespace qmcp {
-class LinearProgrammingSolver : public Solver {
+class QmcpLinearProgrammingSolver : public Solver {
    public:
     std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
-    bool uses_quality_of_reads() override { return false; }
+    bool uses_quality_of_reads() override { return true; }
 
    private:
     void make_matrix(int* n_out, int** row_offsets_out, int** columns_out, double** values_out);
