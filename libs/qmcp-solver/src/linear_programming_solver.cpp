@@ -118,25 +118,19 @@ std::vector<double> qmcp::LinearProgrammingSolver::create_b_vector(uint32_t M) {
     return b;
 }
 
-std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t max_coverage,
-                                                                     bam_api::BamApi& bam_api) {
-    input_sequence_ = bam_api.get_paired_reads_soa();
-
+std::vector<double> qmcp::LinearProgrammingSolver::process_bicgstab(int m, int* h_A_rows,
+                                                                    int* h_A_columns,
+                                                                    double* h_A_values,
+                                                                    std::vector<double> h_B,
+                                                                    std::vector<double> h_X) {
     // code from main.cpp
     const int maxIterations = 100;
     const double tolerance = 0.0000000001;
 
     int base = 0;
-    int m = -1;
-    int* h_A_rows = NULL;
-    int* h_A_columns = NULL;
-    double* h_A_values = NULL;
-    make_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
-    // print_matrix(m, h_A_rows, h_A_columns, h_A_values);
+
     int num_offsets = m + 1;
     int nnz = h_A_rows[m];
-    std::vector<double> h_X = std::vector<double>(m, 1);
-    std::vector<double> h_B = create_b_vector(max_coverage);
     //--------------------------------------------------------------------------
     // ### Device memory management ###
     int *d_A_rows, *d_A_columns;
@@ -306,12 +300,28 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
     CHECK_CUDA(cudaFree(d_A_rows))
     CHECK_CUDA(cudaFree(d_M_values))
     CHECK_CUDA(cudaFree(d_bufferMV))
+    return h_X;
+}
+
+std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t max_coverage,
+                                                                     bam_api::BamApi& bam_api) {
+    input_sequence_ = bam_api.get_paired_reads_soa();
+
+    int m = -1;
+    int* h_A_rows = NULL;
+    int* h_A_columns = NULL;
+    double* h_A_values = NULL;
+
+    make_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
+    auto b = create_b_vector(max_coverage);
+
+    auto x = process_bicgstab(m, h_A_rows, h_A_columns, h_A_values, b, std::vector<double>(m, 1));
 
     // return solution
     auto reduced_reads = std::make_unique<Solution>();
 
     for (bam_api::ReadIndex i = 0; i < input_sequence_.get_reads_count(); ++i) {
-        if (h_X[i] > 0) {
+        if (x[i] > 0) {
             // LOG_WITH_LEVEL(logging::DEBUG) << "h_X[" << i << "]: " << h_X[i];
             reduced_reads->push_back(input_sequence_.ids[i]);
         }
