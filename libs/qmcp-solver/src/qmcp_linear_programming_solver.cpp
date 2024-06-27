@@ -102,7 +102,6 @@ void qmcp::QmcpLinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t**
                 input_sequence_.end_inds[read_it] >= ref_ind_it) {
                 values[value_ind] = -1;
                 columns[value_ind] = read_it;
-                // std::cout << "TERAZ KOLUMNA bedzie "
                 value_ind++;
             }
         }
