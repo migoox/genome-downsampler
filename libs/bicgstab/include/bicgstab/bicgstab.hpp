@@ -47,7 +47,8 @@
  * Users Notice.
  */
 
-#pragma once
+#ifndef BIGCSTAB
+#define BIGCSTAB
 
 #include <assert.h>
 #include <cublas_v2.h>
@@ -106,3 +107,5 @@ int gpu_BiCGStab(cublasHandle_t cublasHandle, cusparseHandle_t cusparseHandle, i
                  cusparseSpMatDescr_t matM_upper, Vec d_B, Vec d_X, Vec d_R0, Vec d_R, Vec d_P,
                  Vec d_P_aux, Vec d_S, Vec d_S_aux, Vec d_V, Vec d_T, Vec d_tmp, void* d_bufferMV,
                  int maxIterations, double tolerance);
+
+#endif

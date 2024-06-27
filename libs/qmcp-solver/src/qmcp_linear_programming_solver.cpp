@@ -8,6 +8,34 @@
 #include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
+void print_matrix(int rows, int* row_offsets, int* columns, double* values) {
+    int32_t max_col = 0;
+    for (int32_t i = 0; i < rows; ++i) {
+        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
+            if (columns[j] > max_col) {
+                max_col = columns[j];
+            }
+        }
+    }
+    int32_t cols = max_col + 1;
+
+    // Print the matrix
+    std::vector<std::vector<double>> matrix(rows, std::vector<double>(cols, 0.0));
+
+    for (int32_t i = 0; i < rows; ++i) {
+        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
+            matrix[i][columns[j]] = values[j];
+        }
+    }
+
+    for (const auto& row : matrix) {
+        for (double value : row) {
+            std::cout << std::setw(5) << value << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 void qmcp::QmcpLinearProgrammingSolver::make_quality_matrix(int32_t* rows_out,
                                                             int32_t** row_offsets_out,
                                                             int32_t** columns_out,
@@ -15,10 +43,9 @@ void qmcp::QmcpLinearProgrammingSolver::make_quality_matrix(int32_t* rows_out,
     bam_api::ReadIndex read_count = input_sequence_.get_reads_count();
     uint64_t rows = input_sequence_.ref_genome_length + read_count + 1;
     *rows_out = rows;
-    uint64_t nnz =
-        2 * read_count +  // we have I matrix of size readCount x readCount
-        input_sequence_
-            .ref_genome_length;  // and additional |G| columns with 1's starting from |R| index
+    uint64_t nnz = 2 * read_count +  // we have I matrix of size readCount x readCount
+                   input_sequence_.ref_genome_length +
+                   1;  // and additional |G| columns with 1's starting from |R| index
     for (uint32_t i = 0; i < read_count; ++i) {
         nnz += input_sequence_.end_inds[i] - input_sequence_.start_inds[i] + 1;
     }
@@ -50,10 +77,21 @@ void qmcp::QmcpLinearProgrammingSolver::make_quality_matrix(int32_t* rows_out,
             }
         }
         // add |G| columns
-        values[value_ind] = INT32_MAX;
+        values[value_ind] = 1;  //..INT32_MAX;
         columns[value_ind] = ref_ind_it + read_count;
         value_ind++;
     }
+
+    row_offsets[rows - 1] = value_ind;
+    // create_ones_vector
+    for (uint32_t identity_row = 0; identity_row < read_count; ++identity_row) {
+        values[value_ind] = 1;
+        columns[value_ind] = identity_row;
+        value_ind++;
+    }
+    values[value_ind] = 1;  //..INT32_MAX;
+    columns[value_ind] = input_sequence_.ref_genome_length + read_count;
+    value_ind++;
     row_offsets[rows] = value_ind;
     LOG_WITH_LEVEL(logging::LogLevel::DEBUG) << "nnz: " << nnz << ", last offset: " << value_ind;
 }
@@ -77,18 +115,9 @@ void qmcp::QmcpLinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t**
 
     uint32_t value_ind = 0;
 
-    row_offsets = 0;
-    row_offsets[0] = value_ind;
-    // create_ones_vector
-    for (uint32_t identity_row = 0; identity_row < read_count; ++identity_row) {
-        values[value_ind] = 1;
-        columns[value_ind] = identity_row;
-        value_ind++;
-    }
-
     // create Identity matrix
     for (uint32_t identity_row = 0; identity_row < read_count; ++identity_row) {
-        row_offsets[identity_row + 1] = value_ind;
+        row_offsets[identity_row] = value_ind;
         values[value_ind] = 1;
         columns[value_ind] = identity_row;
         value_ind++;
@@ -96,7 +125,7 @@ void qmcp::QmcpLinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t**
 
     // create original matrix A
     for (uint32_t ref_ind_it = 0; ref_ind_it < input_sequence_.ref_genome_length; ++ref_ind_it) {
-        row_offsets[read_count + ref_ind_it + 1] = value_ind;
+        row_offsets[read_count + ref_ind_it] = value_ind;
         for (uint32_t read_it = 0; read_it < input_sequence_.ids.size(); ++read_it) {
             if (input_sequence_.start_inds[read_it] <= ref_ind_it &&
                 input_sequence_.end_inds[read_it] >= ref_ind_it) {
@@ -353,6 +382,7 @@ std::unique_ptr<qmcp::Solution> qmcp::QmcpLinearProgrammingSolver::solve(uint32_
 
     // optimise costs
     make_quality_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
+
     auto quality = create_quality_b_vector(max_coverage);
 
     x = process_bicgstab(m, h_A_rows, h_A_columns, h_A_values, quality, x);

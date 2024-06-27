@@ -2,6 +2,7 @@
 #define QMCP_QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
 
 #include <memory>
+#include <vector>
 
 #include "bam-api/read.hpp"
 #include "bicgstab/bicgstab.hpp"
@@ -18,7 +19,7 @@ class QmcpLinearProgrammingSolver : public Solver {
     void make_matrix(int* n_out, int** row_offsets_out, int** columns_out, double** values_out);
     std::vector<double> create_b_vector(uint32_t M);
 
-    void make_quality_matrix(int* n_out, int** row_offsets_out, int** columns_out,
+    void make_quality_matrix(int32_t* rows_out, int32_t** row_offsets_out, int32_t** columns_out,
                              double** values_out);
 
     std::vector<double> create_quality_b_vector(uint32_t M);
