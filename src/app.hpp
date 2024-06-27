@@ -11,6 +11,7 @@
 #include "qmcp-solver/linear_programming_solver.hpp"
 #include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
 #include "qmcp-solver/qmcp_cpu_cost_scaling_solver.hpp"
+#include "qmcp-solver/qmcp_linear_programming_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
@@ -37,8 +38,9 @@ class App {
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
         {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
         {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
-        {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()},
-        {"bicgstab", std::make_shared<qmcp::LinearProgrammingSolver>()},
+        {"qmcp-linear-cuda", std::make_shared<qmcp::QmcpLinearProgrammingSolver>()},
+        {"quasi-mcp-linear-cuda", std::make_shared<qmcp::LinearProgrammingSolver>()},
+        {"quasi-mcp-cuda", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()},
     };
     std::vector<std::string> algorithms_names_;
     CLI::App app_;

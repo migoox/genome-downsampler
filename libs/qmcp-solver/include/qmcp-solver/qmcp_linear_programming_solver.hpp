@@ -2,7 +2,6 @@
 #define QMCP_QMCP_LINEAR_PROGRAMMING_SOLVER_HPP
 
 #include <memory>
-#include <vector>
 
 #include "bam-api/read.hpp"
 #include "bicgstab/bicgstab.hpp"

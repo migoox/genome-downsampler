@@ -8,34 +8,6 @@
 #include "bam-api/read.hpp"
 #include "logging/log.hpp"
 
-void print_matrix(int rows, int* row_offsets, int* columns, double* values) {
-    int32_t max_col = 0;
-    for (int32_t i = 0; i < rows; ++i) {
-        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
-            if (columns[j] > max_col) {
-                max_col = columns[j];
-            }
-        }
-    }
-    int32_t cols = max_col + 1;
-
-    // Print the matrix
-    std::vector<std::vector<double>> matrix(rows, std::vector<double>(cols, 0.0));
-
-    for (int32_t i = 0; i < rows; ++i) {
-        for (int32_t j = row_offsets[i]; j < row_offsets[i + 1]; ++j) {
-            matrix[i][columns[j]] = values[j];
-        }
-    }
-
-    for (const auto& row : matrix) {
-        for (double value : row) {
-            std::cout << std::setw(5) << value << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
 void qmcp::QmcpLinearProgrammingSolver::make_matrix(int32_t* rows_out, int32_t** row_offsets_out,
                                                     int32_t** columns_out, double** values_out) {
     bam_api::ReadIndex read_count = input_sequence_.get_reads_count();
