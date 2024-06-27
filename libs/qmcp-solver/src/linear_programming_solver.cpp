@@ -312,7 +312,7 @@ std::unique_ptr<qmcp::Solution> qmcp::LinearProgrammingSolver::solve(uint32_t ma
 
     for (bam_api::ReadIndex i = 0; i < input_sequence_.get_reads_count(); ++i) {
         if (h_X[i] > 0) {
-            LOG_WITH_LEVEL(logging::DEBUG) << "h_X[" << i << "]: " << h_X[i];
+            // LOG_WITH_LEVEL(logging::DEBUG) << "h_X[" << i << "]: " << h_X[i];
             reduced_reads->push_back(input_sequence_.ids[i]);
         }
     }
