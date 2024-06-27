@@ -18,6 +18,11 @@ class QmcpLinearProgrammingSolver : public Solver {
     void make_matrix(int* n_out, int** row_offsets_out, int** columns_out, double** values_out);
     std::vector<double> create_b_vector(uint32_t M);
 
+    void make_quality_matrix(int* n_out, int** row_offsets_out, int** columns_out,
+                             double** values_out);
+
+    std::vector<double> create_quality_b_vector(uint32_t M);
+
     std::vector<double> process_bicgstab(int rows, int* row_offsets_out, int* columns_out,
                                          double* values_out, std::vector<double> b,
                                          std::vector<double> x);
