@@ -383,6 +383,7 @@ std::unique_ptr<qmcp::Solution> qmcp::QmcpLinearProgrammingSolver::solve(uint32_
     // optimise costs
     make_quality_matrix(&m, &h_A_rows, &h_A_columns, &h_A_values);
 
+    // print_matrix(m, h_A_rows, h_A_columns, h_A_values);
     auto quality = create_quality_b_vector(max_coverage);
 
     x = process_bicgstab(m, h_A_rows, h_A_columns, h_A_values, quality, x);
