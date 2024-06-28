@@ -14,6 +14,7 @@
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "qmcp-solver/test_solver.hpp"
+#include "tests/efficiency_tester.hpp"
 
 #ifdef TESTING_ENABLED
 #include "tests/coverage_tester.hpp"
@@ -59,6 +60,7 @@ class App {
 #ifdef TESTING_ENABLED
     std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
         {"coverage", std::make_shared<test::CoverageTester>()},
+        {"efficiency", std::make_shared<test::EfficiencyTester>()},
     };
     std::vector<std::string> solver_testers_names_;
     std::vector<std::string> algorithms_to_test_;
