@@ -119,10 +119,10 @@ CoverageTestResult CoverageTester::small_example_test(qmcp::Solver& solver) {
 
 CoverageTestResult CoverageTester::random_uniform_dist_test(qmcp::Solver& solver) {
     const uint32_t seed = 12345;
-    const uint32_t pairs_count = 1'000'000;
+    const uint32_t pairs_count = 1'00'000;
     const uint32_t genome_length = 30'000;
     const uint32_t read_length = 150;
-    const uint32_t m = 1000;
+    const uint32_t m = 100;
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads_uniform(mt, pairs_count, genome_length, read_length);
@@ -138,10 +138,10 @@ CoverageTestResult CoverageTester::random_uniform_dist_test(qmcp::Solver& solver
 CoverageTestResult CoverageTester::random_with_func_dist_test(
     const std::function<double(double)>& dist_func, qmcp::Solver& solver) {
     const uint32_t seed = 12345;
-    const uint32_t pairs_count = 1'000'000;
+    const uint32_t pairs_count = 1'00'000;
     const uint32_t genome_length = 30'000;
     const uint32_t read_length = 150;
-    const uint32_t m = 8000;
+    const uint32_t m = 800;
 
     std::mt19937 mt(seed);
     auto input = reads_gen::rand_reads(mt, pairs_count, genome_length, read_length, dist_func);

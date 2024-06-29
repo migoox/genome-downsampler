@@ -27,4 +27,3 @@ struct BamApiConfig {
 }  // namespace bam_api
 
 #endif
-
