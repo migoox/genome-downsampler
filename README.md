@@ -16,7 +16,7 @@
 
 ## Command Line Interface (CLI) Options
 
-This section details the available CLI options for configuring the `cuda-dna-downsampler` application. Each option allows you to customize the behavior and output of the downsampling process.
+This section details the available CLI options for configuring the `genome-downsampler` application. Each option allows you to customize the behavior and output of the downsampling process.
 
 ### Positional Arguments
 
@@ -62,22 +62,22 @@ This section details the available CLI options for configuring the `cuda-dna-dow
 
 1. **Basic usage:**
 ```sh
-   cuda-dna-downsampler /data/input.bam 100
+   genome-downsampler /data/input.bam 100
 ```
 
 2. **Advanced usage with optional arguments:**
 ```sh
-   cuda-dna-downsampler /data/input.bam 100 -a cuda-max-flow -v -l 100 -q 50 -p /data/filtered_out_prep.bam -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
+   genome-downsampler /data/input.bam 100 -a cuda-max-flow -v -l 100 -q 50 -p /data/filtered_out_prep.bam -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
 ```
 
 3. **Verbose mode with preprocessing output:**
 ```sh
-   cuda-dna-downsampler /data/input.bam 100 -v -p /data/filtered_out_prep.bam -o /data/output.bam
+   genome-downsampler /data/input.bam 100 -v -p /data/filtered_out_prep.bam -o /data/output.bam
 ```
 
 4. **Using amplicon filtering:**
 ```sh
-   cuda-dna-downsampler /data/input.bam 100 -a sequential-max-flow -v -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
+   genome-downsampler /data/input.bam 100 -a sequential-max-flow -v -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
 
 ```
 
@@ -158,7 +158,7 @@ TODO
 1. install the dependencies,
 2. clone the repository, 
 3. navigate to the repository directory and run `mkdir build && cd build && cmake .. && cmake --build .`,
-4. the binary file location: `<repository-dir>/build/src/cuda-dna-downsampler`.
+4. the binary file location: `<repository-dir>/build/src/genome-downsampler`.
 
 
 
