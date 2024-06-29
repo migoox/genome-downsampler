@@ -8,6 +8,7 @@
 #include <functional>
 #include <random>
 
+#include "bam-api/bam_api_config_builder.hpp"
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "reads_gen.hpp"
@@ -43,6 +44,7 @@ void EfficiencyTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_) {
         exit(EXIT_FAILURE);
     }
 
+    // m_test(solver, results_file);
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_uniform_dist_test_small);
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_low_coverage_on_both_sides_test_small);
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_with_hole_test_small);
@@ -57,6 +59,10 @@ void EfficiencyTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_) {
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_low_coverage_on_both_sides_test_large);
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_with_hole_test_large);
     RUN_EFF_TEST_FUNCTION(solver, results_file, random_zero_coverage_on_both_sides_test_large);
+
+    RUN_EFF_TEST_FUNCTION(solver, results_file, m_1000_real);
+    RUN_EFF_TEST_FUNCTION(solver, results_file, m_2000_real);
+    RUN_EFF_TEST_FUNCTION(solver, results_file, m_3000_real);
 
     results_file.close();
 }
@@ -97,6 +103,81 @@ EfficiencyTestResult EfficiencyTester::random_with_func_dist_test(
     return {solve_time_ms, m, genome_length, pairs_count * 2};
 }
 
+EfficiencyTestResult EfficiencyTester::m_1000_real(qmcp::Solver& solver) {
+    const uint32_t m = 1000;
+    const std::string input_file =
+        "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam";
+    int64_t solve_time_ms = 0;
+
+    bam_api::BamApiConfigBuilder builder;
+    builder.add_min_mapq(0);
+    builder.add_min_seq_length(0);
+    builder.add_hts_thread_count(4);
+
+    bam_api::BamApi bam_api(input_file, builder.build());
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        auto output_indices = solver.solve(m, bam_api);
+        auto end = std::chrono::high_resolution_clock::now();
+        solve_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    auto paired_reads = bam_api.get_paired_reads_aos();
+
+    return {solve_time_ms, m, static_cast<int64_t>(paired_reads.ref_genome_length),
+            static_cast<int64_t>(paired_reads.get_reads_count())};
+}
+
+EfficiencyTestResult EfficiencyTester::m_2000_real(qmcp::Solver& solver) {
+    const uint32_t m = 1000;
+    const std::string input_file =
+        "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam";
+    int64_t solve_time_ms = 0;
+
+    bam_api::BamApiConfigBuilder builder;
+    builder.add_min_mapq(0);
+    builder.add_min_seq_length(0);
+    builder.add_hts_thread_count(4);
+
+    bam_api::BamApi bam_api(input_file, builder.build());
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        auto output_indices = solver.solve(m, bam_api);
+        auto end = std::chrono::high_resolution_clock::now();
+        solve_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    auto paired_reads = bam_api.get_paired_reads_aos();
+
+    return {solve_time_ms, m, static_cast<int64_t>(paired_reads.ref_genome_length),
+            static_cast<int64_t>(paired_reads.get_reads_count())};
+}
+
+EfficiencyTestResult EfficiencyTester::m_3000_real(qmcp::Solver& solver) {
+    const uint32_t m = 1000;
+    const std::string input_file =
+        "/home/mytkom/Documents/gpu-programming/data/ESIB_EQA_2023.SARS2.01/reads.bam";
+    int64_t solve_time_ms = 0;
+
+    bam_api::BamApiConfigBuilder builder;
+    builder.add_min_mapq(0);
+    builder.add_min_seq_length(0);
+    builder.add_hts_thread_count(4);
+
+    bam_api::BamApi bam_api(input_file, builder.build());
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        auto output_indices = solver.solve(m, bam_api);
+        auto end = std::chrono::high_resolution_clock::now();
+        solve_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    auto paired_reads = bam_api.get_paired_reads_aos();
+
+    return {solve_time_ms, m, static_cast<int64_t>(paired_reads.ref_genome_length),
+            static_cast<int64_t>(paired_reads.get_reads_count())};
+}
+
 EfficiencyTestResult EfficiencyTester::random_with_uniform_dist_test(qmcp::Solver& solver,
                                                                      uint32_t pairs_count,
                                                                      uint32_t genome_length,
@@ -117,6 +198,26 @@ EfficiencyTestResult EfficiencyTester::random_with_uniform_dist_test(qmcp::Solve
     }
 
     return {solve_time_ms, m, genome_length, pairs_count * 2};
+}
+
+void EfficiencyTester::m_test(qmcp::Solver& solver, std::ofstream& results_file) {
+    const uint32_t pairs_count = 200000;
+    const uint32_t genome_length = 3000;
+    uint32_t m = 2000;
+
+    for (int i = 0; i < 20; ++i, m += 100) {
+        EfficiencyTestResult result;
+        result = random_with_uniform_dist_test(solver, pairs_count, genome_length, m);
+
+        assert(result.size() == 4);
+
+        results_file << "m_test"
+                     << ";";
+        results_file << result[0] << ";";
+        results_file << result[1] << ";";
+        results_file << result[2] << ";";
+        results_file << result[3] << std::endl;
+    }
 }
 
 EfficiencyTestResult EfficiencyTester::random_uniform_dist_test_small(qmcp::Solver& solver) {

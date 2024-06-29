@@ -25,6 +25,10 @@ class EfficiencyTester : public SolverTester {
 
    private:
     // tests
+    static void m_test(qmcp::Solver& solver, std::ofstream& results_file);
+    static EfficiencyTestResult m_1000_real(qmcp::Solver& solver);
+    static EfficiencyTestResult m_2000_real(qmcp::Solver& solver);
+    static EfficiencyTestResult m_3000_real(qmcp::Solver& solver);
     static EfficiencyTestResult random_uniform_dist_test_small(qmcp::Solver& solver);
     static EfficiencyTestResult random_low_coverage_on_both_sides_test_small(qmcp::Solver& solver);
     static EfficiencyTestResult random_with_hole_test_small(qmcp::Solver& solver);
