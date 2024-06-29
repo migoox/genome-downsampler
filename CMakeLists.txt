@@ -22,7 +22,7 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set the project name and language
-project(cuda-dna-downsampler LANGUAGES CXX CUDA)
+project(genome-downsampler LANGUAGES CXX CUDA)
 
 # Uncomment if the repositories included with CPM have some dependencies to build
 # set(BUILD_DEPS ON)

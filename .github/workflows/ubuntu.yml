@@ -80,5 +80,5 @@ jobs:
 
     - name: Run tests
       working-directory: ${{ env.build_dir }}
-      run: ./src/cuda-dna-downsampler test -a ${{ env.algorithms_to_test }}
+      run: ./src/genome-downsampler test -a ${{ env.algorithms_to_test }}
 
