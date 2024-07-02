@@ -35,7 +35,7 @@ This section details the available CLI options for configuring the `genome-downs
   - Path to the output .bam file. Default is "output.bam" in the input file's directory.
 
 - `-a`, `--algorithm` `TEXT` : **Algorithm**
-  - Algorithm to use for downsampling. Options are: `cpu-quasi-mcp`, `cuda-quasi-mcp`, `cpu-qmcp`, . Default is `cpu-quasi-mcp`.
+  - Algorithm to use for downsampling. Options are: `quasi-mcp-cpu`, `quasi-mcp-cuda`, `mcp-cpu`, `qmcp-cpu`, . Default is `quasi-mcp-cpu`.
 
 - `-b`, `--bed` `TEXT:FILE` : **BED file with amplicon bounds**
   - Path to .bed file specifying amplicon bounds for filtering or prioritization based on the selected algorithm.
@@ -67,7 +67,7 @@ This section details the available CLI options for configuring the `genome-downs
 
 2. **Advanced usage with optional arguments:**
 ```sh
-   genome-downsampler /data/input.bam 100 -a cuda-max-flow -v -l 100 -q 50 -p /data/filtered_out_prep.bam -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
+   genome-downsampler /data/input.bam 100 -a quasi-mcp-cuda -v -l 100 -q 50 -p /data/filtered_out_prep.bam -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
 ```
 
 3. **Verbose mode with preprocessing output:**
@@ -77,7 +77,7 @@ This section details the available CLI options for configuring the `genome-downs
 
 4. **Using amplicon filtering:**
 ```sh
-   genome-downsampler /data/input.bam 100 -a sequential-max-flow -v -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
+   genome-downsampler /data/input.bam 100 -v -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
 
 ```
 
