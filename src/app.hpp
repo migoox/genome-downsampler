@@ -36,7 +36,9 @@ class App {
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
         {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
         {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
+#ifndef NO_CUDA
         {"quasi-mcp-cuda", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()},
+#endif
     };
     std::vector<std::string> algorithms_names_;
     CLI::App app_;

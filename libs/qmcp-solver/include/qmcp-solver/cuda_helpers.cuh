@@ -1,3 +1,4 @@
+#ifndef NO_CUDA
 #ifndef QMCP_SOLVER_CUDA_HELPERS
 #define QMCP_SOLVER_CUDA_HELPERS
 
@@ -49,4 +50,5 @@ inline void free(void* dev_ptr) { CHECK_CUDA_ERROR(cudaFree(dev_ptr)); }
 }  // namespace cuda
 }  // namespace qmcp
 
+#endif
 #endif
