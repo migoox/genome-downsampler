@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "config.h"
 #include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
@@ -14,12 +15,7 @@
 #include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
 #include "qmcp-solver/solver.hpp"
-#include "qmcp-solver/test_solver.hpp"
-
-#ifdef TESTING_ENABLED
-#include "tests/coverage_tester.hpp"
-#include "tests/solver_tester.hpp"
-#endif
+#include "test_command.hpp"
 
 class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
@@ -43,7 +39,6 @@ class App {
     };
     std::vector<std::string> algorithms_names_;
     CLI::App app_;
-    CLI::App* test_subcmd_;
     uint32_t hts_thread_count_ = kDefaultThreadCount;
     uint32_t min_mapq_ = kDefaultMinSeqMAPQ;
     uint32_t min_seq_length_ = kDefaultMinSeqLength;
@@ -56,22 +51,11 @@ class App {
     std::filesystem::path bed_path_;
     std::filesystem::path tsv_path_;
 
-    void add_main_command_options();
-    std::vector<std::string> get_algorithms_names() const;
-
 #ifdef TESTING_ENABLED
-    std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
-        {"coverage", std::make_shared<test::CoverageTester>()},
-    };
-    std::vector<std::string> solver_testers_names_;
-    std::vector<std::string> algorithms_to_test_;
-    std::vector<std::string> solver_testers_;
-    std::filesystem::path test_outputs_dir_;
-
-    void add_test_subcommand_options();
-    void run_tests();
-    std::vector<std::string> get_solver_testers_names() const;
+    std::shared_ptr<TestCommand> test_command_;
 #endif
+
+    void add_main_command_options();
 };
 
 #endif

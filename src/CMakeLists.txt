@@ -11,7 +11,7 @@ endif()
 configure_file("${PROJECT_SOURCE_DIR}/src/config.h.in" "${PROJECT_BINARY_DIR}/config/config.h")
 include_directories("${PROJECT_BINARY_DIR}/config")
 
-set(SOURCES ${SOURCES} main.cpp app.cpp)
+set(SOURCES ${SOURCES} main.cpp app.cpp test_command.cpp)
 
 add_executable(genome-downsampler ${SOURCES})
 

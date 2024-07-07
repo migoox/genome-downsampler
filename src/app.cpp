@@ -3,7 +3,6 @@
 #include <CLI/App.hpp>
 #include <CLI/Validators.hpp>
 #include <chrono>
-#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -11,19 +10,18 @@
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_api_config.hpp"
 #include "bam-api/bam_api_config_builder.hpp"
+#include "helpers.hpp"
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
+#include "test_command.hpp"
 
 App::App() {
-    algorithms_names_ = get_algorithms_names();
+    algorithms_names_ = helpers::get_names_from_map(solvers_map_);
     solver_ = solvers_map_["quasi-mcp-cpu"];
     add_main_command_options();
 
 #ifdef TESTING_ENABLED
-    solver_testers_names_ = get_solver_testers_names();
-    test_subcmd_ = app_.add_subcommand("test", "Run unit tests.");
-    add_test_subcommand_options();
-    app_.require_subcommand(0, 1);
+    test_command_ = std::make_shared<TestCommand>(app_, solvers_map_);
 #endif
 }
 
@@ -59,6 +57,8 @@ void App::App::add_main_command_options() {
                 output_file_path_ = input_file_path_;
                 output_file_path_.replace_filename("output.bam");
             }
+
+            execute();
         }
     });
 
@@ -111,91 +111,11 @@ void App::App::add_main_command_options() {
                   "If specified app executes with additional logging.");
 }
 
-#ifdef TESTING_ENABLED
-void App::App::add_test_subcommand_options() {
-    test_subcmd_->add_option("-a,--algorithms", algorithms_to_test_, "Algorithms to test.")
-        ->transform(CLI::IsMember(algorithms_names_));
-
-    test_subcmd_->add_option("-t,--tests", solver_testers_, "Tests to run.")
-        ->transform(CLI::IsMember(solver_testers_names_));
-
-    test_subcmd_
-        ->add_option(
-            "-o,--outputs-dir", test_outputs_dir_,
-            "Directory for tests outputs. Each SolverTester should have some optional output data "
-            "to save for debugging purposes. This option enables it and specifies its directory")
-        ->check(CLI::ExistingDirectory);
-}
-
-void App::run_tests() {
-    std::vector<std::string> solvers_to_test =
-        algorithms_to_test_.empty() ? algorithms_names_ : algorithms_to_test_;
-    std::vector<std::string> tests_to_run =
-        solver_testers_.empty() ? solver_testers_names_ : solver_testers_;
-    bool with_output = !test_outputs_dir_.empty();
-    std::filesystem::path tester_outputs_directory_path;
-    std::filesystem::path alg_tester_outputs_directory_path;
-
-    if (with_output && !std::filesystem::exists(test_outputs_dir_)) {
-        LOG_WITH_LEVEL(logging::ERROR) << "Directory: " << test_outputs_dir_ << " does not exist!";
-        std::exit(EXIT_FAILURE);
-    }
-
-    for (const std::string& test : tests_to_run) {
-        if (with_output) {
-            tester_outputs_directory_path = test_outputs_dir_ / test;
-            if (!std::filesystem::exists(tester_outputs_directory_path)) {
-                std::filesystem::create_directory(tester_outputs_directory_path);
-            }
-        }
-        LOG_WITH_LEVEL(logging::INFO) << "Running test " << test;
-        for (const std::string& solver : solvers_to_test) {
-            LOG_WITH_LEVEL(logging::INFO) << "\ton algorithm " << solver;
-
-            if (with_output) {
-                alg_tester_outputs_directory_path = tester_outputs_directory_path / solver;
-                if (!std::filesystem::exists(alg_tester_outputs_directory_path)) {
-                    std::filesystem::create_directory(alg_tester_outputs_directory_path);
-                }
-            }
-
-            // Run tester
-            solver_testers_map_[test]->test(*solvers_map_[solver],
-                                            alg_tester_outputs_directory_path);
-
-            LOG_WITH_LEVEL(logging::INFO) << "\t\t PASSED";
-        }
-    }
-}
-
-std::vector<std::string> App::get_solver_testers_names() const {
-    std::vector<std::string> all_tests;
-    all_tests.reserve(solver_testers_map_.size());
-
-    for (const auto& mapping : solver_testers_map_) {
-        all_tests.push_back(mapping.first);
-    }
-    return all_tests;
-}
-
-#endif
-
-void App::parse(int argc, char** argv) {
-    app_.parse(argc, argv);
-
-    SET_LOG_LEVEL(verbose_mode_ ? logging::DEBUG : logging::INFO);
-}
+void App::parse(int argc, char** argv) { app_.parse(argc, argv); }
 
 int App::exit(const CLI::ParseError& e) { return app_.exit(e); }
 
 void App::execute() {
-#ifdef TESTING_ENABLED
-    if (*test_subcmd_) {
-        run_tests();
-        return;
-    }
-#endif
-
     bam_api::BamApiConfigBuilder config_buider;
 
     config_buider.add_hts_thread_count(hts_thread_count_);
@@ -215,7 +135,9 @@ void App::execute() {
     bam_api::BamApi bam_api(input_file_path_, config_buider.build());
 
     auto start = std::chrono::high_resolution_clock::now();
+
     std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     LOG_WITH_LEVEL(logging::DEBUG) << "solve took " << elapsed.count() << " seconds";
@@ -226,14 +148,4 @@ void App::execute() {
     if (!filtered_out_path_.empty()) {
         bam_api.write_bam_api_filtered_out_reads(filtered_out_path_);
     }
-}
-
-std::vector<std::string> App::get_algorithms_names() const {
-    std::vector<std::string> all_algorithms;
-    all_algorithms.reserve(solvers_map_.size());
-
-    for (const auto& mapping : solvers_map_) {
-        all_algorithms.push_back(mapping.first);
-    }
-    return all_algorithms;
 }
