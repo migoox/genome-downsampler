@@ -5,7 +5,7 @@ if(WITH_TESTS)
     add_subdirectory(tests)
 endif()
 
-set(SOURCES ${SOURCES} main.cpp app.cpp)
+set(SOURCES ${SOURCES} main.cpp app.cpp test_command.cpp)
 
 add_executable(genome-downsampler ${SOURCES})
 

@@ -11,7 +11,5 @@ int main(int argc, char** argv) {
         return app.exit(e);
     }
 
-    app.execute();
-
     return EXIT_SUCCESS;
 }
