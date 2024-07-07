@@ -15,7 +15,8 @@
 
 class TestCommand {
    public:
-    TestCommand(CLI::App& app, const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map);
+    TestCommand(CLI::App& app,
+                const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map);
     void run();
 
    private:
