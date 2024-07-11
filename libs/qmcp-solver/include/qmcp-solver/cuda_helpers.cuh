@@ -1,4 +1,6 @@
-#ifndef NO_CUDA
+#include "config.h"
+
+#ifdef CUDA_ENABLED
 #ifndef QMCP_SOLVER_CUDA_HELPERS
 #define QMCP_SOLVER_CUDA_HELPERS
 

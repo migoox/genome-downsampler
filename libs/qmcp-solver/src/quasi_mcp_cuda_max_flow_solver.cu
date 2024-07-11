@@ -1,4 +1,6 @@
-#ifndef NO_CUDA
+#include "config.h"
+
+#ifdef CUDA_ENABLED
 #include <list>
 
 #include "bam-api/bam_api.hpp"

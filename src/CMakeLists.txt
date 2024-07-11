@@ -1,12 +1,15 @@
 # Add preprocessing definitions and optional subdirectories
 if(WITH_TESTS)
-    add_definitions(-DTESTING_ENABLED)
+    set(TESTING_ENABLED 1)
     add_subdirectory(tests)
 endif()
 
-if(NO_CUDA)
-    add_definitions(-DNO_CUDA)
+if(WITH_CUDA)
+    set(CUDA_ENABLED 1)
 endif()
+
+configure_file("${PROJECT_SOURCE_DIR}/src/config.h.in" "${PROJECT_BINARY_DIR}/config/config.h")
+include_directories("${PROJECT_BINARY_DIR}/config")
 
 set(SOURCES ${SOURCES} main.cpp app.cpp)
 
