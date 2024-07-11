@@ -171,7 +171,7 @@ TODO
 4. The binary file location: `<repository-dir>/build/src/genome-downsampler`.
 
 Available cmake flags:
-- `NO_CUDA`: builds the program without CUDA algorithms. The CUDA library is not requried.
+- `WITH_CUDA`: builds the program with CUDA algorithms. When this option is disabled, the CUDA library is no longer required
 - `WITH_TESTS`: builds the program with additional `test` subcommand for testing correctness of the algorithms.
 
 
