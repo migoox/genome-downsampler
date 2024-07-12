@@ -167,7 +167,7 @@ TODO
 2. Clone the repository. 
 3. Navigate to the repository directory and run 
    - `mkdir build && cd build && cmake .. && cmake --build .` for default build.
-   - `mkdir build && cd build && cmake -D NO_CUDA=ON .. && cmake --build .` for build without CUDA.
+   - `mkdir build && cd build && cmake -D WITH_CUDA=OFF .. && cmake --build .` for build without CUDA.
 4. The binary file location: `<repository-dir>/build/src/genome-downsampler`.
 
 Available cmake flags:
