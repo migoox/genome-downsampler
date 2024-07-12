@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.21)
 
+option(WITH_TESTS "enables unit tests compilation" OFF)
+option(WITH_CUDA "enables CUDA algorithms" ON)
+
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CUDA_STANDARD 17)
+if(WITH_CUDA)
+    set(CMAKE_CUDA_STANDARD 17)
+endif()
 
 # Set the target architecture library directory name, if detected.
 set(CMAKE_CXX_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
-set(CMAKE_CUDA_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
+if(WITH_CUDA)
+    set(CMAKE_CUDA_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
+endif()
 
 # Enable this globally to avoid conflicts between
 # -Wpedantic being enabled and -std=c++20 and -std=gnu++20
@@ -22,7 +29,12 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set the project name and language
-project(genome-downsampler LANGUAGES CXX CUDA)
+
+if(WITH_CUDA)
+    project(genome-downsampler LANGUAGES CXX CUDA)
+else()
+    project(genome-downsampler LANGUAGES CXX)
+endif()
 
 # Uncomment if the repositories included with CPM have some dependencies to build
 # set(BUILD_DEPS ON)

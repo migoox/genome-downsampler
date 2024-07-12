@@ -1,3 +1,6 @@
+#include "config.h"
+
+#ifdef CUDA_ENABLED
 #ifndef QMCP_QUASI_MCP_CUDA_MAX_FLOW_SOLVER_HPP
 #define QMCP_QUASI_MCP_CUDA_MAX_FLOW_SOLVER_HPP
 
@@ -94,4 +97,5 @@ class QuasiMcpCudaMaxFlowSolver : public Solver {
 
 }  // namespace qmcp
 
+#endif
 #endif

@@ -1,3 +1,6 @@
+#include "config.h"
+
+#ifdef CUDA_ENABLED
 #include <list>
 
 #include "bam-api/bam_api.hpp"
@@ -7,7 +10,8 @@
 #include "qmcp-solver/solver.hpp"
 
 __global__ void push_relabel_kernel(
-    uint32_t kernel_cycles, uint32_t nodes_count, qmcp::QuasiMcpCudaMaxFlowSolver::Excess* excess_func,
+    uint32_t kernel_cycles, uint32_t nodes_count,
+    qmcp::QuasiMcpCudaMaxFlowSolver::Excess* excess_func,
     qmcp::QuasiMcpCudaMaxFlowSolver::Label* label_func,
     qmcp::QuasiMcpCudaMaxFlowSolver::Capacity* residual_capacity,
     const qmcp::QuasiMcpCudaMaxFlowSolver::NeighborInfoIndex* neighbors_start_ind,
@@ -68,7 +72,8 @@ __global__ void push_relabel_kernel(
             atomicSub(&residual_capacity[neighbor_info_ind], delta);
             atomicAdd(&excess_func[neighbors[neighbor_info_ind]],
                       static_cast<qmcp::QuasiMcpCudaMaxFlowSolver::Excess>(delta));
-            atomicSub(&excess_func[node], static_cast<qmcp::QuasiMcpCudaMaxFlowSolver::Excess>(delta));
+            atomicSub(&excess_func[node],
+                      static_cast<qmcp::QuasiMcpCudaMaxFlowSolver::Excess>(delta));
         }
     }
 }
@@ -150,7 +155,7 @@ void qmcp::QuasiMcpCudaMaxFlowSolver::global_relabel() {
 }
 
 void qmcp::QuasiMcpCudaMaxFlowSolver::create_graph(const bam_api::SOAPairedReads& sequence,
-                                           uint32_t required_cover) {
+                                                   uint32_t required_cover) {
     // Clear the graph data
     clear_graph();
 
@@ -303,14 +308,16 @@ void qmcp::QuasiMcpCudaMaxFlowSolver::clear_graph() {
     max_coverage_.clear();
 }
 
-void qmcp::QuasiMcpCudaMaxFlowSolver::set_block_size(uint32_t block_size) { block_size_ = block_size; }
+void qmcp::QuasiMcpCudaMaxFlowSolver::set_block_size(uint32_t block_size) {
+    block_size_ = block_size;
+}
 
 void qmcp::QuasiMcpCudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) {
     kernel_cycles_ = kernel_cycles;
 }
 
 std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCudaMaxFlowSolver::solve(uint32_t required_cover,
-                                                               bam_api::BamApi& bam_api) {
+                                                                       bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_soa();
 
     // Create max coverage function
@@ -426,3 +433,5 @@ std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCudaMaxFlowSolver::solve(uint32_t 
 
     return output;
 }
+
+#endif

@@ -1,15 +1,18 @@
 # Genome Downsampler
 
 ## Table of Contents
-- [Command Line Interface (CLI) Flags](#command-line-interface-cli-flags)
-    - [Required Flags](#required-flags)
-    - [Optional Flags](#optional-flags)
+- [Genome Downsampler](#genome-downsampler)
+  - [Table of Contents](#table-of-contents)
+  - [Command Line Interface (CLI) Options](#command-line-interface-cli-options)
+    - [Positional Arguments](#positional-arguments)
+    - [Optional Arguments](#optional-arguments)
     - [Usage Examples](#usage-examples)
-- [Installation guide](#installation-guide)
+  - [Installation guide](#installation-guide)
     - [Dependencies](#dependencies)
       - [Common](#common)
       - [HTSlib](#htslib)
       - [OR-Tools](#or-tools)
+      - [CUDA (optional)](#cuda-optional)
     - [Install using precompiled binaries](#install-using-precompiled-binaries)
     - [Building from source](#building-from-source)
 
@@ -152,13 +155,24 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/include/* /usr/local/include/
 sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 ```
 
+#### CUDA (optional)
+The program by default tries to compile all implemented algorithms including CUDA algorithms. That means the default *build* process requires CUDA library (see the [installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) and download cuda from [here](https://developer.nvidia.com/cuda-downloads)) and [CUDA capable GPU](https://developer.nvidia.com/cuda-gpus) to *run* the CUDA algorithms. 
+
+Note that if you don't have CUDA capable GPU you can still download and install the CUDA library in order to run default compilation process. However to reduce the binary footprint and make the installation easier for users that may don't want to install the CUDA library, the `NO_CUDA` flag has been provided (see the [Building from source](#building-from-source) section).
+
 ### Install using precompiled binaries
 TODO
 ### Building from source 
-1. install the dependencies,
-2. clone the repository, 
-3. navigate to the repository directory and run `mkdir build && cd build && cmake .. && cmake --build .`,
-4. the binary file location: `<repository-dir>/build/src/genome-downsampler`.
+1. Install the dependencies.
+2. Clone the repository. 
+3. Navigate to the repository directory and run 
+   - `mkdir build && cd build && cmake .. && cmake --build .` for default build.
+   - `mkdir build && cd build && cmake -D NO_CUDA=ON .. && cmake --build .` for build without CUDA.
+4. The binary file location: `<repository-dir>/build/src/genome-downsampler`.
+
+Available cmake flags:
+- `WITH_CUDA`: builds the program with CUDA algorithms. When this option is disabled, the CUDA library is no longer required
+- `WITH_TESTS`: builds the program with additional `test` subcommand for testing correctness of the algorithms.
 
 
 
