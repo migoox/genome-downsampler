@@ -7,10 +7,10 @@
 #include <utility>
 #include <vector>
 
-#include "bam-api/bam_api_config.hpp"
 #include "bam-api/amplicon_set.hpp"
-#include "bam-api/paired_reads.hpp"
 #include "bam-api/aos_paired_reads.hpp"
+#include "bam-api/bam_api_config.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "bam-api/read.hpp"
 #include "bam-api/soa_paired_reads.hpp"
 
@@ -84,7 +84,8 @@ class BamApi {
     static bool are_from_single_amplicon(const Read& r1, const Read& r2,
                                          const AmpliconSet& amplicon_set);
 
-    void apply_amplicon_inclusion_grading(PairedReads& paired_reads, std::vector<bool>& is_in_single_amplicon) const;
+    void apply_amplicon_inclusion_grading(PairedReads& paired_reads,
+                                          std::vector<bool>& is_in_single_amplicon) const;
 };
 
 }  // namespace bam_api

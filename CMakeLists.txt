@@ -4,6 +4,7 @@ option(WITH_TESTS "enables unit tests compilation" OFF)
 option(WITH_CUDA "enables CUDA algorithms" ON)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WITH_CUDA)
     set(CMAKE_CUDA_STANDARD 17)
 endif()
@@ -34,6 +35,10 @@ if(WITH_CUDA)
     project(genome-downsampler LANGUAGES CXX CUDA)
 else()
     project(genome-downsampler LANGUAGES CXX)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
 # Uncomment if the repositories included with CPM have some dependencies to build
@@ -98,6 +103,21 @@ find_package(ortools CONFIG REQUIRED)
 
 # Use ccache to speed up the build process
 set(USE_CCACHE YES)
+
+# lpsolve
+find_library(LPSOLVE_LIBRARY NAMES lpsolve55)
+find_library(COLAMD_LIBRARY NAMES colamd)
+
+if (NOT LPSOLVE_LIBRARY)
+    message(FATAL_ERROR "Could not find lpsolve55 library.")
+endif()
+
+if (NOT COLAMD_LIBRARY)
+    message(FATAL_ERROR "Could not find colamd library.")
+endif()
+
+message(STATUS "Found lpsolve: ${LPSOLVE_LIBRARY}")
+message(STATUS "Found colamd: ${COLAMD_LIBRARY}")
 
 # Subdirectories
 add_subdirectory(src)

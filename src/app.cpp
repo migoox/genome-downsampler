@@ -41,21 +41,30 @@ void App::App::add_main_command_options() {
 
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
-        if (app_.get_subcommand() == nullptr) {
-            // If subcommand is not invoked, ensure both input and max-coverage are provided
-            if (max_ref_coverage_ == 0) {
-                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0",
-                                      1);
-            }
+        bool exception_caught = false;
+        try {  //! app_.get_subcommand() throws if no subcommands, can't be used for checking if
+               //! subcommands added
+            if (app_.get_subcommand() == nullptr) exception_caught = true;
+        } catch (const CLI::OptionNotFound& e) {
+            exception_caught = true;
+        }
 
-            if (input_file_path_.empty()) {
-                throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
-            }
+        if (!exception_caught) {
+            return;
+        }
 
-            if (output_file_path_.empty()) {
-                output_file_path_ = input_file_path_;
-                output_file_path_.replace_filename("output.bam");
-            }
+        // If subcommand is not invoked, ensure both input and max-coverage are provided
+        if (max_ref_coverage_ == 0) {
+            throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0", 1);
+        }
+
+        if (input_file_path_.empty()) {
+            throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
+        }
+
+        if (output_file_path_.empty()) {
+            output_file_path_ = input_file_path_;
+            output_file_path_.replace_filename("output.bam");
         }
     });
 

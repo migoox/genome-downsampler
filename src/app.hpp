@@ -10,6 +10,8 @@
 
 #include "config.h"
 #include "qmcp-solver/mcp_cpu_cost_scaling_solver.hpp"
+#include "qmcp-solver/mcp_cpu_crawling_solver.hpp"
+#include "qmcp-solver/mcp_cpu_mixed_integer_solver.hpp"
 #include "qmcp-solver/qmcp_cpu_cost_scaling_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cpu_max_flow_solver.hpp"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
@@ -21,7 +23,8 @@
 #include "tests/solver_tester.hpp"
 #endif
 
-class App {
+class App
+{
     static constexpr uint32_t kDefaultMinSeqLength = 90;
     static constexpr uint32_t kDefaultMinSeqMAPQ = 30;
     static constexpr uint32_t kDefaultThreadCount = 2;
@@ -37,6 +40,8 @@ class App {
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
         {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
         {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
+        // {"mcp-cpu-mixedInteger", std::make_shared<qmcp::McpCpuMixedIntegerSolver>()},
+        {"mcp-cpu-crawling", std::make_shared<qmcp::McpCpuCrawlingSolver>()},
 #ifdef CUDA_ENABLED
         {"quasi-mcp-cuda", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()}
 #endif

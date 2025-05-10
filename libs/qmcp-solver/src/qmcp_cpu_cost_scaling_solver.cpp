@@ -10,8 +10,8 @@
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 
-std::unique_ptr<qmcp::Solution> qmcp::QmcpCpuCostScalingSolver::solve(
-    uint32_t max_coverage, bam_api::BamApi& bam_api) {
+std::unique_ptr<qmcp::Solution> qmcp::QmcpCpuCostScalingSolver::solve(uint32_t max_coverage,
+                                                                      bam_api::BamApi& bam_api) {
     input_sequence_ = bam_api.get_paired_reads_aos();
 
     operations_research::SimpleMinCostFlow min_cost_flow;

@@ -15,6 +15,18 @@ set(SOURCES ${SOURCES} main.cpp app.cpp)
 
 add_executable(genome-downsampler ${SOURCES})
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Setting Debug flags for genome-downsampler")
+    target_compile_options(genome-downsampler PRIVATE -g -O0)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G -g -O0 --extended-lambda")
+else()
+    message(STATUS "Setting Release flags for genome-downsampler")
+    target_compile_options(genome-downsampler PRIVATE -O3)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -O3 --extended-lambda")
+endif()
+
 target_link_libraries(
     genome-downsampler
     PRIVATE CLI11::CLI11

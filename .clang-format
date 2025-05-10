@@ -3,4 +3,8 @@ DerivePointerAlignment: false
 IndentWidth: 4
 TabWidth: 4
 UseTab: false 
-ColumnLimit: 100
+#uncomment this later
+# ColumnLimit: 100
+#delete this later
+ColumnLimit: 0
+BreakBeforeBraces: Allman

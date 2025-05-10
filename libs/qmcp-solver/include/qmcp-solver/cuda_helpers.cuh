@@ -49,6 +49,11 @@ inline void memcpy_dev_host(T* dst, T* src, size_t count) {
 
 inline void free(void* dev_ptr) { CHECK_CUDA_ERROR(cudaFree(dev_ptr)); }
 
+template <class T>
+inline void memcpy_to_symbol(T* symbol, T* src) {
+    CHECK_CUDA_ERROR(cudaMemcpyToSymbol(symbol, src, sizeof(T)));
+}
+
 }  // namespace cuda
 }  // namespace qmcp
 

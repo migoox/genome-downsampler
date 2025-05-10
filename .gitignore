@@ -1,3 +1,5 @@
+*mixed_integer*
+
 # Build directories and binary files
 build/
 out/
@@ -7,6 +9,7 @@ conan-cache/
 
 # User spesific settings
 CMakeUserPresets.json
+data/*
 
 # IDE files
 .vs/

@@ -2,8 +2,9 @@
 
 #ifdef CUDA_ENABLED
 #include <list>
-
+// #undef __noinline__
 #include "bam-api/bam_api.hpp"
+// #define __noinline__ __attribute__((noinline))
 #include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
