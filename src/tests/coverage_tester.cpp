@@ -1,10 +1,12 @@
 #include "coverage_tester.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <random>
 
 #include "bam-api/read.hpp"
@@ -25,23 +27,71 @@ namespace fs = std::filesystem;
 
 namespace test
 {
+using std::chrono::duration;
+
+class TestTimer
+{
+    static std::chrono::high_resolution_clock::time_point start;
+    static double total_time;
+
+   public:
+    static void timeStart()
+    {
+        start = std::chrono::high_resolution_clock::now();
+    }
+
+    static void timeStop()
+    {
+        static int count = 0;
+        std::chrono::high_resolution_clock::time_point end;
+
+        duration<double> elapsed{};
+
+        std::cout << "done " << count << "\n";
+        end = std::chrono::high_resolution_clock::now();
+        elapsed = end - start;
+        std::cout << "Time taken: " << elapsed.count() << "s\n";
+        total_time += elapsed.count();
+    }
+
+    static void totalTime()
+    {
+        std::cout << "\n\nTotal time: " << total_time << "s\n";
+    }
+};
+
+std::chrono::high_resolution_clock::time_point TestTimer::start;
+double TestTimer::total_time = 0.0;
+
+#define TIME(func)              \
+    do                          \
+    {                           \
+        TestTimer::timeStart(); \
+        func;                   \
+        TestTimer::timeStop();  \
+    } while (0)
 
 void CoverageTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_)
 {
     if (outputs_dir_path_.empty())
     {
-        small_example_test(solver);
-        random_uniform_dist_test(solver);
-        random_low_coverage_on_both_sides_test(solver);
-        random_with_hole_test(solver);
-        random_zero_coverage_on_both_sides_test(solver);
+        TIME(small_example_test(solver));
+        TIME(random_uniform_dist_test(solver));
+        TIME(random_low_coverage_on_both_sides_test(solver));
+        TIME(random_with_hole_test(solver));
+        TIME(random_zero_coverage_on_both_sides_test(solver));
+
         return;
     }
 
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, small_example_test);
+
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_uniform_dist_test);
+
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_low_coverage_on_both_sides_test);
+
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_with_hole_test);
+
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_zero_coverage_on_both_sides_test);
 }
 

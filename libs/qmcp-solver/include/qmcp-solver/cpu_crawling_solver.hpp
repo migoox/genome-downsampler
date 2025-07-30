@@ -1,5 +1,5 @@
-#ifndef QMCP_MCP_CPU_CRAWLING_SOLVER
-#define QMCP_MCP_CPU_CRAWLING_SOLVER
+#ifndef QMCP_CPU_CRAWLING_SOLVER
+#define QMCP_CPU_CRAWLING_SOLVER
 
 #include <cstdint>
 #include <memory>
@@ -11,7 +11,7 @@
 
 namespace qmcp
 {
-class McpCpuCrawlingSolver : public Solver
+class CpuCrawlingSolver : public Solver
 {
    public:
     std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
