@@ -7,6 +7,7 @@
     - [Positional Arguments](#positional-arguments)
     - [Optional Arguments](#optional-arguments)
     - [Usage Examples](#usage-examples)
+  - [Running in docker](#running-in-docker)
   - [Installation guide](#installation-guide)
     - [Dependencies](#dependencies)
       - [Common](#common)
@@ -82,6 +83,33 @@ This section details the available CLI options for configuring the `genome-downs
 ```sh
    genome-downsampler /data/input.bam 100 -v -o /data/output.bam -b /data/primers.bed -t /data/pairs.tsv
 
+```
+
+## Running in docker 
+
+To run the app in `docker`, clone the repository and navigate to it:
+
+```bash
+git clone https://github.com/migoox/genome-downsampler
+cd genome-downsampler
+```   
+
+Build the Docker image using:
+
+```bash
+docker build -t genome-downsampler .
+```
+
+Now you can run the container with `--help` argument:
+
+```bash
+docker run -it genome-downsampler --help 
+```
+
+To provide the data and get the output, run the app with a mounted data volume. Assuming you want to work with a file `sample.bam` located in `/home/user/data`, and you'd like the output to appear in the same folder:
+
+```bash
+docker run -it -v /home/user/data:/data genome-downsampler /data/sample.bam 100 -o /data/output.bam
 ```
 
 ## Installation guide
