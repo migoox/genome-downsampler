@@ -41,7 +41,10 @@ void App::App::add_main_command_options() {
 
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
-        if (app_.get_subcommand() == nullptr) {
+        try {
+            //! app_.get_subcommand() throws if no subcommands, can't be used for checking if
+            auto _ = app_.get_subcommand();
+        } catch (const CLI::OptionNotFound& e) {
             // If subcommand is not invoked, ensure both input and max-coverage are provided
             if (max_ref_coverage_ == 0) {
                 throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0",
