@@ -19,25 +19,29 @@ typedef std::pair<std::vector<uint32_t>, std::vector<uint32_t>> CoverageTestResu
 
 class CoverageTester : public SolverTester {
    public:
-    using CoverageTestFunction = CoverageTestResult (*)(qmcp::Solver&);
+    using CoverageTestFunction = CoverageTestResult (*)(const std::shared_ptr<qmcp::Solver>&);
 
-    void test(qmcp::Solver& solver, fs::path& outputs_dir_path_) override;
+    void test(const std::shared_ptr<qmcp::Solver>& solver, fs::path& outputs_dir_path_) override;
 
    private:
     // tests
-    static CoverageTestResult small_example_test(qmcp::Solver& solver);
-    static CoverageTestResult random_uniform_dist_test(qmcp::Solver& solver);
-    static CoverageTestResult random_low_coverage_on_both_sides_test(qmcp::Solver& solver);
-    static CoverageTestResult random_with_hole_test(qmcp::Solver& solver);
-    static CoverageTestResult random_zero_coverage_on_both_sides_test(qmcp::Solver& solver);
+    static CoverageTestResult small_example_test(const std::shared_ptr<qmcp::Solver>& solver);
+    static CoverageTestResult random_uniform_dist_test(const std::shared_ptr<qmcp::Solver>& solver);
+    static CoverageTestResult random_low_coverage_on_both_sides_test(
+        const std::shared_ptr<qmcp::Solver>& solver);
+    static CoverageTestResult random_with_hole_test(const std::shared_ptr<qmcp::Solver>& solver);
+    static CoverageTestResult random_zero_coverage_on_both_sides_test(
+        const std::shared_ptr<qmcp::Solver>& solver);
 
     // helpers
-    static void run_test_and_write_output(qmcp::Solver& solver, fs::path& outputs_dir_path_,
+    static void run_test_and_write_output(const std::shared_ptr<qmcp::Solver>& solver,
+                                          fs::path& outputs_dir_path_,
                                           const std::string& output_filename,
                                           CoverageTestFunction test_func);
     static void write_covers(CoverageTestResult& result, fs::path& output_filepath);
     static CoverageTestResult random_with_func_dist_test(
-        const std::function<double(double)>& dist_func, qmcp::Solver& solver);
+        const std::function<double(double)>& dist_func,
+        const std::shared_ptr<qmcp::Solver>& solver);
     static bam_api::AOSPairedReads get_small_aos_example();
     static void cap_cover(std::vector<uint32_t>& cover, uint32_t cap);
     static bool is_out_cover_valid(std::vector<uint32_t>& in_cover,

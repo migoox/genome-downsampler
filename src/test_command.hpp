@@ -16,22 +16,16 @@ class TestCommand {
    public:
     TestCommand(CLI::App& app,
                 const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map);
-    void run();
+    void run(const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map);
 
    private:
-    std::map<std::string, std::shared_ptr<qmcp::Solver>> solvers_map_;
-    std::map<std::string, std::shared_ptr<test::SolverTester>> solver_testers_map_{
-        {"coverage", std::make_shared<test::CoverageTester>()},
-    };
+    std::map<std::string, std::unique_ptr<test::SolverTester>> solver_testers_map_;
     std::vector<std::string> solver_testers_names_;
     std::vector<std::string> algorithms_names_;
     std::vector<std::string> algorithms_to_test_;
     std::vector<std::string> solver_testers_;
     std::filesystem::path test_outputs_dir_;
     CLI::App* test_subcmd_;
-
-    std::vector<std::string> get_solver_testers_names() const;
-    std::vector<std::string> get_algorithms_names() const;
 };
 
 #endif

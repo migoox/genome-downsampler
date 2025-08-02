@@ -25,7 +25,8 @@ namespace fs = std::filesystem;
 
 namespace test {
 
-void CoverageTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_) {
+void CoverageTester::test(const std::shared_ptr<qmcp::Solver>& solver,
+                          fs::path& outputs_dir_path_) {
     if (outputs_dir_path_.empty()) {
         small_example_test(solver);
         random_uniform_dist_test(solver);
@@ -42,7 +43,8 @@ void CoverageTester::test(qmcp::Solver& solver, fs::path& outputs_dir_path_) {
     RUN_TEST_FUNCTION(solver, outputs_dir_path_, random_zero_coverage_on_both_sides_test);
 }
 
-void CoverageTester::run_test_and_write_output(qmcp::Solver& solver, fs::path& outputs_dir_path_,
+void CoverageTester::run_test_and_write_output(const std::shared_ptr<qmcp::Solver>& solver,
+                                               fs::path& outputs_dir_path_,
                                                const std::string& output_filename,
                                                CoverageTestFunction test_func) {
     CoverageTestResult result;
@@ -106,18 +108,19 @@ bool CoverageTester::is_out_cover_valid(std::vector<uint32_t>& in_cover,
                       std::less_equal<>());
 }
 
-CoverageTestResult CoverageTester::small_example_test(qmcp::Solver& solver) {
+CoverageTestResult CoverageTester::small_example_test(const std::shared_ptr<qmcp::Solver>& solver) {
     const uint32_t m = 4;
     auto input = get_small_aos_example();
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
-    auto output_indices = solver.solve(m, bam_api);
+    auto output_indices = solver->solve(m, bam_api);
     auto output_cover = bam_api.find_filtered_cover(*output_indices);
     assert(is_out_cover_valid(input_cover, output_cover, m));
     return {input_cover, output_cover};
 }
 
-CoverageTestResult CoverageTester::random_uniform_dist_test(qmcp::Solver& solver) {
+CoverageTestResult CoverageTester::random_uniform_dist_test(
+    const std::shared_ptr<qmcp::Solver>& solver) {
     const uint32_t seed = 12345;
     const uint32_t pairs_count = 1'000'000;
     const uint32_t genome_length = 30'000;
@@ -129,14 +132,14 @@ CoverageTestResult CoverageTester::random_uniform_dist_test(qmcp::Solver& solver
 
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
-    auto output_indices = solver.solve(m, bam_api);
+    auto output_indices = solver->solve(m, bam_api);
     auto output_cover = bam_api.find_filtered_cover(*output_indices);
     assert(is_out_cover_valid(input_cover, output_cover, m));
     return {input_cover, output_cover};
 }
 
 CoverageTestResult CoverageTester::random_with_func_dist_test(
-    const std::function<double(double)>& dist_func, qmcp::Solver& solver) {
+    const std::function<double(double)>& dist_func, const std::shared_ptr<qmcp::Solver>& solver) {
     const uint32_t seed = 12345;
     const uint32_t pairs_count = 1'000'000;
     const uint32_t genome_length = 30'000;
@@ -148,18 +151,20 @@ CoverageTestResult CoverageTester::random_with_func_dist_test(
 
     bam_api::BamApi bam_api(input);
     auto input_cover = bam_api.find_input_cover();
-    auto output_indices = solver.solve(m, bam_api);
+    auto output_indices = solver->solve(m, bam_api);
     auto output_cover = bam_api.find_filtered_cover(*output_indices);
     assert(is_out_cover_valid(input_cover, output_cover, m));
     return {input_cover, output_cover};
 }
 
-CoverageTestResult CoverageTester::random_low_coverage_on_both_sides_test(qmcp::Solver& solver) {
+CoverageTestResult CoverageTester::random_low_coverage_on_both_sides_test(
+    const std::shared_ptr<qmcp::Solver>& solver) {
     auto func = [](double x) { return x - x * x; };
     return random_with_func_dist_test(func, solver);
 }
 
-CoverageTestResult CoverageTester::random_with_hole_test(qmcp::Solver& solver) {
+CoverageTestResult CoverageTester::random_with_hole_test(
+    const std::shared_ptr<qmcp::Solver>& solver) {
     auto func = [](double x) {
         if (x > 0.3684 && x < 0.6316) {
             return 1000.0 * (x * x - x + 0.25) * (x * x - x + 0.25) + 0.2;
@@ -169,7 +174,8 @@ CoverageTestResult CoverageTester::random_with_hole_test(qmcp::Solver& solver) {
     return random_with_func_dist_test(func, solver);
 }
 
-CoverageTestResult CoverageTester::random_zero_coverage_on_both_sides_test(qmcp::Solver& solver) {
+CoverageTestResult CoverageTester::random_zero_coverage_on_both_sides_test(
+    const std::shared_ptr<qmcp::Solver>& solver) {
     auto func = [](double x) { return -10.0 * (x - 0.5) * (x - 0.5) + 1.0; };
     return random_with_func_dist_test(func, solver);
 }

@@ -11,15 +11,17 @@
 #include "qmcp-solver/solver.hpp"
 
 TestCommand::TestCommand(CLI::App& app,
-                         const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map)
-    : solvers_map_(solvers_map) {
-    // Initialize helpers
-    algorithms_names_ = helpers::get_names_from_map(solvers_map);
+                         const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map) {
+    // Initialize solvers testers map
+    solver_testers_map_.emplace("coverage", std::make_unique<test::CoverageTester>()),
+
+        // Initialize helpers
+        algorithms_names_ = helpers::get_names_from_map(solvers_map);
     solver_testers_names_ = helpers::get_names_from_map(solver_testers_map_);
 
     // Set test subcmd options
     test_subcmd_ = app.add_subcommand("test", "Run unit tests.");
-    test_subcmd_->callback([&]() { run(); });
+    test_subcmd_->callback([&]() { run(solvers_map); });
 
     test_subcmd_->add_option("-a,--algorithms", algorithms_to_test_, "Algorithms to test.")
         ->transform(CLI::IsMember(algorithms_names_));
@@ -38,10 +40,10 @@ TestCommand::TestCommand(CLI::App& app,
     app.require_subcommand(0, 1);
 }
 
-void TestCommand::run() {
-    std::vector<std::string> solvers_to_test =
+void TestCommand::run(const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map) {
+    const std::vector<std::string>& solvers_to_test =
         algorithms_to_test_.empty() ? algorithms_names_ : algorithms_to_test_;
-    std::vector<std::string> tests_to_run =
+    const std::vector<std::string>& tests_to_run =
         solver_testers_.empty() ? solver_testers_names_ : solver_testers_;
     bool with_output = !test_outputs_dir_.empty();
     std::filesystem::path tester_outputs_directory_path;
@@ -71,7 +73,7 @@ void TestCommand::run() {
             }
 
             // Run tester
-            solver_testers_map_[test]->test(*solvers_map_[solver],
+            solver_testers_map_[test]->test(solvers_map.at(solver),
                                             alg_tester_outputs_directory_path);
 
             LOG_WITH_LEVEL(logging::INFO) << "\t\t PASSED";

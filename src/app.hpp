@@ -52,7 +52,7 @@ class App {
     std::filesystem::path tsv_path_;
 
 #ifdef TESTING_ENABLED
-    std::shared_ptr<TestCommand> test_command_;
+    std::unique_ptr<TestCommand> test_command_;
 #endif
 
     void add_main_command_options();

@@ -21,7 +21,7 @@ App::App() {
     add_main_command_options();
 
 #ifdef TESTING_ENABLED
-    test_command_ = std::make_shared<TestCommand>(app_, solvers_map_);
+    test_command_ = std::make_unique<TestCommand>(app_, solvers_map_);
 #endif
 }
 
