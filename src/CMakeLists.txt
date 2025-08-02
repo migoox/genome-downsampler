@@ -2,6 +2,7 @@
 if(WITH_TESTS)
     set(TESTING_ENABLED 1)
     add_subdirectory(tests)
+    list(APPEND SOURCES test_command.cpp) # Include test_command.cpp only if WITH_TESTS is enabled
 endif()
 
 if(WITH_CUDA)
@@ -11,7 +12,7 @@ endif()
 configure_file("${PROJECT_SOURCE_DIR}/src/config.h.in" "${PROJECT_BINARY_DIR}/config/config.h")
 include_directories("${PROJECT_BINARY_DIR}/config")
 
-set(SOURCES ${SOURCES} main.cpp app.cpp test_command.cpp)
+set(SOURCES ${SOURCES} main.cpp app.cpp)
 
 add_executable(genome-downsampler ${SOURCES})
 

@@ -1,4 +1,3 @@
-#ifdef TESTING_ENABLED
 #include "test_command.hpp"
 
 #include <CLI/App.hpp>
@@ -79,5 +78,3 @@ void TestCommand::run() {
         }
     }
 }
-
-#endif

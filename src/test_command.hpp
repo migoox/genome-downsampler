@@ -1,4 +1,3 @@
-#ifdef TESTING_ENABLED
 #ifndef TEST_COMMAND_HPP
 #define TEST_COMMAND_HPP
 
@@ -35,5 +34,4 @@ class TestCommand {
     std::vector<std::string> get_algorithms_names() const;
 };
 
-#endif
 #endif
