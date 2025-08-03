@@ -19,6 +19,14 @@ class TestCommand {
     void run(const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map);
 
    private:
+    static std::map<std::string, std::unique_ptr<test::SolverTester>>
+    initialize_solvers_testers_map() {
+        std::map<std::string, std::unique_ptr<test::SolverTester>> solver_testers_map;
+        solver_testers_map.emplace("coverage", std::make_unique<test::CoverageTester>());
+
+        return solver_testers_map;
+    }
+
     std::map<std::string, std::unique_ptr<test::SolverTester>> solver_testers_map_;
     std::vector<std::string> solver_testers_names_;
     std::vector<std::string> algorithms_names_;

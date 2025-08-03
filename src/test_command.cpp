@@ -13,10 +13,10 @@
 TestCommand::TestCommand(CLI::App& app,
                          const std::map<std::string, std::shared_ptr<qmcp::Solver>>& solvers_map) {
     // Initialize solvers testers map
-    solver_testers_map_.emplace("coverage", std::make_unique<test::CoverageTester>()),
+    solver_testers_map_ = initialize_solvers_testers_map();
 
-        // Initialize helpers
-        algorithms_names_ = helpers::get_names_from_map(solvers_map);
+    // Initialize helpers
+    algorithms_names_ = helpers::get_names_from_map(solvers_map);
     solver_testers_names_ = helpers::get_names_from_map(solver_testers_map_);
 
     // Set test subcmd options
