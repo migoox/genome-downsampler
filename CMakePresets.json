@@ -1,0 +1,95 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "defaults",
+      "hidden": true,
+      "cacheVariables": {
+        "WITH_TESTS": true,
+        "WITH_CUDA": false,
+        "BUILD_SHARED_LIBS": false,
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "ci",
+      "hidden": true,
+      "cacheVariables": {
+        "WITH_TESTS": true,
+        "WITH_CUDA": true,
+        "BUILD_SHARED_LIBS": false,
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "gnu-x64-release",
+      "binaryDir": "${sourceDir}/build/release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PROJ_CXX_FLAGS": "-O3;-U_FORTIFY_SOURCE;-D_FORTIFY_SOURCE=3;-D_GLIBCXX_ASSERTIONS=1;-fstack-protector-strong;-fcf-protection=full;-fstack-clash-protection;-Wall;-Wextra;-Wpedantic;-Wconversion;-Wsign-conversion;-Wcast-qual;-Wformat=2;-Wundef;-Werror=float-equal;-Werror=switch;-Wshadow;-Wcast-align;-Wunused;-Wnull-dereference;-Wdouble-promotion;-Wimplicit-fallthrough;-Wextra-semi;-Woverloaded-virtual;-Wnon-virtual-dtor;-Wold-style-cast"
+      }
+    },
+    {
+      "name": "gnu-x64-debug",
+      "binaryDir": "${sourceDir}/build/debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PROJ_CXX_FLAGS": "-O0;-g3;-ggdb;-fno-omit-frame-pointer;-fno-inline;-U_FORTIFY_SOURCE;-D_FORTIFY_SOURCE=3;-D_GLIBCXX_ASSERTIONS=1;-fstack-protector-strong;-fcf-protection=full;-fstack-clash-protection;-Wall;-Wextra;-Wpedantic;-Wconversion;-Wsign-conversion;-Wcast-qual;-Wformat=2;-Wundef;-Werror=float-equal;-Werror=switch;-Wshadow;-Wcast-align;-Wunused;-Wnull-dereference;-Wdouble-promotion;-Wimplicit-fallthrough;-Wextra-semi;-Woverloaded-virtual;-Wnon-virtual-dtor;-Wold-style-cast"
+      }
+    },
+    {
+      "name": "gcc-x64-release",
+      "inherits": [
+        "gnu-x64-release",
+        "defaults"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "gcc-x64-debug",
+      "inherits": [
+        "gnu-x64-debug",
+        "defaults"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "ci-gcc",
+      "inherits": [
+        "gnu-x64-release",
+        "ci"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "gcc-x64-release",
+      "configurePreset": "gcc-x64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-x64-debug",
+      "configurePreset": "gcc-x64-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "ci-gcc",
+      "configurePreset": "ci-gcc",
+      "configuration": "Release"
+    }
+  ]
+}

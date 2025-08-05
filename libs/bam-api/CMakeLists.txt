@@ -8,3 +8,4 @@ add_library(bam-api STATIC
 
 target_include_directories(bam-api PUBLIC ${CMAKE_SOURCE_DIR}/libs/bam-api/include)
 target_link_libraries(bam-api PRIVATE HTSlib::HTSlib logging)
+target_compile_options(${PROJECT_NAME} PRIVATE ${PROJ_CXX_FLAGS})

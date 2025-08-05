@@ -15,10 +15,6 @@ RUN ./scripts/install_libs.sh install
 
 RUN if [ -d build ]; then rm -rf build; else echo "No build directory"; fi
 
-RUN mkdir build && cd build && \
-    cmake --preset gcc-x64-release .. && \
-    cmake --build --preset gcc-x64-release .
+RUN cmake --preset gcc-x64-release && cmake --build --preset gcc-x64-release
 
-ENTRYPOINT ["/app/build/src/genome-downsampler"]
-
-
+ENTRYPOINT ["/app/build/release/src/genome-downsampler"]

@@ -209,18 +209,17 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 
 #### CUDA (optional)
 
-The program by default tries to compile all implemented algorithms including CUDA algorithms. That means the default *build* process requires CUDA library (see the [installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) and download cuda from [here](https://developer.nvidia.com/cuda-downloads)) and [CUDA capable GPU](https://developer.nvidia.com/cuda-gpus) to *run* the CUDA algorithms. 
-
-Note that if you don't have CUDA capable GPU you can still download and install the CUDA library in order to run default compilation process. However to reduce the binary footprint and make the installation easier for users that may don't want to install the CUDA library, the `WITH_CUDA` flag has been provided (see the [Building from source](#building-from-source) section).
+By default, CUDA algorithms are not included in the build. To enable 
+them, set the `WITH_CUDA` flag when configuring with CMake. To build with CUDA support, you must first install the CUDA library (see the [installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) and download CUDA from [here](https://developer.nvidia.com/cuda-downloads)). Note that you need a [CUDA capable GPU](https://developer.nvidia.com/cuda-gpus) to run the CUDA algorithms. 
 
 ### Building from source 
 
 1. Install the dependencies.
 2. Clone the repository. 
 3. Navigate to the repository directory and run 
-   - `mkdir build && cd build && cmake .. && cmake --build .` for default build.
-   - `mkdir build && cd build && cmake -D WITH_CUDA=OFF .. && cmake --build .` for build without CUDA.
-4. The binary file location: `<repository-dir>/build/src/genome-downsampler`.
+   - `cmake --preset gcc-x64-release && cmake --build --preset gcc-x64-release` for default build.
+   - `cmake --preset gcc-x64-release WITH_CUDA=ON && cmake --build --preset gcc-x64-release` for build with CUDA algorithms.
+4. The binary file location: `<repository-dir>/build/release/src/genome-downsampler`.
 
 Available cmake flags:
 - `WITH_CUDA`: builds the program with CUDA algorithms. When this option is disabled, the CUDA library is no longer required
