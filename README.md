@@ -11,8 +11,9 @@
   - [Installation guide](#installation-guide)
     - [Dependencies](#dependencies)
       - [Common](#common)
-      - [HTSlib](#htslib)
-      - [OR-Tools](#or-tools)
+      - [HTSlib and OR-Tools installation script](#htslib-and-or-tools-installation-script)
+      - [Manual HTSlib installation](#manual-htslib-installation)
+      - [Manual OR-Tools installation](#manual-or-tools-installation)
       - [CUDA (optional)](#cuda-optional)
     - [Install using precompiled binaries](#install-using-precompiled-binaries)
     - [Building from source](#building-from-source)
@@ -112,35 +113,57 @@ To provide the data and get the output, run the app with a mounted data volume. 
 docker run -it -v /home/user/data:/data genome-downsampler /data/sample.bam 100 -o /data/output.bam
 ```
 
-## Installation guide
+## Building the App 
+
 ### Dependencies
+
 This software only supports GNU/Linux systems, if you are a Windows user, we recommend using WSL. In order to run (or compile), the [**HTSlib**](https://github.com/samtools/htslib) and [**OR-Tools**](https://github.com/google/or-tools) are required to be installed on the your machine.
 
 #### Common
+
 Install the following common dependencies by running:
 
 Debian/Ubuntu/Linux Mint:
 ```bash
-sudo apt install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
+sudo apt install autoconf automake make gcc zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 ```
 
 Fedora/Red Hat:
 ```bash
-sudo dnf install autoconf automake make gcc perl zlib-devel bzip2-devel xz-devel libcurl-devel openssl-devel
+sudo dnf install autoconf automake make gcc zlib-devel bzip2-devel xz-devel libcurl-devel openssl-devel
 ```
 
 OpenSUSE:
 ```bash
-sudo zypper install autoconf automake make gcc perl zlib-devel libbz2-devel xz-devel libcurl-devel libopenssl-devel
+sudo zypper install autoconf automake make gcc zlib-devel libbz2-devel xz-devel libcurl-devel libopenssl-devel
 ```
 
 Arch Linux:
 ```bash
-sudo pacman -S autoconf automake make gcc perl zlib bzip2 xz curl openssl
+sudo pacman -S autoconf automake make gcc zlib bzip2 xz curl openssl
 ```
 
-#### HTSlib
-If you prefer to install only HTSlib, you can use the following script. For the full installation guide, visit [here](https://github.com/samtools/htslib/blob/develop/INSTALL):
+#### HTSlib and OR-Tools installation script
+
+You can install HTSlib nad OR-Tools using an installation script `scripts/install_libs.sh` if 
+your package manager does not provide those dependencies and you want to avoid doing it manually. 
+
+Assuming your current working directory is the repo directory and you want to install the libraries in
+`/usr/local/`:
+
+```bash
+./scripts/install_libs.sh install
+```
+
+If you want to install ortools only and change the prefix directory to say `/opt` use
+
+```bash
+./scripts/install_libs.sh install --prefix /opt --subset ortools
+```
+
+#### Manual HTSlib installation
+
+If you prefer to install HTSlib only, you can use the following script. For the full installation guide, visit [here](https://github.com/samtools/htslib/blob/develop/INSTALL):
 ```bash
 wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2
 tar -xf htslib-1.20.tar.bz2
@@ -171,7 +194,8 @@ Arch Linux:
 sudo pacman -S samtools
 ```
 
-#### OR-Tools
+#### Manual OR-Tools installation
+
 Many package managers does not provide OR-Tools library. To install it on your machine, download the appropriate binaries from [here](https://developers.google.com/optimization/install/cpp/binary_linux) and extract the files. 
 
 Now, supposing that `ORTOOLS_DIR_NAME` represents the path to the extracted directory, use the following commands:
@@ -184,13 +208,13 @@ sudo cp -r ${ORTOOLS_DIR_NAME}/share/* /usr/local/share/
 ```
 
 #### CUDA (optional)
+
 The program by default tries to compile all implemented algorithms including CUDA algorithms. That means the default *build* process requires CUDA library (see the [installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) and download cuda from [here](https://developer.nvidia.com/cuda-downloads)) and [CUDA capable GPU](https://developer.nvidia.com/cuda-gpus) to *run* the CUDA algorithms. 
 
 Note that if you don't have CUDA capable GPU you can still download and install the CUDA library in order to run default compilation process. However to reduce the binary footprint and make the installation easier for users that may don't want to install the CUDA library, the `WITH_CUDA` flag has been provided (see the [Building from source](#building-from-source) section).
 
-### Install using precompiled binaries
-TODO
 ### Building from source 
+
 1. Install the dependencies.
 2. Clone the repository. 
 3. Navigate to the repository directory and run 
