@@ -25,6 +25,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install required packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git curl build-essential sudo \
+          autoconf automake \
+          zlib1g-dev libbz2-dev liblzma-dev \
+          libcurl4-gnutls-dev libssl-dev cmake
+      shell: bash
+
     - name: Install CUDA
       env:
         cuda: ${{ matrix.cuda }}
@@ -32,7 +41,7 @@ jobs:
       shell: bash
 
     - name: Install dependencies
-      run: ./scripts/install_dependencies_ubuntu.sh
+      run: ./scripts/install_libs.sh
       shell: bash
 
     # Specify the correct host compilers
