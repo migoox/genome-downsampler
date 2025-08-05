@@ -26,8 +26,8 @@ class SolverManager {
         algorithms_names_ = helpers::get_names_from_map(solvers_map_);
     }
 
-    const std::unique_ptr<qmcp::Solver>& get(const std::string& solver_name) const {
-        return solvers_map_.at(solver_name);
+    qmcp::Solver& get(const std::string& solver_name) const {
+        return *solvers_map_.at(solver_name);
     }
 
     bool contains(const std::string& solver_name) {

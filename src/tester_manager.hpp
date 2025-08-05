@@ -18,8 +18,8 @@ class TesterManager {
         testers_names_ = helpers::get_names_from_map(solver_testers_map_);
     }
 
-    std::unique_ptr<test::SolverTester>& get(const std::string& tester_name) {
-        return solver_testers_map_.at(tester_name);
+    test::SolverTester& get(const std::string& tester_name) {
+        return *solver_testers_map_.at(tester_name);
     }
 
     bool contains(const std::string& tester_name) {

@@ -121,7 +121,7 @@ void App::execute() {
     config_buider.add_min_seq_length(min_seq_length_);
 
     if (!bed_path_.empty()) {
-        if (solver_manager_.get(solver_name_)->uses_quality_of_reads()) {
+        if (solver_manager_.get(solver_name_).uses_quality_of_reads()) {
             config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::GRADE, bed_path_,
                                                  tsv_path_);
         } else {
@@ -135,7 +135,7 @@ void App::execute() {
     auto start = std::chrono::high_resolution_clock::now();
 
     std::unique_ptr<qmcp::Solution> solution =
-        solver_manager_.get(solver_name_)->solve(max_ref_coverage_, bam_api);
+        solver_manager_.get(solver_name_).solve(max_ref_coverage_, bam_api);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;

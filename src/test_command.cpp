@@ -2,13 +2,9 @@
 
 #include <CLI/App.hpp>
 #include <functional>
-#include <map>
-#include <memory>
 #include <string>
 
-#include "helpers.hpp"
 #include "logging/log.hpp"
-#include "qmcp-solver/solver.hpp"
 
 TestCommand::TestCommand(CLI::App& app, const SolverManager& solver_manager) {
     // Set test subcmd options
@@ -65,7 +61,7 @@ void TestCommand::run(const SolverManager& solver_manager) {
             }
 
             // Run tester
-            tester_manager_.get(test)->test(solver_manager.get(solver),
+            tester_manager_.get(test).test(solver_manager.get(solver),
                                             alg_tester_outputs_directory_path);
 
             LOG_WITH_LEVEL(logging::INFO) << "\t\t PASSED";
