@@ -40,7 +40,7 @@ jobs:
       shell: bash
 
     - name: Install dependencies
-      run: ./scripts/install_libs.sh
+      run: ./scripts/install_libs.sh install
       shell: bash
 
     # Specify the correct host compilers
