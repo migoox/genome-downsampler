@@ -10,18 +10,15 @@
 #include "bam-api/bam_api.hpp"
 #include "bam-api/bam_api_config.hpp"
 #include "bam-api/bam_api_config_builder.hpp"
-#include "helpers.hpp"
 #include "logging/log.hpp"
 #include "qmcp-solver/solver.hpp"
 #include "test_command.hpp"
 
-App::App() {
-    algorithms_names_ = helpers::get_names_from_map(solvers_map_);
-    solver_ = solvers_map_["quasi-mcp-cpu"];
+App::App() : solver_name_(kDefaultSolver) {
     add_main_command_options();
 
 #ifdef TESTING_ENABLED
-    test_command_ = std::make_unique<TestCommand>(app_, solvers_map_);
+    test_command_ = std::make_unique<TestCommand>(app_, solver_manager_);
 #endif
 }
 
@@ -39,41 +36,42 @@ void App::App::add_main_command_options() {
 
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
-        try {
-            //! app_.get_subcommand() throws if no subcommands, can't be used for checking if
-            auto _ = app_.get_subcommand();
-        } catch (const CLI::OptionNotFound& e) {
-            // If subcommand is not invoked, ensure both input and max-coverage are provided
-            if (max_ref_coverage_ == 0) {
-                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0",
-                                      1);
-            }
-
-            if (input_file_path_.empty()) {
-                throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
-            }
-
-            if (output_file_path_.empty()) {
-                output_file_path_ = input_file_path_;
-                output_file_path_.replace_filename("output.bam");
-            }
-
-            execute();
+        // Check if any subcommands are invoked
+        // There is some problem here, in some CLI11 version get_subcommands() throws
+        // In some it is not.
+        if (!app_.get_subcommands().empty()) {
+            return;
         }
+
+        // If subcommand is not invoked, ensure both input and max-coverage are provided
+        if (max_ref_coverage_ == 0) {
+            throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0", 1);
+        }
+
+        if (input_file_path_.empty()) {
+            throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
+        }
+
+        if (output_file_path_.empty()) {
+            output_file_path_ = input_file_path_;
+            output_file_path_.replace_filename("output.bam");
+        }
+
+        execute();
     });
 
     app_.add_option_function<std::string>(
             "-a,--algorithm",
             [this](const std::string& algorithm_name) {
-                if (solvers_map_.find(algorithm_name) != solvers_map_.end()) {
-                    solver_ = solvers_map_[algorithm_name];
+                if (solver_manager_.contains(algorithm_name)) {
+                    solver_name_ = algorithm_name;
                 } else {
                     LOG_WITH_LEVEL(logging::ERROR)
                         << "Algorithm not found: " << algorithm_name << std::endl;
                 }
             },
             "Algorithm to use. Default is \"quasi-mcp-cpu\"")
-        ->check(CLI::IsMember(algorithms_names_));
+        ->check(CLI::IsMember(solver_manager_.get_names()));
 
     app_.add_option("-b,--bed", bed_path_,
                     ".bed amplicon bounds specification. It would be used to filter out or lower "
@@ -123,7 +121,7 @@ void App::execute() {
     config_buider.add_min_seq_length(min_seq_length_);
 
     if (!bed_path_.empty()) {
-        if (solver_->uses_quality_of_reads()) {
+        if (solver_manager_.get(solver_name_)->uses_quality_of_reads()) {
             config_buider.add_amplicon_filtering(bam_api::AmpliconBehaviour::GRADE, bed_path_,
                                                  tsv_path_);
         } else {
@@ -136,7 +134,8 @@ void App::execute() {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::unique_ptr<qmcp::Solution> solution = solver_->solve(max_ref_coverage_, bam_api);
+    std::unique_ptr<qmcp::Solution> solution =
+        solver_manager_.get(solver_name_)->solve(max_ref_coverage_, bam_api);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;

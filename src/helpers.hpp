@@ -1,3 +1,6 @@
+#ifndef HELPERS_HPP
+#define HELPERS_HPP
+
 #include <map>
 #include <string>
 #include <vector>
@@ -17,3 +20,5 @@ std::vector<std::string> get_names_from_map(const std::map<std::string, T>& inpu
 }
 
 }  // namespace helpers
+
+#endif
