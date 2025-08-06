@@ -10,10 +10,9 @@
       "name": "defaults",
       "hidden": true,
       "cacheVariables": {
-        "WITH_TESTS": true,
+        "WITH_TESTS": false,
         "WITH_CUDA": false,
-        "BUILD_SHARED_LIBS": false,
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "BUILD_SHARED_LIBS": false
       }
     },
     {
@@ -28,7 +27,7 @@
     },
     {
       "name": "gnu-x64-release",
-      "binaryDir": "${sourceDir}/build/release",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -37,7 +36,7 @@
     },
     {
       "name": "gnu-x64-debug",
-      "binaryDir": "${sourceDir}/build/debug",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -62,6 +61,18 @@
       ],
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "clang-x64-profiling",
+      "inherits": [
+        "gnu-x64-debug",
+        "defaults"
+      ],
+      "cacheVariables": {
+        "WITH_XRAY": true,
+        "CMAKE_CXX_COMPILER": "clang++",
+        "PROJ_CXX_FLAGS": "-O0;-g3;-ggdb;-fno-omit-frame-pointer;-fno-inline;-U_FORTIFY_SOURCE;-D_FORTIFY_SOURCE=3;-D_GLIBCXX_ASSERTIONS=1;-fstack-protector-strong;-fcf-protection=full;-fstack-clash-protection;-Wall;-Wextra;-Wpedantic;-Wconversion;-Wsign-conversion;-Wcast-qual;-Wformat=2;-Wundef;-Werror=float-equal;-Werror=switch;-Wshadow;-Wcast-align;-Wunused;-Wnull-dereference;-Wdouble-promotion;-Wimplicit-fallthrough;-Wextra-semi;-Woverloaded-virtual;-Wnon-virtual-dtor;-Wold-style-cast;-fxray-instrument"
       }
     },
     {
