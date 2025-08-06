@@ -55,3 +55,6 @@ fetch_source_CLI11()
 
 add_subdirectory(src)
 add_subdirectory(libs)
+
+include(cmake/generate_clangd_file.cmake)
+generate_clangd_file("${PROJ_CXX_FLAGS}")
