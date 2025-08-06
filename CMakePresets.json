@@ -64,7 +64,27 @@
       }
     },
     {
-      "name": "clang-x64-profiling",
+      "name": "clang-x64-release",
+      "inherits": [
+        "gnu-x64-release",
+        "defaults"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "clang-x64-debug",
+      "inherits": [
+        "gnu-x64-debug",
+        "defaults"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "clang-x64-debug-profiling",
       "inherits": [
         "gnu-x64-debug",
         "defaults"
@@ -98,8 +118,18 @@
       "configuration": "Debug"
     },
     {
+      "name": "clang-x64-release",
+      "configurePreset": "clang-x64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-x64-debug",
+      "configurePreset": "clang-x64-debug",
+      "configuration": "Debug"
+    },
+    {
       "name": "clang-x64-profiling",
-      "configurePreset": "clang-x64-profiling",
+      "configurePreset": "clang-x64-debug-profiling",
       "configuration": "Debug"
     },
     {
