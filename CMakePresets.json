@@ -98,6 +98,11 @@
       "configuration": "Debug"
     },
     {
+      "name": "clang-x64-profiling",
+      "configurePreset": "clang-x64-profiling",
+      "configuration": "Debug"
+    },
+    {
       "name": "ci-gcc",
       "configurePreset": "ci-gcc",
       "configuration": "Release"
