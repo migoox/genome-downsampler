@@ -8,6 +8,8 @@ if(WITH_CUDA)
     set(CUDA_ENABLED 1)
 endif()
 
+option(USE_XRAY "Enables XRAY profiling. Warning: Only Clang is supported." OFF)
+
 configure_file("${PROJECT_SOURCE_DIR}/src/config.h.in" "${PROJECT_BINARY_DIR}/config/config.h")
 include_directories("${PROJECT_BINARY_DIR}/config")
 
@@ -18,21 +20,30 @@ add_executable(genome-downsampler ${SOURCES})
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Setting Debug flags for genome-downsampler")
 
-    # Disable PIE to make XRay symbolization work
-    set_target_properties(genome-downsampler PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-    target_link_options(genome-downsampler PRIVATE -no-pie)
 
-    # Enable full XRay instrumentation
-    target_compile_definitions(genome-downsampler PRIVATE XRAY_INSTRUMENTATION_ENABLED=1)
-    target_compile_options(genome-downsampler PRIVATE
-        -g
-        -O0
-        -fxray-instrument
-        -fno-omit-frame-pointer
-    )
+    if(USE_XRAY AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(STATUS "XRay instrumentation is ENABLED")
+
+        # Disable PIE to make XRay symbolization work
+        set_target_properties(genome-downsampler PROPERTIES POSITION_INDEPENDENT_CODE OFF)
+        target_link_options(genome-downsampler PRIVATE -no-pie)
+
+        # Enable full XRay instrumentation
+        target_compile_definitions(genome-downsampler PRIVATE XRAY_INSTRUMENTATION_ENABLED=1)
+        target_compile_options(genome-downsampler PRIVATE
+            -fxray-instrument
+            -fno-omit-frame-pointer
+        )
+
+        # Optionally, append global debug flags
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fxray-instrument -fno-omit-frame-pointer")
+    else()
+        message(STATUS "XRay instrumentation is DISABLED")
+    endif()
 
     # Set CMake global debug flags for consistency (optional)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -fxray-instrument -fno-omit-frame-pointer")
+    target_compile_options(genome-downsampler PRIVATE -g -O0)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
     set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G -g -O0 --extended-lambda")
 else()
     message(STATUS "Setting Release flags for genome-downsampler")

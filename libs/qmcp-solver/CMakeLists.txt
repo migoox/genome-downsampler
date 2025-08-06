@@ -12,4 +12,4 @@ include_directories("${PROJECT_BINARY_DIR}/config")
 
 target_include_directories(qmcp-solver PUBLIC ${CMAKE_SOURCE_DIR}/libs/qmcp-solver/include)
 
-target_link_libraries(qmcp-solver PRIVATE ortools bam-api logging lpsolve55 colamd)
+target_link_libraries(qmcp-solver PRIVATE ortools bam-api logging)

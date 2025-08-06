@@ -1,6 +1,13 @@
 #include "qmcp-solver/cpu_crawling_solver.hpp"
-
+#if defined(__clang__) && defined(XRAY_ENABLED)
 #include <xray/xray_interface.h>
+#endif
+
+#if defined(__clang__) && defined(XRAY_INSTRUMENTATION_ENABLED)
+#define XRAY_INSTRUMENT [[clang::xray_always_instrument]] __attribute__((noinline))
+#else
+#define XRAY_INSTRUMENT
+#endif
 
 #include <algorithm>
 #include <atomic>
@@ -127,15 +134,11 @@ struct SizedPriorityQueue
     }
 
     void clear() { buffer.clear(); }
-    uint32_t size() const
-    {
-        return buffer.size();
-    }
+    uint32_t size() const { return buffer.size(); }
 
     void eraseLess(int num)
     {
-        if (buffer[buffer.size() - 1] >= num)
-            return;
+        if (buffer[buffer.size() - 1] >= num) return;
         for (int x = buffer.size() - 1; x >= 0; x--)
             if (buffer[x] >= num)
             {
@@ -154,39 +157,42 @@ struct SizedPriorityQueue
         buffer.erase(buffer.begin(), buffer.begin() + num);
     }
 
-    T& operator[](size_t index)
-    {
-        return buffer[index];
-    }
+    T& operator[](size_t index) { return buffer[index]; }
 };
 
 // test time 58s
-void findBestSamples_tryFindShorter(uint32_t max_coverage, const bam_api::SOAPairedReads& input_sequence, uint32_t start_ind, uint32_t end_ind,
-                                    std::vector<uint32_t>& start_inex_count_pref_sum, std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
-                                    SizedPriorityQueue<HelperRead>& best_M, SizedPriorityQueue<HelperRead>& best_M_prev)
+void findBestSamples_tryFindShorter(uint32_t max_coverage,
+                                    const bam_api::SOAPairedReads& input_sequence,
+                                    uint32_t start_ind, uint32_t end_ind,
+                                    std::vector<uint32_t>& start_inex_count_pref_sum,
+                                    std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
+                                    SizedPriorityQueue<HelperRead>& best_M,
+                                    SizedPriorityQueue<HelperRead>& best_M_prev)
 {
     for (uint32_t x = start_ind; x <= end_ind; x++)
     {
         int subseq_last_sorted_ind = start_inex_count_pref_sum[x + 1] - 1;
-        int offset = static_cast<int>(std::min(max_coverage, start_inex_count_pref_sum[x + 1] - start_inex_count_pref_sum[x]));
+        int offset = static_cast<int>(std::min(
+            max_coverage, start_inex_count_pref_sum[x + 1] - start_inex_count_pref_sum[x]));
 
-        for (int sorted_ind = subseq_last_sorted_ind; sorted_ind >= 0 &&
-                                                      sorted_ind > subseq_last_sorted_ind - offset;
-             sorted_ind--)
+        for (int sorted_ind = subseq_last_sorted_ind;
+             sorted_ind >= 0 && sorted_ind > subseq_last_sorted_ind - offset; sorted_ind--)
         {
             uint32_t ind = reads_nr_sorted_by_start_ind[sorted_ind];
             best_M.tryAdd(HelperRead(ind, input_sequence.end_inds[ind]));
         }
     }
 
-    for (int x = 0; x < best_M_prev.size(); x++)
-        best_M.tryAdd(best_M_prev[x]);
+    for (int x = 0; x < best_M_prev.size(); x++) best_M.tryAdd(best_M_prev[x]);
 }
 
 // test time 38s
-void findBestSamples(uint32_t max_coverage, const bam_api::SOAPairedReads& input_sequence, uint32_t start_ind, uint32_t end_ind,
-                     std::vector<uint32_t>& start_inex_count_pref_sum, std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
-                     SizedPriorityQueue<HelperRead>& best_M, SizedPriorityQueue<HelperRead>& best_M_prev)
+void findBestSamples(uint32_t max_coverage, const bam_api::SOAPairedReads& input_sequence,
+                     uint32_t start_ind, uint32_t end_ind,
+                     std::vector<uint32_t>& start_inex_count_pref_sum,
+                     std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
+                     SizedPriorityQueue<HelperRead>& best_M,
+                     SizedPriorityQueue<HelperRead>& best_M_prev)
 {
     bool found = false;
     uint32_t ind_offset = 0;
@@ -195,23 +201,21 @@ void findBestSamples(uint32_t max_coverage, const bam_api::SOAPairedReads& input
         found = false;
         for (uint32_t x = start_ind; x <= end_ind; x++)
         {
-            int64_t subseq_sorted_ind = static_cast<int64_t>(start_inex_count_pref_sum[x + 1]) - 1 - ind_offset;
-            if (subseq_sorted_ind < static_cast<int64_t>(start_inex_count_pref_sum[x]))
-                continue;
+            int64_t subseq_sorted_ind =
+                static_cast<int64_t>(start_inex_count_pref_sum[x + 1]) - 1 - ind_offset;
+            if (subseq_sorted_ind < static_cast<int64_t>(start_inex_count_pref_sum[x])) continue;
             uint32_t ind = reads_nr_sorted_by_start_ind[subseq_sorted_ind];
             found |= best_M.tryAdd(HelperRead(ind, input_sequence.end_inds[ind]));
         }
         ind_offset++;
     } while (found);
 
-    for (int x = 0; x < best_M_prev.size(); x++)
-        best_M.tryAdd(best_M_prev[x]);
+    for (int x = 0; x < best_M_prev.size(); x++) best_M.tryAdd(best_M_prev[x]);
 }
 
-[[clang::xray_always_instrument]] __attribute__((noinline))
-std::unique_ptr<qmcp::Solution>
-qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
-                               bam_api::BamApi& bam_api)
+XRAY_INSTRUMENT
+std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
+                                                               bam_api::BamApi& bam_api)
 {
     const bam_api::SOAPairedReads& input_sequence = bam_api.get_paired_reads_soa();
     const uint32_t seq_size = input_sequence.ref_genome_length;
@@ -242,7 +246,8 @@ qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
 
     for (int x = 1; x < start_index_count_pref_sum.size(); x++)
         start_index_count_pref_sum[x] += start_index_count_pref_sum[x - 1];
-    start_index_count_pref_sum.push_back(start_index_count_pref_sum[start_index_count_pref_sum.size() - 1]);
+    start_index_count_pref_sum.push_back(
+        start_index_count_pref_sum[start_index_count_pref_sum.size() - 1]);
 
     std::sort(reads_nr_sorted_by_start_ind.begin(), reads_nr_sorted_by_start_ind.end(),
               [&](int ind1, int ind2)
@@ -260,8 +265,8 @@ qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
         //                                start_inex_count_pref_sum, reads_nr_sorted_by_start_ind,
         //                                best_M, best_M_prev);
         findBestSamples(max_coverage, input_sequence, start_ind, end_ind,
-                        start_index_count_pref_sum, reads_nr_sorted_by_start_ind,
-                        best_M, best_M_prev);
+                        start_index_count_pref_sum, reads_nr_sorted_by_start_ind, best_M,
+                        best_M_prev);
 
         if (best_M.size() == 0)
         {
@@ -269,7 +274,8 @@ qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
             end_ind++;
             continue;
         }
-        uint32_t N = std::min(index_samples_more_needed[end_ind], best_M.size());  // N samples to take
+        uint32_t N =
+            std::min(index_samples_more_needed[end_ind], best_M.size());  // N samples to take
         // update coverage array and ret vec
         ret_vec[best_M[0].readInd] = 1;
         int covered_by = 1;
@@ -293,8 +299,7 @@ qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
         best_M.eraseLess(end_ind);
         best_M.eraseFront(N);
 
-        if (end_ind < start_ind)
-            end_ind = start_ind;
+        if (end_ind < start_ind) end_ind = start_ind;
 
         SizedPriorityQueue<HelperRead>& tmp = best_M_prev;
         best_M_prev = best_M;

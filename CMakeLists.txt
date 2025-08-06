@@ -104,21 +104,6 @@ find_package(ortools CONFIG REQUIRED)
 # Use ccache to speed up the build process
 set(USE_CCACHE YES)
 
-# lpsolve
-find_library(LPSOLVE_LIBRARY NAMES lpsolve55)
-find_library(COLAMD_LIBRARY NAMES colamd)
-
-if (NOT LPSOLVE_LIBRARY)
-    message(FATAL_ERROR "Could not find lpsolve55 library.")
-endif()
-
-if (NOT COLAMD_LIBRARY)
-    message(FATAL_ERROR "Could not find colamd library.")
-endif()
-
-message(STATUS "Found lpsolve: ${LPSOLVE_LIBRARY}")
-message(STATUS "Found colamd: ${COLAMD_LIBRARY}")
-
 # Subdirectories
 add_subdirectory(src)
 add_subdirectory(libs)

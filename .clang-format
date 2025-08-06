@@ -2,9 +2,6 @@ BasedOnStyle: Google
 DerivePointerAlignment: false
 IndentWidth: 4
 TabWidth: 4
-UseTab: false 
-#uncomment this later
-# ColumnLimit: 100
-#delete this later
-ColumnLimit: 0
+UseTab: false
+ColumnLimit: 100
 BreakBeforeBraces: Allman

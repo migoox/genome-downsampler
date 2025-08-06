@@ -1,11 +1,12 @@
-*mixed_integer*
-
 # Build directories and binary files
 build/
 out/
 out/coverage/*
 cmake-build-*/
 conan-cache/
+xray/*
+func-map.yaml
+_deps/*
 
 # User spesific settings
 CMakeUserPresets.json
