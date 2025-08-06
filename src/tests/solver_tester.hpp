@@ -2,6 +2,7 @@
 #define TESTS_SOLVER_TESTER
 
 #include <filesystem>
+#include <memory>
 
 #include "qmcp-solver/solver.hpp"
 

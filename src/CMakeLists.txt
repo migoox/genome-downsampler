@@ -2,6 +2,7 @@
 if(WITH_TESTS)
     set(TESTING_ENABLED 1)
     add_subdirectory(tests)
+    list(APPEND SOURCES test_command.cpp) # Include test_command.cpp only if WITH_TESTS is enabled
 endif()
 
 if(WITH_CUDA)
