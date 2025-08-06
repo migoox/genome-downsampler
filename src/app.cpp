@@ -36,28 +36,23 @@ void App::App::add_main_command_options() {
 
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
-        // Check if any subcommands are invoked
-        // There is some problem here, in some CLI11 version get_subcommands() throws
-        // In some it is not.
-        if (!app_.get_subcommands().empty()) {
-            return;
-        }
+        // Check if any subcommands were parsed
+        if (app_.get_subcommands().empty()) {
+            // If subcommand is not invoked, ensure both input and max-coverage are provided
+            if (max_ref_coverage_ == 0) {
+                throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0",
+                                      1);
+            }
 
-        // If subcommand is not invoked, ensure both input and max-coverage are provided
-        if (max_ref_coverage_ == 0) {
-            throw CLI::ParseError("MAX_COVERAGE must be specified and integer bigger than 0", 1);
-        }
+            if (input_file_path_.empty()) {
+                throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
+            }
 
-        if (input_file_path_.empty()) {
-            throw CLI::ParseError("INPUT_FILEPATH must be specified", 1);
+            if (output_file_path_.empty()) {
+                output_file_path_ = input_file_path_;
+                output_file_path_.replace_filename("output.bam");
+            }
         }
-
-        if (output_file_path_.empty()) {
-            output_file_path_ = input_file_path_;
-            output_file_path_.replace_filename("output.bam");
-        }
-
-        execute();
     });
 
     app_.add_option_function<std::string>(
