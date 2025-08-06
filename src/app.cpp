@@ -52,6 +52,8 @@ void App::App::add_main_command_options() {
                 output_file_path_ = input_file_path_;
                 output_file_path_.replace_filename("output.bam");
             }
+
+            execute();
         }
     });
 
