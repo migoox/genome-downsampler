@@ -1,10 +1,11 @@
 # From: https://raw.githubusercontent.com/genome/build-common/master/cmake/FindHTSlib.cmake
-# - Try to find htslib
+# - Try to find HTSlib
 # Once done, this will define
 #
-#  htslib_FOUND - system has htslib
-#  htslib_INCLUDE_DIRS - the htslib include directories
-#  htslib_LIBRARIES - link these to use htslib
+#  HTSlib_FOUND - system has HTSlib
+#  HTSlib_INCLUDE_DIRS - the HTSlib include directories
+#  HTSlib_LIBRARIES - link these to use HTSlib
+#  HTSlib::HTSlib - CMake target
 
 set(HTSLIB_SEARCH_DIRS
     ${HTSLIB_SEARCH_DIRS}
@@ -51,5 +52,20 @@ endforeach()
 
 set(HTSlib_LIBRARIES ${filtered_HTSLib_LIBRARIES})
 
-message(STATUS "   HTSlib include dirs: ${HTSlib_INCLUDE_DIRS}")
-message(STATUS "   HTSlib libraries: ${HTSlib_LIBRARIES}")
+# If path ends with '/include/htslib', use '/include' instead
+if(HTSlib_INCLUDE_DIR MATCHES ".*/include/htslib$")
+    get_filename_component(HTSlib_INCLUDE_DIR "${HTSlib_INCLUDE_DIR}" DIRECTORY)
+endif()
+
+if(HTSlib_FOUND)
+    set(HTSlib_INCLUDE_DIRS ${HTSlib_INCLUDE_DIR})
+    set(HTSlib_LIBRARIES ${HTSlib_LIBRARY})
+
+    if(NOT TARGET HTSlib::HTSlib)
+        add_library(HTSlib::HTSlib UNKNOWN IMPORTED)
+        set_target_properties(HTSlib::HTSlib PROPERTIES
+            IMPORTED_LOCATION "${HTSlib_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${HTSlib_INCLUDE_DIR}"
+        )
+    endif()
+endif()

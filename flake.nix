@@ -20,24 +20,24 @@
             };
           in
           {
-            default = with pkgs; mkShell.override { stdenv = gcc12Stdenv; }
+            # For nvcc---if you want to use CUDA
+            # default = with pkgs; mkShell.override { stdenv = gcc12Stdenv; }
+            # For gcc---if you do not want to use CUDA
+            default = with pkgs; mkShell.override { stdenv = gcc13Stdenv; }
               {
                 shellHook = ''
                   export CUDA_PATH=${cudatoolkit}
                   export LD_LIBRARY_PATH=${linuxPackages.nvidia_x11}/lib:${ncurses5}/lib
-                  export EXTRA_LDFLAGS="-L/lib -L${linuxPackages.nvidia_x11}/lib"
+                  export EXTRA_LDFLAGS="-L/lib -L${linuxPackages.nvidia_x11}/lib -L${gcc13.cc.lib}/lib"
                   export EXTRA_CCFLAGS="-I/usr/include"
                   export NVCC_APPEND_FLAGS="-L${gcc13.cc.lib}/lib"
                   export HTLSIB_ROOT=${htslib}
-
-                  zellij
                 '';
                 packages = [
                   clang-tools
                   bear
                   cmake
                   cmake-format
-                  zellij
                   pkg-config
                 ];
                 buildInputs = [
