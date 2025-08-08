@@ -103,11 +103,13 @@ void App::App::add_main_command_options() {
 
     app_.add_option("-f,--amp-overflow", amp_overflow_,
                     "Number of bp read can be outside of amplicon to "
-                    "still be considered as included in the amplicon.")
+                    "still be considered as included in the amplicon. "
+                    "Default is 0.")
         ->check(CLI::NonNegativeNumber);
 
     app_.add_option("-g,--min-alignment", min_alignment_,
-                    "Minimal alignment ratio (AS/sequence length)")
+                    "Minimal alignment ratio (AS/sequence length). "
+                    "Default is 0.5.")
         ->check(CLI::Range(0., 1.));
 
     app_.add_option("-@,--threads", hts_thread_count_, "Set thread count for htslib read/write.")
