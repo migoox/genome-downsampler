@@ -39,3 +39,4 @@ Thumbs.db
 compile_commands.json
 
 .clangd
+data

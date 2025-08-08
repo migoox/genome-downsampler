@@ -7,8 +7,9 @@ namespace bam_api {
 struct Amplicon {
     Index start;
     Index end;
+    uint32_t overflow;
 
-    Amplicon(Index start, Index end);
+    Amplicon(Index start, Index end, uint32_t overflow);
 
     bool includes(const Read& read) const;
 };

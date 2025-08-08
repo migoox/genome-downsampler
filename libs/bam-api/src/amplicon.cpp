@@ -1,7 +1,8 @@
 #include "bam-api/amplicon.hpp"
 
-bam_api::Amplicon::Amplicon(Index start, Index end) : start(start), end(end) {}
+bam_api::Amplicon::Amplicon(Index start, Index end, uint32_t overflow)
+    : start(start), end(end), overflow(overflow) {}
 
 bool bam_api::Amplicon::includes(const Read& read) const {
-    return start <= read.start_ind && read.end_ind <= end;
+    return start - overflow <= read.start_ind && read.end_ind < end + overflow;
 }

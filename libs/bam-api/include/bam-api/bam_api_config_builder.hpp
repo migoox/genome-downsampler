@@ -9,10 +9,12 @@ class BamApiConfigBuilder {
    public:
     void add_min_mapq(uint32_t min_mapq);
     void add_min_seq_length(uint32_t min_seq_length);
+    void add_amp_overflow(uint32_t amp_overflow);
+    void add_min_alignment(float min_alignment);
     void add_hts_thread_count(uint32_t hts_thread_count);
-    void add_amplicon_filtering(AmpliconBehaviour amplicon_behaviour,
-                                const std::filesystem::path& bed_filepath,
-                                const std::filesystem::path& tsv_filepath = std::filesystem::path());
+    void add_amplicon_filtering(
+        AmpliconBehaviour amplicon_behaviour, const std::filesystem::path& bed_filepath,
+        const std::filesystem::path& tsv_filepath = std::filesystem::path());
     BamApiConfig build() const;
 
    private:

@@ -13,7 +13,8 @@ void bam_api::SOAPairedReads::set_quality(ReadIndex index, ReadQuality quality) 
 
 bam_api::Read bam_api::SOAPairedReads::get_read_by_index(ReadIndex index) const {
     return Read(ids[index], start_inds[index], end_inds[index], qualities[index],
-                seq_lengths[index], is_first_reads[index]);
+                seq_lengths[index], mapqs[index], as_scores[index], is_first_reads[index],
+                is_secondary_reads[index], is_supplementary_reads[index], has_sa_tags[index]);
 }
 
 bam_api::ReadIndex bam_api::SOAPairedReads::get_reads_count() const { return ids.size(); }
@@ -24,7 +25,12 @@ void bam_api::SOAPairedReads::clear() {
     end_inds.clear();
     qualities.clear();
     seq_lengths.clear();
+    mapqs.clear();
+    as_scores.clear();
     is_first_reads.clear();
+    is_secondary_reads.clear();
+    is_supplementary_reads.clear();
+    has_sa_tags.clear();
 }
 
 bam_api::SOAPairedReads& bam_api::SOAPairedReads::from(const AOSPairedReads& aos) {
