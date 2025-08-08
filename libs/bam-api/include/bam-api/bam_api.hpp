@@ -7,10 +7,10 @@
 #include <utility>
 #include <vector>
 
-#include "bam-api/bam_api_config.hpp"
 #include "bam-api/amplicon_set.hpp"
-#include "bam-api/paired_reads.hpp"
 #include "bam-api/aos_paired_reads.hpp"
+#include "bam-api/bam_api_config.hpp"
+#include "bam-api/paired_reads.hpp"
 #include "bam-api/read.hpp"
 #include "bam-api/soa_paired_reads.hpp"
 
@@ -41,10 +41,11 @@ class BamApi {
     uint32_t write_bam_api_filtered_out_reads(const std::filesystem::path& output_filepath);
 
     // testing purposes
-    std::vector<uint32_t> find_input_cover();
-    std::vector<uint32_t> find_filtered_cover(const std::vector<ReadIndex>& active_ids);
+    std::vector<uint32_t> find_input_cover() const;
+    std::vector<uint32_t> find_filtered_cover(const std::vector<ReadIndex>& active_ids) const;
 
    private:
+    bool is_paired_ = true;
     SOAPairedReads soa_paired_reads_;
     bool is_soa_loaded_ = false;
     AOSPairedReads aos_paired_reads_;
@@ -54,7 +55,9 @@ class BamApi {
     std::vector<BAMReadId> filtered_out_reads_;
     std::filesystem::path input_filepath_;
     uint32_t min_seq_length_ = 0;
+    uint32_t amp_overflow_ = 0;
     uint32_t min_mapq_ = 0;
+    float min_alignment_ = 0.;
     uint32_t hts_thread_count_ = 1;
     uint32_t min_imported_mapq_ = UINT32_MAX;
     uint32_t max_imported_mapq_ = 0;
@@ -70,21 +73,23 @@ class BamApi {
                               std::vector<BAMReadId>& bam_ids, uint32_t hts_thread_count);
     void read_bam(const std::filesystem::path& input_filepath, PairedReads& paired_reads);
 
-    void set_min_length_filter(uint32_t min_length);
-    void set_min_mapq_filter(uint32_t min_mapq);
     void set_amplicon_filter(const std::filesystem::path& bed_filepath,
                              const std::filesystem::path& tsv_filepath = std::filesystem::path());
 
     void analyse_mapq(const Read& r);
 
     // Filtering helpers
-    bool should_be_filtered_out(const Read& r1, const Read& r2);
-    static bool have_min_length(const Read& r1, const Read& r2, uint32_t min_length);
-    static bool have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq);
-    static bool are_from_single_amplicon(const Read& r1, const Read& r2,
-                                         const AmpliconSet& amplicon_set);
+    bool should_be_filtered_out(const Read& r, bool is_paired) const;
+    bool should_be_filtered_out(const Read& r1, const Read& r2) const;
+    bool have_min_alignment(const Read& r) const;
+    bool have_min_alignment(const Read& r1, const Read& r2) const;
+    bool have_min_length(const Read& r) const;
+    bool have_min_mapq(const Read& r) const;
+    bool are_from_single_amplicon(const Read& r1, const Read& r2) const;
+    bool is_from_single_amplicon(const Read& r) const;
 
-    void apply_amplicon_inclusion_grading(PairedReads& paired_reads, std::vector<bool>& is_in_single_amplicon) const;
+    void apply_amplicon_inclusion_grading(PairedReads& paired_reads,
+                                          std::vector<bool>& is_in_single_amplicon) const;
 };
 
 }  // namespace bam_api

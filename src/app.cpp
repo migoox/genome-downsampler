@@ -36,6 +36,8 @@ void App::App::add_main_command_options() {
 
     // Logic to make positional arguments required when subcommand is not used
     app_.callback([&]() {
+        SET_LOG_LEVEL(verbose_mode_ ? logging::DEBUG : logging::INFO);
+
         // Check if any subcommands were parsed
         if (app_.get_subcommands().empty()) {
             // If subcommand is not invoked, ensure both input and max-coverage are provided
@@ -99,6 +101,17 @@ void App::App::add_main_command_options() {
                     "filtered out before algorithm execution.")
         ->check(CLI::NonNegativeNumber);
 
+    app_.add_option("-f,--amp-overflow", amp_overflow_,
+                    "Number of bp read can be outside of amplicon to "
+                    "still be considered as included in the amplicon. "
+                    "Default is 0.")
+        ->check(CLI::NonNegativeNumber);
+
+    app_.add_option("-g,--min-alignment", min_alignment_,
+                    "Minimal alignment ratio (AS/sequence length). "
+                    "Default is 0.5.")
+        ->check(CLI::Range(0., 1.));
+
     app_.add_option("-@,--threads", hts_thread_count_, "Set thread count for htslib read/write.")
         ->check(CLI::PositiveNumber);
 
@@ -116,6 +129,8 @@ void App::execute() {
     config_buider.add_hts_thread_count(hts_thread_count_);
     config_buider.add_min_mapq(min_mapq_);
     config_buider.add_min_seq_length(min_seq_length_);
+    config_buider.add_amp_overflow(amp_overflow_);
+    config_buider.add_min_alignment(min_alignment_);
 
     if (!bed_path_.empty()) {
         if (solver_manager_.get(solver_name_).uses_quality_of_reads()) {

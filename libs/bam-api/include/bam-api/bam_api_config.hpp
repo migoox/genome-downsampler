@@ -20,11 +20,12 @@ struct BamApiConfig {
     std::filesystem::path tsv_filepath;
     uint32_t hts_thread_count = 1;
     uint32_t min_seq_length = 0;
+    uint32_t amp_overflow = 0;
     uint32_t min_mapq = 0;
+    float min_alignment = 0;
     AmpliconBehaviour amplicon_behaviour = AmpliconBehaviour::IGNORE;
 };
 
 }  // namespace bam_api
 
 #endif
-

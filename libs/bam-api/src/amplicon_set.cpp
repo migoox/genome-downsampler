@@ -7,3 +7,8 @@ bool bam_api::AmpliconSet::member_includes_both(const Read& r1, const Read& r2) 
         return amplicon.includes(r1) && amplicon.includes(r2);
     });
 }
+
+bool bam_api::AmpliconSet::any_includes(const Read& r) const {
+    return std::any_of(amplicons.cbegin(), amplicons.cend(),
+                       [&r](const Amplicon& amplicon) { return amplicon.includes(r); });
+}

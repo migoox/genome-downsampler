@@ -13,7 +13,7 @@ typedef size_t BAMReadId;
 typedef size_t ReadIndex;
 // This index is an index in the reference genome
 typedef size_t Index;
-typedef uint32_t ReadQuality;
+typedef int64_t ReadQuality;
 
 // Read structure definition
 struct Read {
@@ -22,11 +22,17 @@ struct Read {
     Index end_ind;
     ReadQuality quality;
     uint32_t seq_length;
+    uint32_t mapq;
+    int64_t as;
     bool is_first_read;
+    bool is_secondary;
+    bool is_supplementary;
+    bool has_sa;
 
     Read(BAMReadId id, bam1_t* bamdata);
     Read(BAMReadId id, Index start_ind, Index end_ind, ReadQuality quality, uint32_t seq_length,
-         bool is_first);
+         uint8_t mapq, int32_t as, bool is_first, bool is_secondary, bool is_supplementary,
+         bool has_sa);
 };
 
 }  // namespace bam_api

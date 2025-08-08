@@ -30,10 +30,12 @@
     }
 
 bam_api::BamApi::BamApi(const std::filesystem::path& input_filepath, const BamApiConfig& config)
-    : input_filepath_(input_filepath), hts_thread_count_(config.hts_thread_count) {
-    set_min_length_filter(config.min_seq_length);
-    set_min_mapq_filter(config.min_mapq);
-
+    : input_filepath_(input_filepath),
+      min_seq_length_(config.min_seq_length),
+      amp_overflow_(config.amp_overflow),
+      min_mapq_(config.min_mapq),
+      min_alignment_(config.min_alignment),
+      hts_thread_count_(config.hts_thread_count) {
     if (!config.bed_filepath.empty()) {
         set_amplicon_filter(config.bed_filepath, config.tsv_filepath);
         amplicon_behaviour_ = config.amplicon_behaviour;
@@ -45,10 +47,6 @@ bam_api::BamApi::BamApi(const AOSPairedReads& paired_reads)
     : aos_paired_reads_{paired_reads}, is_aos_loaded_(true) {}
 bam_api::BamApi::BamApi(const SOAPairedReads& paired_reads)
     : soa_paired_reads_{paired_reads}, is_soa_loaded_(true) {}
-
-void bam_api::BamApi::set_min_length_filter(uint32_t min_length) { min_seq_length_ = min_length; }
-
-void bam_api::BamApi::set_min_mapq_filter(uint32_t min_mapq) { min_mapq_ = min_mapq; }
 
 void bam_api::BamApi::set_amplicon_filter(const std::filesystem::path& bed_filepath,
                                           const std::filesystem::path& tsv_filepath) {
@@ -69,7 +67,8 @@ void bam_api::BamApi::set_amplicon_filter(const std::filesystem::path& bed_filep
                 std::swap(left_primer, right_primer);
             }
 
-            amplicon_set_.amplicons.push_back(Amplicon(left_primer.first, right_primer.second));
+            amplicon_set_.amplicons.push_back(
+                Amplicon(left_primer.first, right_primer.second, amp_overflow_));
         }
     } else {
         auto it = primer_map.begin();
@@ -83,7 +82,8 @@ void bam_api::BamApi::set_amplicon_filter(const std::filesystem::path& bed_filep
                 std::swap(left_primer, right_primer);
             }
 
-            amplicon_set_.amplicons.push_back(Amplicon(left_primer.first, right_primer.second));
+            amplicon_set_.amplicons.push_back(
+                Amplicon(left_primer.first, right_primer.second, amp_overflow_));
 
             it++;
         }
@@ -238,6 +238,11 @@ const std::vector<bam_api::BAMReadId>& bam_api::BamApi::get_filtered_out_reads()
 
 std::vector<bam_api::ReadIndex> bam_api::BamApi::find_pairs(
     const std::vector<ReadIndex>& ids) const {
+    if (!is_paired_) {
+        LOG_WITH_LEVEL(logging::INFO) << "Unpaired data, no need to find pairs.";
+        return ids;
+    }
+
     LOG_WITH_LEVEL(logging::INFO) << "Finding paired reads for solution...";
     LOG_WITH_LEVEL(logging::DEBUG) << "Unpaired solution have " << ids.size() << " reads";
 
@@ -272,7 +277,7 @@ std::vector<bam_api::ReadIndex> bam_api::BamApi::find_pairs(
     return paired_ids;
 }
 
-std::vector<uint32_t> bam_api::BamApi::find_input_cover() {
+std::vector<uint32_t> bam_api::BamApi::find_input_cover() const {
     const bam_api::PairedReads& paired_reads = get_paired_reads();
     std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
     for (bam_api::ReadIndex i = 0; i < paired_reads.get_reads_count(); ++i) {
@@ -286,7 +291,7 @@ std::vector<uint32_t> bam_api::BamApi::find_input_cover() {
 }
 
 std::vector<uint32_t> bam_api::BamApi::find_filtered_cover(
-    const std::vector<bam_api::ReadIndex>& ids) {
+    const std::vector<bam_api::ReadIndex>& ids) const {
     const bam_api::PairedReads& paired_reads = get_paired_reads();
     std::vector<uint32_t> result(paired_reads.ref_genome_length, 0);
 
@@ -308,38 +313,64 @@ const bam_api::PairedReads& bam_api::BamApi::get_paired_reads() const {
     return aos_paired_reads_;
 }
 
-bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) {
-    bool ret = !have_min_mapq(r1, r2, min_mapq_) || !have_min_length(r1, r2, min_seq_length_);
+bool bam_api::BamApi::should_be_filtered_out(const Read& r, bool is_paired) const {
+    bool ret = false;
+
+    ret = ret || !have_min_mapq(r);
+    ret = ret || !have_min_length(r);
+    if (!is_paired) ret = ret || !have_min_alignment(r);
+    ret = ret || r.has_sa;
 
     if (amplicon_behaviour_ == AmpliconBehaviour::FILTER) {
-        ret = ret || !are_from_single_amplicon(r1, r2, amplicon_set_);
+        ret = ret || !is_from_single_amplicon(r);
     }
 
     return ret;
 }
 
-bool bam_api::BamApi::have_min_length(const Read& r1, const Read& r2, uint32_t min_length) {
-    return (r1.seq_length >= min_length) && (r2.seq_length >= min_length);
+bool bam_api::BamApi::should_be_filtered_out(const Read& r1, const Read& r2) const {
+    bool ret = should_be_filtered_out(r1, true) || should_be_filtered_out(r2, true);
+
+    if (amplicon_behaviour_ == AmpliconBehaviour::FILTER) {
+        ret = ret || !are_from_single_amplicon(r1, r2);
+    }
+
+    return ret;
 }
 
-bool bam_api::BamApi::have_min_mapq(const Read& r1, const Read& r2, uint32_t min_mapq) {
-    return (r1.quality >= min_mapq) && (r2.quality >= min_mapq);
+bool bam_api::BamApi::have_min_alignment(const Read& r) const {
+    return (static_cast<float>(r.as) / static_cast<float>(r.seq_length)) >= min_alignment_;
 }
 
-bool bam_api::BamApi::are_from_single_amplicon(const Read& r1, const Read& r2,
-                                               const AmpliconSet& amplicon_set) {
-    return amplicon_set.member_includes_both(r1, r2);
+bool bam_api::BamApi::have_min_alignment(const Read& r1, const Read& r2) const {
+    return (static_cast<float>(r1.as) / static_cast<float>(r1.seq_length + r2.seq_length)) >=
+           min_alignment_;
 }
 
-void bam_api::BamApi::apply_amplicon_inclusion_grading(bam_api::PairedReads& paired_reads,
-                                                       std::vector<bool>& is_in_single_amplicon) const {
-    LOG_WITH_LEVEL(logging::DEBUG) << "Grading: min_mapq: " << min_imported_mapq_ << ", max_mapq: " << max_imported_mapq_;
+bool bam_api::BamApi::have_min_length(const Read& r) const {
+    return r.seq_length >= min_seq_length_;
+}
+
+bool bam_api::BamApi::have_min_mapq(const Read& r) const { return r.mapq >= min_mapq_; }
+
+bool bam_api::BamApi::are_from_single_amplicon(const Read& r1, const Read& r2) const {
+    return amplicon_set_.member_includes_both(r1, r2);
+}
+
+bool bam_api::BamApi::is_from_single_amplicon(const Read& r) const {
+    return amplicon_set_.any_includes(r);
+}
+
+void bam_api::BamApi::apply_amplicon_inclusion_grading(
+    bam_api::PairedReads& paired_reads, std::vector<bool>& is_in_single_amplicon) const {
+    LOG_WITH_LEVEL(logging::DEBUG)
+        << "Grading: min_mapq: " << min_imported_mapq_ << ", max_mapq: " << max_imported_mapq_;
     if (max_imported_mapq_ > 0 && min_imported_mapq_ < UINT32_MAX) {
         for (ReadIndex i = 0; i < paired_reads.get_reads_count(); ++i) {
             ReadQuality quality = paired_reads.get_quality(i);
             quality -= min_imported_mapq_;
             if (is_in_single_amplicon[i]) {
-              quality  += max_imported_mapq_ - min_imported_mapq_;
+                quality += max_imported_mapq_ - min_imported_mapq_;
             }
             paired_reads.set_quality(i, quality);
         }
@@ -348,11 +379,11 @@ void bam_api::BamApi::apply_amplicon_inclusion_grading(bam_api::PairedReads& pai
 
 void bam_api::BamApi::analyse_mapq(const Read& r) {
     if (r.quality < min_imported_mapq_) {
-        min_imported_mapq_ = r.quality;
+        min_imported_mapq_ = r.mapq;
     }
 
     if (r.quality > max_imported_mapq_) {
-        max_imported_mapq_ = r.quality;
+        max_imported_mapq_ = r.mapq;
     }
 }
 
@@ -432,6 +463,8 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
         is_accepted.push_back(false);
 
         auto read_one_iterator = read_map.find(current_qname);
+
+        // Try to find paired-end reads on the fly
         if (read_one_iterator != read_map.end()) {
             Read& r1 = read_one_iterator->second;
             Read& r2 = current_read;
@@ -444,7 +477,7 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
             if (amplicon_behaviour_ == AmpliconBehaviour::GRADE) {
                 analyse_mapq(r1);
                 analyse_mapq(r2);
-                if (are_from_single_amplicon(r1, r2, amplicon_set_)) {
+                if (are_from_single_amplicon(r1, r2)) {
                     is_in_single_amplicon.push_back(true);
                     is_in_single_amplicon.push_back(true);
                 } else {
@@ -468,6 +501,31 @@ void bam_api::BamApi::read_bam(const std::filesystem::path& input_filepath,
 
         id++;
     }
+
+    // If not paired handle it too
+    if (paired_reads.get_reads_count() == 0) {
+        is_paired_ = false;
+
+        for (auto& [qname, read] : read_map) {
+            if (should_be_filtered_out(read, false)) {
+                continue;
+            }
+
+            if (amplicon_behaviour_ == AmpliconBehaviour::GRADE) {
+                analyse_mapq(read);
+                if (is_from_single_amplicon(read)) {
+                    is_in_single_amplicon.push_back(true);
+                } else {
+                    is_in_single_amplicon.push_back(false);
+                }
+            }
+
+            paired_reads.push_back(read);
+            is_accepted[read.bam_id] = true;
+        }
+    }
+
+    LOG_WITH_LEVEL(logging::INFO) << "After reading: " << read_map.size();
 
     assert(is_accepted.size() == id);
 

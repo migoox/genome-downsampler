@@ -5,9 +5,19 @@
 void bam_api::BamApiConfigBuilder::add_min_mapq(uint32_t min_mapq) {
     bam_api_config_.min_mapq = min_mapq;
 }
+
 void bam_api::BamApiConfigBuilder::add_min_seq_length(uint32_t min_seq_length) {
     bam_api_config_.min_seq_length = min_seq_length;
 }
+
+void bam_api::BamApiConfigBuilder::add_amp_overflow(uint32_t amp_overflow) {
+    bam_api_config_.amp_overflow = amp_overflow;
+}
+
+void bam_api::BamApiConfigBuilder::add_min_alignment(float min_alignment) {
+    bam_api_config_.min_alignment = min_alignment;
+}
+
 void bam_api::BamApiConfigBuilder::add_amplicon_filtering(
     AmpliconBehaviour amplicon_behaviour, const std::filesystem::path& bed_filepath,
     const std::filesystem::path& tsv_filepath) {
@@ -24,6 +34,4 @@ void bam_api::BamApiConfigBuilder::add_hts_thread_count(uint32_t hts_thread_coun
     bam_api_config_.hts_thread_count = hts_thread_count;
 }
 
-bam_api::BamApiConfig bam_api::BamApiConfigBuilder::build() const {
-    return bam_api_config_;
-}
+bam_api::BamApiConfig bam_api::BamApiConfigBuilder::build() const { return bam_api_config_; }
