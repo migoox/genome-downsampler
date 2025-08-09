@@ -1,5 +1,5 @@
 #include "qmcp-solver/cpu_crawling_solver.hpp"
-#if defined(__clang__) && defined(XRAY_ENABLED)
+#if defined(__clang__) && defined(XRAY_INSTRUMENTATION_ENABLED)
 #include <xray/xray_interface.h>
 #endif
 
@@ -31,21 +31,6 @@
 #include "bam-api/read.hpp"
 #include "qmcp-solver/solver.hpp"
 
-void printReads1(const bam_api::SOAPairedReads& input_sequence)
-{
-    for (int x = 0; x < input_sequence.ref_genome_length; x++)
-    {
-        for (int y = 0; y < input_sequence.get_reads_count(); y++)
-        {
-            if (x >= input_sequence.start_inds[y] && x <= input_sequence.end_inds[y])
-                std::cout << "1 ";
-            else
-                std::cout << "0 ";
-        }
-        std::cout << "\n";
-    }
-}
-
 template <typename T>
 void printVector(std::vector<T>& v)
 {
@@ -57,7 +42,7 @@ void printVector(std::vector<T>& v)
 struct HelperRead
 {
     bam_api::Index endInd;
-    uint32_t readInd;
+    bam_api::ReadIndex readInd;
     HelperRead(uint32_t readInd, bam_api::Index endInd) : endInd(endInd), readInd(readInd) {}
     bool operator<(const HelperRead& other) const { return endInd < other.endInd; }
 
@@ -71,17 +56,17 @@ struct HelperRead
 
     bool operator!=(const HelperRead& other) const { return endInd != other.endInd; }
 
-    bool operator<(const int other) const { return endInd < other; }
+    bool operator<(const bam_api::Index other) const { return endInd < other; }
 
-    bool operator>(const int other) const { return endInd > other; }
+    bool operator>(const bam_api::Index other) const { return endInd > other; }
 
-    bool operator<=(const int other) const { return endInd <= other; }
+    bool operator<=(const bam_api::Index other) const { return endInd <= other; }
 
-    bool operator>=(const int other) const { return endInd >= other; }
+    bool operator>=(const bam_api::Index other) const { return endInd >= other; }
 
-    bool operator==(const int other) const { return endInd == other; }
+    bool operator==(const bam_api::Index other) const { return endInd == other; }
 
-    bool operator!=(const int other) const { return endInd != other; }
+    bool operator!=(const bam_api::Index other) const { return endInd != other; }
 
     friend std::ostream& operator<<(std::ostream& os, const HelperRead& hr)
     {
@@ -164,21 +149,21 @@ struct SizedPriorityQueue
 void findBestSamples_tryFindShorter(uint32_t max_coverage,
                                     const bam_api::SOAPairedReads& input_sequence,
                                     uint32_t start_ind, uint32_t end_ind,
-                                    std::vector<uint32_t>& start_inex_count_pref_sum,
-                                    std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
+                                    std::vector<uint32_t>& start_index_count_pref_sum,
+                                    std::vector<bam_api::ReadIndex>& read_ids_by_ascending_start_id,
                                     SizedPriorityQueue<HelperRead>& best_M,
                                     SizedPriorityQueue<HelperRead>& best_M_prev)
 {
     for (uint32_t x = start_ind; x <= end_ind; x++)
     {
-        int subseq_last_sorted_ind = start_inex_count_pref_sum[x + 1] - 1;
+        int subseq_last_sorted_ind = start_index_count_pref_sum[x + 1] - 1;
         int offset = static_cast<int>(std::min(
-            max_coverage, start_inex_count_pref_sum[x + 1] - start_inex_count_pref_sum[x]));
+            max_coverage, start_index_count_pref_sum[x + 1] - start_index_count_pref_sum[x]));
 
         for (int sorted_ind = subseq_last_sorted_ind;
              sorted_ind >= 0 && sorted_ind > subseq_last_sorted_ind - offset; sorted_ind--)
         {
-            uint32_t ind = reads_nr_sorted_by_start_ind[sorted_ind];
+            bam_api::ReadIndex ind = read_ids_by_ascending_start_id[sorted_ind];
             best_M.tryAdd(HelperRead(ind, input_sequence.end_inds[ind]));
         }
     }
@@ -189,8 +174,8 @@ void findBestSamples_tryFindShorter(uint32_t max_coverage,
 // test time 38s
 void findBestSamples(uint32_t max_coverage, const bam_api::SOAPairedReads& input_sequence,
                      uint32_t start_ind, uint32_t end_ind,
-                     std::vector<uint32_t>& start_inex_count_pref_sum,
-                     std::vector<uint32_t>& reads_nr_sorted_by_start_ind,
+                     std::vector<uint32_t>& start_index_count_pref_sum,
+                     std::vector<bam_api::ReadIndex>& read_ids_by_ascending_start_id,
                      SizedPriorityQueue<HelperRead>& best_M,
                      SizedPriorityQueue<HelperRead>& best_M_prev)
 {
@@ -202,9 +187,9 @@ void findBestSamples(uint32_t max_coverage, const bam_api::SOAPairedReads& input
         for (uint32_t x = start_ind; x <= end_ind; x++)
         {
             int64_t subseq_sorted_ind =
-                static_cast<int64_t>(start_inex_count_pref_sum[x + 1]) - 1 - ind_offset;
-            if (subseq_sorted_ind < static_cast<int64_t>(start_inex_count_pref_sum[x])) continue;
-            uint32_t ind = reads_nr_sorted_by_start_ind[subseq_sorted_ind];
+                static_cast<int64_t>(start_index_count_pref_sum[x + 1]) - 1 - ind_offset;
+            if (subseq_sorted_ind < static_cast<int64_t>(start_index_count_pref_sum[x])) continue;
+            bam_api::ReadIndex ind = read_ids_by_ascending_start_id[subseq_sorted_ind];
             found |= best_M.tryAdd(HelperRead(ind, input_sequence.end_inds[ind]));
         }
         ind_offset++;
@@ -217,31 +202,30 @@ XRAY_INSTRUMENT
 std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::solve(uint32_t max_coverage,
                                                                bam_api::BamApi& bam_api)
 {
-    const bam_api::SOAPairedReads& input_sequence = bam_api.get_paired_reads_soa();
-    const uint32_t seq_size = input_sequence.ref_genome_length;
-    const uint32_t reads_count = input_sequence.get_reads_count();
+    const bam_api::SOAPairedReads& input_reads = bam_api.get_paired_reads_soa();
+    const uint32_t reads_count = input_reads.get_reads_count();
 
     uint32_t start_ind = 0;
     uint32_t end_ind = 0;
     std::vector<uint32_t> index_samples_more_needed;
     std::vector<uint32_t> start_index_count_pref_sum;
-    std::vector<uint32_t> reads_nr_sorted_by_start_ind;
-    SizedPriorityQueue<HelperRead> best_M1(max_coverage);
+    std::vector<bam_api::ReadIndex> read_ids_by_ascending_start_id;
+    SizedPriorityQueue<HelperRead> best_M1(max_coverage);  // M stands for max_coverage
     SizedPriorityQueue<HelperRead> best_M2(max_coverage);
     SizedPriorityQueue<HelperRead>& best_M = best_M1;
     SizedPriorityQueue<HelperRead>& best_M_prev = best_M2;
     std::vector<int64_t> ret_vec(reads_count, 0);
 
-    index_samples_more_needed.resize(seq_size, max_coverage);
+    index_samples_more_needed.resize(input_reads.ref_genome_length, max_coverage);
 
     // this can be removed by implementing sort by count
-    start_index_count_pref_sum.resize(seq_size + 1, 0);
-    reads_nr_sorted_by_start_ind.resize(reads_count);
+    start_index_count_pref_sum.resize(input_reads.ref_genome_length + 1, 0);
+    read_ids_by_ascending_start_id.resize(reads_count);
 
     for (int x = 0; x < reads_count; x++)
     {
-        start_index_count_pref_sum[input_sequence.start_inds[x] + 1]++;
-        reads_nr_sorted_by_start_ind[x] = x;
+        start_index_count_pref_sum[input_reads.start_inds[x] + 1]++;
+        read_ids_by_ascending_start_id[x] = x;
     }
 
     for (int x = 1; x < start_index_count_pref_sum.size(); x++)
@@ -249,24 +233,23 @@ std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::solve(uint32_t max_cove
     start_index_count_pref_sum.push_back(
         start_index_count_pref_sum[start_index_count_pref_sum.size() - 1]);
 
-    std::sort(reads_nr_sorted_by_start_ind.begin(), reads_nr_sorted_by_start_ind.end(),
+    std::sort(read_ids_by_ascending_start_id.begin(), read_ids_by_ascending_start_id.end(),
               [&](int ind1, int ind2)
               {
-                  if (input_sequence.start_inds[ind1] == input_sequence.start_inds[ind2])
-                      return input_sequence.end_inds[ind1] < input_sequence.end_inds[ind2];
-                  return input_sequence.start_inds[ind1] < input_sequence.start_inds[ind2];
+                  if (input_reads.start_inds[ind1] == input_reads.start_inds[ind2])
+                      return input_reads.end_inds[ind1] < input_reads.end_inds[ind2];
+                  return input_reads.start_inds[ind1] < input_reads.start_inds[ind2];
               });
 
-    while (start_ind < seq_size)
+    while (start_ind < input_reads.ref_genome_length)
     {
         // find best samples
         best_M.clear();
         // findBestSamples_tryFindShorter(max_coverage, input_sequence, start_ind, end_ind,
-        //                                start_inex_count_pref_sum, reads_nr_sorted_by_start_ind,
-        //                                best_M, best_M_prev);
-        findBestSamples(max_coverage, input_sequence, start_ind, end_ind,
-                        start_index_count_pref_sum, reads_nr_sorted_by_start_ind, best_M,
-                        best_M_prev);
+        //                                start_inex_count_pref_sum, read_ids_by_ascending_start_id
+        //                                , best_M, best_M_prev);
+        findBestSamples(max_coverage, input_reads, start_ind, end_ind, start_index_count_pref_sum,
+                        read_ids_by_ascending_start_id, best_M, best_M_prev);
 
         if (best_M.size() == 0)
         {
@@ -290,11 +273,11 @@ std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::solve(uint32_t max_cove
         start_ind = end_ind + 1;
         int it;
         for (it = best_M[N - 1].endInd; N < index_samples_more_needed[it] &&
-                                        it > input_sequence.start_inds[best_M[N - 1].readInd];
+                                        it > input_reads.start_inds[best_M[N - 1].readInd];
              it--)
             index_samples_more_needed[it] -= N;
         end_ind = it + 1;
-        for (; it >= static_cast<int>(input_sequence.start_inds[best_M[N - 1].readInd]); it--)
+        for (; it >= static_cast<int>(input_reads.start_inds[best_M[N - 1].readInd]); it--)
             index_samples_more_needed[it] = 0;
         best_M.eraseLess(end_ind);
         best_M.eraseFront(N);
@@ -306,7 +289,7 @@ std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::solve(uint32_t max_cove
         best_M = tmp;
     }
 
-    return obtain_sequence(input_sequence, ret_vec);
+    return obtain_sequence(input_reads, ret_vec);
 }
 
 std::unique_ptr<qmcp::Solution> qmcp::CpuCrawlingSolver::obtain_sequence(

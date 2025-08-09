@@ -40,8 +40,8 @@ class App
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
         {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
         {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
-        {"cpu-mixedInteger", std::make_shared<qmcp::CpuMixedIntegerSolver>()},
-        {"cpu-crawling", std::make_shared<qmcp::CpuCrawlingSolver>()},
+        {"mixedInteger-cpu", std::make_shared<qmcp::CpuMixedIntegerSolver>()},
+        {"crawling-cpu", std::make_shared<qmcp::CpuCrawlingSolver>()},
 #ifdef CUDA_ENABLED
         {"quasi-mcp-cuda", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()}
 #endif
