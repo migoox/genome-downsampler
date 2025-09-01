@@ -10,15 +10,13 @@
 #include "bam-api/paired_reads.hpp"
 #include "bam-api/read.hpp"
 
-namespace bam_api
-{
+namespace bam_api {
 
 // Forward declaration
 struct AOSPairedReads;
 
 // Structure of Arrays (SoA) implementation
-struct SOAPairedReads : PairedReads
-{
+struct SOAPairedReads : PairedReads {
     std::vector<BAMReadId> ids;
     std::vector<Index> start_inds;
     std::vector<Index> end_inds;
@@ -26,8 +24,7 @@ struct SOAPairedReads : PairedReads
     std::vector<uint32_t> seq_lengths;
     std::vector<bool> is_first_reads;
 
-    inline void push_back(Read&& read) override
-    {
+    inline void push_back(Read&& read) override {
         ids.emplace_back(read.bam_id);
         start_inds.emplace_back(read.start_ind);
         end_inds.emplace_back(read.end_ind);
@@ -36,8 +33,7 @@ struct SOAPairedReads : PairedReads
         is_first_reads.emplace_back(read.is_first_read);
     }
 
-    inline void push_back(const Read& read) override
-    {
+    inline void push_back(const Read& read) override {
         ids.push_back(read.bam_id);
         start_inds.push_back(read.start_ind);
         end_inds.push_back(read.end_ind);
@@ -46,8 +42,7 @@ struct SOAPairedReads : PairedReads
         is_first_reads.push_back(read.is_first_read);
     }
 
-    inline void reserve(size_t size) override
-    {
+    inline void reserve(size_t size) override {
         ids.reserve(size);
         start_inds.reserve(size);
         end_inds.reserve(size);
@@ -56,21 +51,7 @@ struct SOAPairedReads : PairedReads
         is_first_reads.reserve(size);
     }
 
-    void printReads()
-    {
-        for (int x = 0; x < ref_genome_length; x++)
-        {
-            for (int y = 0; y < get_reads_count(); y++)
-            {
-                if (x >= start_inds[y] && x <= end_inds[y])
-                    std::cout << "1 ";
-                else
-                    std::cout << "0 ";
-            }
-            std::cout << "\n";
-        }
-    }
-
+    void printReads() const;
     Read get_read_by_index(ReadIndex index) const override;
     ReadQuality get_quality(ReadIndex index) const override;
     void set_quality(ReadIndex index, ReadQuality quality) override;

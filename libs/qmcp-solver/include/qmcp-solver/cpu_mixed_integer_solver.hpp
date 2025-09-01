@@ -20,9 +20,9 @@ class CpuMixedIntegerSolver : public Solver
     bool uses_quality_of_reads() override { return true; }
 
    private:
-    std::unique_ptr<Solver> helperSolver;
-    uint32_t getSolutionReadsCount(uint32_t max_coverage, bam_api::BamApi& bam_api);
-    static std::unique_ptr<Solution> obtain_sequence(const bam_api::SOAPairedReads& sequence,
+    std::unique_ptr<Solver> helper_solver;
+    uint32_t get_solution_reads_count(uint32_t max_coverage, bam_api::BamApi& bam_api);
+    static std::unique_ptr<Solution> obtain_sequence(const bam_api::AOSPairedReads& sequence,
                                                      std::vector<int64_t>& solution);
 
     bam_api::AOSPairedReads input_sequence_;

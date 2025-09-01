@@ -23,8 +23,7 @@
 #include "tests/solver_tester.hpp"
 #endif
 
-class App
-{
+class App {
     static constexpr uint32_t kDefaultMinSeqLength = 90;
     static constexpr uint32_t kDefaultMinSeqMAPQ = 30;
     static constexpr uint32_t kDefaultThreadCount = 2;
@@ -40,7 +39,7 @@ class App
         {"quasi-mcp-cpu", std::make_shared<qmcp::QuasiMcpCpuMaxFlowSolver>()},
         {"mcp-cpu", std::make_shared<qmcp::McpCpuCostScalingSolver>()},
         {"qmcp-cpu", std::make_shared<qmcp::QmcpCpuCostScalingSolver>()},
-        {"mixedInteger-cpu", std::make_shared<qmcp::CpuMixedIntegerSolver>()},
+        {"mixed-integer-cpu", std::make_shared<qmcp::CpuMixedIntegerSolver>()},
         {"crawling-cpu", std::make_shared<qmcp::CpuCrawlingSolver>()},
 #ifdef CUDA_ENABLED
         {"quasi-mcp-cuda", std::make_shared<qmcp::QuasiMcpCudaMaxFlowSolver>()}

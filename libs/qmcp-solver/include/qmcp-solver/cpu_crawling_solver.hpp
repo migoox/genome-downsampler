@@ -18,7 +18,7 @@ class CpuCrawlingSolver : public Solver
     bool uses_quality_of_reads() override { return true; }
 
    private:
-    static std::unique_ptr<Solution> obtain_sequence(const bam_api::SOAPairedReads& sequence,
+    static std::unique_ptr<Solution> obtain_sequence(const bam_api::AOSPairedReads& sequence,
                                                      std::vector<int64_t>& solution);
 
     bam_api::AOSPairedReads input_sequence_;

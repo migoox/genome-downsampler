@@ -1,8 +1,21 @@
 #include "bam-api/soa_paired_reads.hpp"
 
 #include "bam-api/aos_paired_reads.hpp"
+#include "logging/log.hpp"
 
 // SOAPairedReads methods
+void bam_api::SOAPairedReads::printReads() const {
+    for (int x = 0; x < ref_genome_length; x++) {
+        for (int y = 0; y < get_reads_count(); y++) {
+            if (x >= start_inds[y] && x <= end_inds[y])
+                LOG_WITH_LEVEL(logging::DEBUG) << "1 ";
+            else
+                LOG_WITH_LEVEL(logging::DEBUG) << "0 ";
+        }
+        LOG_WITH_LEVEL(logging::DEBUG) << "\n";
+    }
+}
+
 bam_api::ReadQuality bam_api::SOAPairedReads::get_quality(ReadIndex index) const {
     return qualities[index];
 }
