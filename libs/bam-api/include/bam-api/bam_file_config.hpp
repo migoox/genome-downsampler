@@ -1,5 +1,5 @@
-#ifndef BAM_API_CONFIG_HPP
-#define BAM_API_CONFIG_HPP
+#ifndef BAM_FILE_CONFIG_HPP
+#define BAM_FILE_CONFIG_HPP
 
 #include <cstdint>
 #include <filesystem>
@@ -15,16 +15,17 @@ enum class AmpliconBehaviour {
     GRADE,
 };
 
-struct BamApiConfig {
+struct BamFileConfig {
     std::filesystem::path bed_filepath;
     std::filesystem::path tsv_filepath;
     uint32_t hts_thread_count = 1;
     uint32_t min_seq_length = 0;
+    uint32_t amp_overflow = 0;
     uint32_t min_mapq = 0;
+    float min_alignment = 0.;
     AmpliconBehaviour amplicon_behaviour = AmpliconBehaviour::IGNORE;
 };
 
 }  // namespace bam_api
 
 #endif
-

@@ -7,13 +7,13 @@
 #include <memory>
 #include <vector>
 
-#include "bam-api/bam_api.hpp"
+#include "bam-api/region_api.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
 class McpCpuCostScalingSolver : public Solver {
    public:
-    std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::BamApi& bam_api) override;
+    std::unique_ptr<Solution> solve(uint32_t max_coverage, bam_api::RegionApi& reg_api) override;
     bool uses_quality_of_reads() override { return true; }
 
    private:

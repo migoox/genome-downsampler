@@ -1,14 +1,17 @@
 #ifndef BAM_API_AMPLICONS_HPP
 #define BAM_API_AMPLICONS_HPP
 
+#include <string>
+
 #include "bam-api/read.hpp"
 
 namespace bam_api {
 struct Amplicon {
     Index start;
     Index end;
+    uint32_t overflow;
 
-    Amplicon(Index start, Index end);
+    Amplicon(Index start, Index end, uint32_t overflow);
 
     bool includes(const Read& read) const;
 };

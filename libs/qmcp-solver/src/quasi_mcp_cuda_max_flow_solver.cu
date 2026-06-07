@@ -3,7 +3,7 @@
 #ifdef CUDA_ENABLED
 #include <list>
 
-#include "bam-api/bam_api.hpp"
+#include "bam-api/region_api.hpp"
 #include "bam-api/paired_reads.hpp"
 #include "qmcp-solver/cuda_helpers.cuh"
 #include "qmcp-solver/quasi_mcp_cuda_max_flow_solver.hpp"
@@ -317,8 +317,8 @@ void qmcp::QuasiMcpCudaMaxFlowSolver::set_kernel_cycles(uint32_t kernel_cycles) 
 }
 
 std::unique_ptr<qmcp::Solution> qmcp::QuasiMcpCudaMaxFlowSolver::solve(uint32_t required_cover,
-                                                                       bam_api::BamApi& bam_api) {
-    input_sequence_ = bam_api.get_paired_reads_soa();
+                                                                       bam_api::RegionApi& reg_api) {
+    input_sequence_ = reg_api.get_paired_reads_soa();
 
     // Create max coverage function
     max_coverage_.resize(input_sequence_.ref_genome_length + 1, 0);

@@ -57,6 +57,12 @@ This section details the available CLI options for configuring the `genome-downs
 - `-q`, `--min-mapq` `UINT` : **Minimum MAPQ value**
   - Minimum Mapping Quality (MAPQ) value of sequences to retain. Sequences with MAPQ lower than this value will be filtered out. Default is 30.
 
+- `-f`, `--amp-overflow` `UINT` : **Amplicon overflow**
+  - Number of base pairs a read can extend outside of an amplicon and still be considered part of the amplicon. Defaults to 0.
+
+- `-g`, `--min-alignment` `FLOAT` : **Minimum alignment ratio**
+  - Minimum alignment ratio (AS/sequence length) required for a sequence to be retained. Must be a value between 0 and 1. Defaults to 0.5.
+
 - `-@`, `--threads` `UINT` : **Number of threads**
   - Number of threads for htslib read/write operations. Default is 2.
 

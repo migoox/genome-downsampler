@@ -8,8 +8,8 @@
 #include <memory>
 #include <vector>
 
-#include "bam-api/bam_api.hpp"
 #include "bam-api/paired_reads.hpp"
+#include "bam-api/region_api.hpp"
 #include "solver.hpp"
 
 namespace qmcp {
@@ -24,7 +24,7 @@ class QuasiMcpCudaMaxFlowSolver : public Solver {
 
     enum class EdgeDirection : uint8_t { Forward, Backward };
 
-    std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::BamApi& bam_api) override;
+    std::unique_ptr<Solution> solve(uint32_t required_cover, bam_api::RegionApi& reg_api) override;
     bool uses_quality_of_reads() override { return false; }
 
     void set_block_size(uint32_t block_size);
@@ -54,7 +54,6 @@ class QuasiMcpCudaMaxFlowSolver : public Solver {
     uint32_t block_size_ = kDefaultBlockSize;
     uint32_t kernel_cycles_ = kDefaultKernelCycles;
 
-    std::filesystem::path input_filepath_;
     bam_api::SOAPairedReads input_sequence_;
     std::vector<uint32_t> max_coverage_;
 

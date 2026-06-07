@@ -16,7 +16,7 @@ struct SOAPairedReads;
 struct AOSPairedReads : PairedReads {
     std::vector<Read> reads;
 
-    inline void push_back(Read&& read) override { reads.emplace_back(read); }
+    inline void push_back(Read&& read) override { reads.emplace_back(std::move(read)); }
     inline void push_back(const Read& read) override { reads.push_back(read); }
     inline void reserve(size_t size) override { reads.reserve(size); }
     ReadQuality get_quality(ReadIndex index) const override;

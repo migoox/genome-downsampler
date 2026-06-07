@@ -25,6 +25,8 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
 
     std::discrete_distribution<> dist(dist_data.begin(), dist_data.end());
     std::uniform_int_distribution<> quality_dist(0, max_quality);
+    std::uniform_int_distribution<> mapq_dist(0, 60);  // Example MAPQ range
+    std::uniform_int_distribution<> as_dist(0, 100);   // Example AS range
 
     bam_api::AOSPairedReads result;
     result.ref_genome_length = genome_length;
@@ -43,10 +45,12 @@ bam_api::AOSPairedReads reads_gen::rand_reads(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1,
-                                             quality_dist(generator), read_length, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1,
-                                             quality_dist(generator), read_length, false));
+        result.reads.push_back(
+            bam_api::Read(i, first, first + read_length - 1, quality_dist(generator), read_length,
+                          mapq_dist(generator), as_dist(generator), true, false, false, false));
+        result.reads.push_back(bam_api::Read(
+            i + 1, second, second + read_length - 1, quality_dist(generator), read_length,
+            mapq_dist(generator), as_dist(generator), false, false, false, false));
     }
 
     return result;
@@ -61,6 +65,8 @@ bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
     std::uniform_int_distribution<> dist_second(0,
                                                 static_cast<int32_t>(genome_length - read_length));
     std::uniform_int_distribution<> quality_dist(0, max_quality);
+    std::uniform_int_distribution<> mapq_dist(0, 60);  // Example MAPQ range
+    std::uniform_int_distribution<> as_dist(0, 100);   // Example AS range
 
     bam_api::AOSPairedReads result;
     result.ref_genome_length = genome_length;
@@ -76,10 +82,12 @@ bam_api::AOSPairedReads reads_gen::rand_reads_uniform(std::mt19937& generator,
             second = first + read_length;
         }
 
-        result.reads.push_back(bam_api::Read(i, first, first + read_length - 1,
-                                             quality_dist(generator), read_length, true));
-        result.reads.push_back(bam_api::Read(i + 1, second, second + read_length - 1,
-                                             quality_dist(generator), read_length, false));
+        result.reads.push_back(
+            bam_api::Read(i, first, first + read_length - 1, quality_dist(generator), read_length,
+                          mapq_dist(generator), as_dist(generator), true, false, false, false));
+        result.reads.push_back(bam_api::Read(
+            i + 1, second, second + read_length - 1, quality_dist(generator), read_length,
+            mapq_dist(generator), as_dist(generator), false, false, false, false));
     }
 
     return result;
